@@ -1,0 +1,32 @@
+import 'package:flutter/material.dart';
+import 'package:marketlinkapp/components/auto_size_text.dart';
+
+void successSnackbar(BuildContext context, String content) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    backgroundColor: Color.fromARGB(255, 83, 207, 87),
+    behavior: SnackBarBehavior.floating,
+    margin: const EdgeInsets.all(16),
+    content: CustomText(
+      textLabel: content,
+      fontSize: 15,
+      maxLines: 2,
+      textColor: Colors.white,
+      fontWeight: FontWeight.bold,
+    ),
+  ));
+}
+
+void errorSnackbar(BuildContext context, String content) {
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    backgroundColor: const Color.fromARGB(255, 255, 106, 0),
+    behavior: SnackBarBehavior.floating,
+    margin: const EdgeInsets.all(16),
+    content: CustomText(
+      textLabel: content,
+      fontSize: 15,
+      maxLines: 2,
+      textColor: Colors.white,
+      fontWeight: FontWeight.bold,
+    ),
+  ));
+}

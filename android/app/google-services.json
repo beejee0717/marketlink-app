@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1023416116583",
+    "project_id": "marketlink-app",
+    "storage_bucket": "marketlink-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1023416116583:android:33965ef7c9d74f2f1cfbc2",
+        "android_client_info": {
+          "package_name": "com.example.marketlinkapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4UWfGlb8m4qvfYcaI3JMSff0h7FFHQc4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
