@@ -39,12 +39,83 @@ class SelectRole extends StatelessWidget {
           SizedBox(
             height: 50,
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Column(
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  GestureDetector(
+                      onTap: () {
+                        navPushReplacement(
+                            context, const SignUp(role: 'Customer'));
+                      },
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                            color: Colors.yellow,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                                width: 5, color: Colors.yellow.shade800)),
+                        child: Column(
+                          children: [
+                            SvgPicture.asset(
+                              'assets/svg/cart.svg',
+                              width: 110,
+                              height: 110,
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            CustomText(
+                              textLabel: 'Customer',
+                              fontSize: 25,
+                              letterSpacing: 1,
+                              fontWeight: FontWeight.bold,
+                              textColor: Colors.purple.shade900,
+                            )
+                          ],
+                        ),
+                      )),
+                  GestureDetector(
+                      onTap: () {
+                        navPushReplacement(
+                            context, const SignUp(role: 'Seller'));
+                      },
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                            color: Colors.yellow,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(
+                                width: 5, color: Colors.yellow.shade800)),
+                        child: Column(
+                          children: [
+                            SvgPicture.asset(
+                              'assets/svg/store.svg',
+                              width: 110,
+                              height: 110,
+                            ),
+                            SizedBox(
+                              height: 10,
+                            ),
+                            CustomText(
+                              textLabel: 'Seller',
+                              fontSize: 25,
+                              letterSpacing: 1,
+                              fontWeight: FontWeight.bold,
+                              textColor: Colors.purple.shade900,
+                            )
+                          ],
+                        ),
+                      )),
+                ],
+              ),
+              SizedBox(height: 20),
               GestureDetector(
                   onTap: () {
-                    navPushReplacement(context, const SignUp(role: 'Customer'));
+                    navPushReplacement(context, const SignUp(role: 'Rider'));
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -56,7 +127,7 @@ class SelectRole extends StatelessWidget {
                     child: Column(
                       children: [
                         SvgPicture.asset(
-                          'assets/svg/cart.svg',
+                          'assets/svg/helmet.svg',
                           width: 110,
                           height: 110,
                         ),
@@ -64,7 +135,7 @@ class SelectRole extends StatelessWidget {
                           height: 10,
                         ),
                         CustomText(
-                          textLabel: 'Customer',
+                          textLabel: 'Rider',
                           fontSize: 25,
                           letterSpacing: 1,
                           fontWeight: FontWeight.bold,
@@ -73,37 +144,6 @@ class SelectRole extends StatelessWidget {
                       ],
                     ),
                   )),
-              GestureDetector(
-                  onTap: () {
-                    navPushReplacement(context, const SignUp(role: 'Seller'));
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                        color: Colors.yellow,
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                            width: 5, color: Colors.yellow.shade800)),
-                    child: Column(
-                      children: [
-                        SvgPicture.asset(
-                          'assets/svg/store.svg',
-                          width: 110,
-                          height: 110,
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        CustomText(
-                          textLabel: 'Seller',
-                          fontSize: 25,
-                          letterSpacing: 1,
-                          fontWeight: FontWeight.bold,
-                          textColor: Colors.purple.shade900,
-                        )
-                      ],
-                    ),
-                  ))
             ],
           )
         ],

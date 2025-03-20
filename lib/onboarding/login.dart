@@ -78,6 +78,7 @@ class _LogInState extends State<LogIn> {
         child: Scaffold(
           backgroundColor: Colors.purple.shade900,
           body: SingleChildScrollView(
+            reverse: true,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
