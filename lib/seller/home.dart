@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/seller/add_product.dart';
+import 'package:marketlinkapp/seller/add_service.dart';
 import 'package:marketlinkapp/seller/all_products.dart';
 import 'package:marketlinkapp/seller/product_details.dart';
 import 'package:marketlinkapp/seller/profile.dart';
@@ -387,31 +388,59 @@ class _SellerHomeState extends State<SellerHome> {
               },
             ),
             const SizedBox(height: 10),
-            Center(
-              child: ElevatedButton(
-                onPressed: () {
-                  if (userInfo!.approved) {
-                    navPush(context, SellerAddProduct());
-                  } else {
-                    errorSnackbar(context,
-                        'This account is not approved yet. Please wait for admin approval before being able to sell items.');
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.yellow,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (userInfo!.approved) {
+                      navPush(context, SellerAddProduct());
+                    } else {
+                      errorSnackbar(context,
+                          'This account is not approved yet. Please wait for admin approval before being able to sell items.');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.yellow,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: CustomText(
+                    textLabel: "Add Product",
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    textColor: Colors.purple.shade800,
+                  ),
+                ),  ElevatedButton(
+                  onPressed: () {
+                    if (userInfo!.approved) {
+                      navPush(context, SellerAddService());
+                    } else {
+                      errorSnackbar(context,
+                          'This account is not approved yet. Please wait for admin approval before being able to sell items.');
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.yellow,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: CustomText(
+                    textLabel: "Add Service",
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    textColor: Colors.purple.shade800,
                   ),
                 ),
-                child: CustomText(
-                  textLabel: "Add Product",
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  textColor: Colors.purple.shade800,
-                ),
-              ),
+             
+              ],
+              
             ),
             const SizedBox(height: 20),
             const CustomText(

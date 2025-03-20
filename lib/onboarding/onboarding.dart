@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/onboarding/auth.dart';
 
 import '../components/navigator.dart';
 import 'login.dart';
@@ -87,7 +88,7 @@ class _OnboardingState extends State<Onboarding> {
                       opacity: _buttonOpacity,
                       child: ElevatedButton(
                         onPressed: () =>
-                            navPushReplacement(context, const LogIn()),
+                            navPushReplacement(context, const AuthChecker()),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 40, vertical: 15),
