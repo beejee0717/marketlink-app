@@ -64,6 +64,10 @@ class _SellerState extends State<Seller> {
               label: 'Orders',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month),
+              label: 'Booked Services',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.chat),
               label: 'Chat',
             ),

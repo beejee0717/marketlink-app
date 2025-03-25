@@ -3,7 +3,6 @@ import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/onboarding/auth.dart';
 
 import '../components/navigator.dart';
-import 'login.dart';
 
 class Onboarding extends StatefulWidget {
   const Onboarding({super.key});

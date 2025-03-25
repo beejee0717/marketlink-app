@@ -8,7 +8,7 @@ import 'package:marketlinkapp/seller/product_details.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
 import '../components/cloudinary.dart';
-import '../components/product_categories.dart';
+import '../components/categories.dart';
 import '../components/product_image.dart';
 import '../provider/user_provider.dart';
 
@@ -230,9 +230,9 @@ class _SellerEditProductState extends State<SellerEditProduct> {
                 color: Colors.white,
               ),
             ),
-            backgroundColor: Colors.blue.shade600,
+            backgroundColor: Colors.purple.shade900,
             title: const CustomText(
-              textLabel: "Add Product",
+              textLabel: "Edit Product",
               fontSize: 22,
               fontWeight: FontWeight.bold,
               textColor: Colors.white,
@@ -304,7 +304,7 @@ class _SellerEditProductState extends State<SellerEditProduct> {
                       fontSize: 14,
                       textColor: Colors.grey,
                     ),
-                    items: categories.map((category) {
+                    items: productCategories.map((category) {
                       return DropdownMenuItem<String>(
                         value: category,
                         child: CustomText(

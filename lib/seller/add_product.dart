@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
@@ -9,7 +8,7 @@ import 'package:marketlinkapp/seller/home.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
 import '../components/cloudinary.dart';
-import '../components/product_categories.dart';
+import '../components/categories.dart';
 import '../components/product_image.dart';
 import '../provider/user_provider.dart';
 
@@ -33,6 +32,10 @@ class _SellerAddProductState extends State<SellerAddProduct> {
   final formKey = GlobalKey<FormState>();
   bool isLoading = false;
   bool? showWarning;
+
+
+
+
 
   @override
   void initState() {
@@ -132,7 +135,6 @@ class _SellerAddProductState extends State<SellerAddProduct> {
         'imageUrl': cloudinaryUrl,
         'pickupLocation': selectedLocation,
         'dateCreated': FieldValue.serverTimestamp(),
-        'approved': false,
       });
 
       if (!mounted) return;
@@ -266,7 +268,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
                       fontSize: 14,
                       textColor: Colors.grey,
                     ),
-                    items: categories.map((category) {
+                    items: productCategories.map((category) {
                       return DropdownMenuItem<String>(
                         value: category,
                         child: CustomText(
@@ -455,7 +457,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
                         ),
                       ),
                       child: const CustomText(
-                        textLabel: "Add Product",
+                        textLabel: "Add Product manually",
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         textColor: Colors.white,

@@ -1,3 +1,4 @@
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -26,7 +27,13 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
     super.initState();
     fetchProducts();
   }
-
+  Stream<bool> getSellerApprovalStatus(String sellerId) {
+    return FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .snapshots()
+        .map((snapshot) => snapshot.data()?['approved'] == true);
+  }
   void fetchProducts() {
     final userInfo = Provider.of<UserProvider>(context, listen: false).user;
     final sellerId = userInfo?.uid ?? "";
@@ -48,6 +55,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       backgroundColor: Colors.purple.shade900,
       appBar: AppBar(
@@ -138,95 +146,97 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                       final product = productDoc.data() as Map<String, dynamic>;
                       final productId = productDoc.id;
 
-                      return Card(
-                        elevation: 2,
-                        margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListTile(
-                          leading: product['imageUrl'] != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    product['imageUrl'],
-                                    width: 60,
-                                    height: 60,
-                                    fit: BoxFit.cover,
+                      return FadeInLeft(
+                        child: Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: ListTile(
+                            leading: product['imageUrl'] != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product['imageUrl'],
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.image,
+                                    size: 60,
+                                    color: Colors.grey,
                                   ),
-                                )
-                              : const Icon(
-                                  Icons.image,
-                                  size: 60,
-                                  color: Colors.grey,
+                            title: CustomText(
+                              textLabel:
+                                  product['productName'] ?? "Unnamed Product",
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      textLabel: "Category: ",
+                                      fontSize: 14,
+                                      textColor: Colors.black87,
+                                    ),
+                                    CustomText(
+                                      textLabel:
+                                          product['category'] ?? 'Uncategorized',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ],
                                 ),
-                          title: CustomText(
-                            textLabel:
-                                product['productName'] ?? "Unnamed Product",
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      textLabel: "Price: ",
+                                      fontSize: 14,
+                                      textColor: Colors.black87,
+                                    ),
+                                    CustomText(
+                                      textLabel:
+                                          "₱${product['price']?.toStringAsFixed(0) ?? 'N/A'}",
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      textColor: Colors.orange,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    CustomText(
+                                      textLabel: "Stock: ",
+                                      fontSize: 14,
+                                      textColor: Colors.black87,
+                                    ),
+                                    CustomText(
+                                      textLabel: "${product['stock'] ?? 0}",
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                              ],
+                            ),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: Colors.yellow.shade800,
+                            ),
+                            onTap: () {
+                              navPush(context,
+                                  SellerProductDetails(productId: productId));
+                            },
                           ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: "Category: ",
-                                    fontSize: 14,
-                                    textColor: Colors.black87,
-                                  ),
-                                  CustomText(
-                                    textLabel:
-                                        product['category'] ?? 'Uncategorized',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: "Price: ",
-                                    fontSize: 14,
-                                    textColor: Colors.black87,
-                                  ),
-                                  CustomText(
-                                    textLabel:
-                                        "₱${product['price']?.toStringAsFixed(0) ?? 'N/A'}",
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    textColor: Colors.orange,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: "Stock: ",
-                                    fontSize: 14,
-                                    textColor: Colors.black87,
-                                  ),
-                                  CustomText(
-                                    textLabel: "${product['stock'] ?? 0}",
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                            ],
-                          ),
-                          trailing: Icon(
-                            Icons.chevron_right,
-                            color: Colors.yellow.shade800,
-                          ),
-                          onTap: () {
-                            navPush(context,
-                                SellerProductDetails(productId: productId));
-                          },
                         ),
                       );
                     },
@@ -237,20 +247,33 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final userInfo =
-              Provider.of<UserProvider>(context, listen: false).user;
-          if (userInfo!.approved) {
-            navPush(context, SellerAddProduct());
-          } else {
-            errorSnackbar(context,
-                'This account is not approved yet. Please wait for admin approval before being able to sell items.');
-          }
-        },
-        backgroundColor: Colors.purple.shade600,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+  floatingActionButton: StreamBuilder<bool>(
+  stream: getSellerApprovalStatus(
+    Provider.of<UserProvider>(context, listen: false).user!.uid,
+  ),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData || snapshot.connectionState == ConnectionState.waiting) {
+      return const SizedBox.shrink(); 
+    }
+
+    bool isApproved = snapshot.data!;
+
+    return FloatingActionButton(
+      onPressed: () {
+        if (isApproved) {
+          navPush(context, SellerAddProduct());
+        } else {
+          errorSnackbar(context,
+              'This account is not approved yet. Please wait for admin approval before being able to sell items.');
+        }
+      },
+      backgroundColor: Colors.purple.shade600,
+      child: const Icon(Icons.add, color: Colors.white),
+    );
+  },
+),
+
+
     );
   }
 }
