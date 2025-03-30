@@ -66,7 +66,7 @@ Future<void> pickTime(bool isStart) async {
 
  
 
- Future<void> addService(String sellerId) async {
+Future<void> addService(String sellerId) async {
   FocusManager.instance.primaryFocus?.unfocus();
 
   if (!formKey.currentState!.validate()) {
@@ -100,13 +100,20 @@ Future<void> pickTime(bool isStart) async {
 
     if (cloudinaryUrl == null) {
       if (!mounted) return;
-      errorSnackbar(context, 'Failed to upload Services image.');
+      errorSnackbar(context, 'Failed to upload Service image.');
       return;
     }
 
+    List<String> searchKeywords = serviceNameController.text
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .toSet()
+        .toList(); 
+
     await FirebaseFirestore.instance.collection('services').add({
       'serviceName': serviceNameController.text.trim(),
-      'lowercaseName': serviceNameController.text.trim().toLowerCase(),
+      'searchKeywords': searchKeywords, 
       'price': double.parse(priceController.text.trim()),
       'description': descriptionController.text.trim(),
       'sellerId': sellerId,

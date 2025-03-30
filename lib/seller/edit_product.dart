@@ -134,72 +134,79 @@ class _SellerEditProductState extends State<SellerEditProduct> {
     }
   }
 
-  Future<void> updateProduct() async {
-    FocusManager.instance.primaryFocus?.unfocus();
+ Future<void> updateProduct() async {
+  FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!formKey.currentState!.validate()) {
+  if (!formKey.currentState!.validate()) {
+    return;
+  }
+
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    String imageUrl = existingImagePath ?? '';
+    if (localImagePath != null) {
+      final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
+        File(localImagePath!),
+      );
+
+      if (cloudinaryUrl == null) {
+        if (!mounted) return;
+        errorSnackbar(context, 'Failed to upload product image.');
+        return;
+      }
+      imageUrl = cloudinaryUrl;
+    }
+
+    if (selectedLocation == null || selectedLocation!.isEmpty) {
+      if (!mounted) return;
+
+      errorSnackbar(context, 'Please select a valid pickup location.');
       return;
     }
 
-    setState(() {
-      isLoading = true;
+    List<String> searchKeywords = productNameController.text
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .toSet()
+        .toList();
+
+    await FirebaseFirestore.instance
+        .collection('products')
+        .doc(widget.productId)
+        .update({
+      'productName': productNameController.text.trim(),
+      'searchKeywords': searchKeywords,
+      'category': selectedCategory ?? "Uncategorized",
+      'price': double.parse(priceController.text.trim()),
+      'stock': int.parse(stockController.text.trim()),
+      'materials': materialsController.text.trim(),
+      'description': descriptionController.text.trim(),
+      'imageUrl': imageUrl,
+      'pickupLocation': selectedLocation,
     });
 
-    try {
-      String imageUrl = existingImagePath ?? '';
-      if (localImagePath != null) {
-        final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
-          File(localImagePath!),
-        );
+    if (!mounted) return;
+    successSnackbar(context, "Product updated successfully!");
 
-        if (cloudinaryUrl == null) {
-          if (!mounted) return;
-          errorSnackbar(context, 'Failed to upload product image.');
-          return;
-        }
-        imageUrl = cloudinaryUrl;
-      }
-
-      if (selectedLocation == null || selectedLocation!.isEmpty) {
-        if (!mounted) return;
-
-        errorSnackbar(context, 'Please select a valid pickup location.');
-        return;
-      }
-
-      await FirebaseFirestore.instance
-          .collection('products')
-          .doc(widget.productId)
-          .update({
-        'productName': productNameController.text.trim(),
-        'lowercaseName': productNameController.text.trim().toLowerCase(),
-        'category': selectedCategory ?? "Uncategorized",
-        'price': double.parse(priceController.text.trim()),
-        'stock': int.parse(stockController.text.trim()),
-        'materials': materialsController.text.trim(),
-        'description': descriptionController.text.trim(),
-        'imageUrl': imageUrl,
-        'pickupLocation': selectedLocation,
-      });
-
-      if (!mounted) return;
-      successSnackbar(context, "Product updated successfully!");
-
-      navPop(context);
-      navPushReplacement(
-        context,
-        SellerProductDetails(
-          productId: widget.productId,
-        ),
-      );
-    } catch (e) {
-      errorSnackbar(context, 'Failed to update product.');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+    navPop(context);
+    navPushReplacement(
+      context,
+      SellerProductDetails(
+        productId: widget.productId,
+      ),
+    );
+  } catch (e) {
+    errorSnackbar(context, 'Failed to update product.');
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

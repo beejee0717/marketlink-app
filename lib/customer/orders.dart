@@ -39,8 +39,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
       return;
     }
 
-    final ongoingOrders = await fetchOrders(userId, delivered: false);
-    final finishedOrders = await fetchOrders(userId, delivered: true);
+    final ongoingOrders = await fetchOrders(userId, status: 'ordered');
+    final finishedOrders = await fetchOrders(userId, status: 'delivered');
     if (!mounted) return;
     setState(() {
       _ongoingOrders = ongoingOrders;
@@ -50,12 +50,12 @@ class _CustomerOrdersState extends State<CustomerOrders>
   }
 
   Future<List<Map<String, dynamic>>> fetchOrders(String userId,
-      {required bool delivered}) async {
+      {required String status}) async {
     final querySnapshot = await FirebaseFirestore.instance
         .collection('customers')
         .doc(userId)
         .collection('orders')
-        .where('delivered', isEqualTo: delivered)
+        .where('status', isEqualTo: 'ordered')
         .get();
 
     if (querySnapshot.docs.isEmpty) {

@@ -9,6 +9,8 @@ import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/category.dart';
 import 'package:marketlinkapp/customer/product.dart';
 import 'package:marketlinkapp/customer/profile.dart';
+import 'package:marketlinkapp/customer/search.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -21,31 +23,25 @@ class CustomerHome extends StatefulWidget {
 
 class _CustomerHomeState extends State<CustomerHome> {
   final TextEditingController searchController = TextEditingController();
-  String searchQuery = '';
+  String? selectedCategory;
   Timer? debounceTimer;
 
-  Future<List<QueryDocumentSnapshot>> fetchRecentProducts() async {
-    final querySnapshot = await FirebaseFirestore.instance
+  Future<List<QueryDocumentSnapshot>> fetchProducts() async {
+    Query query = FirebaseFirestore.instance
         .collection('products')
-        .orderBy('dateCreated', descending: true)
-        .get();
-    return querySnapshot.docs;
-  }
+        .orderBy('dateCreated', descending: true);
 
-  Future<List<QueryDocumentSnapshot>> searchProducts(String query) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .where('lowercaseName', isGreaterThanOrEqualTo: query.toLowerCase())
-        .where('lowercaseName',
-            isLessThanOrEqualTo: "${query.toLowerCase()}\uf8ff")
-        .get();
+    if (selectedCategory != null && selectedCategory!.isNotEmpty) {
+      query = query.where('category', isEqualTo: selectedCategory);
+    }
+
+    final querySnapshot = await query.get();
     return querySnapshot.docs;
   }
 
   @override
   void initState() {
     super.initState();
-    searchController.addListener(onSearchChanged);
   }
 
   @override
@@ -55,18 +51,16 @@ class _CustomerHomeState extends State<CustomerHome> {
     super.dispose();
   }
 
-  void onSearchChanged() {
-    if (debounceTimer?.isActive ?? false) debounceTimer!.cancel();
-
-    debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      setState(() {
-        searchQuery = searchController.text.trim();
-      });
+  void onCategorySelected(String category) {
+    setState(() {
+      selectedCategory = category;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final String userId =
+        Provider.of<UserProvider>(context, listen: false).user!.uid;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -76,8 +70,6 @@ class _CustomerHomeState extends State<CustomerHome> {
           IconButton(
             icon: Icon(Icons.message, color: Colors.black),
             onPressed: () {
-              final String userId =
-                  Provider.of<UserProvider>(context, listen: false).user!.uid;
               navPush(
                   context,
                   Chat(
@@ -100,113 +92,75 @@ class _CustomerHomeState extends State<CustomerHome> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: searchController,
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value.trim();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search what you want...',
-                  prefixIcon: Icon(Icons.search),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  filled: true,
-                  fillColor: Colors.grey[200],
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.grey[200],
                 ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CustomText(
-                    textLabel: 'Categories',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  TextButton(
-                      onPressed: () {
-                        navPush(context,
-                            const CustomerCategory(category: 'Market Link'));
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search what you want...',
+                          prefixIcon: Icon(Icons.search),
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        String query = searchController.text.trim();
+                        if (query.isNotEmpty) {
+                          navPush(
+                            context,
+                            SearchResultsPage(query: query, userId: userId),
+                          );
+                        }
                       },
-                      child: CustomText(
-                        textLabel: 'See all',
-                        fontSize: 15,
-                        textColor: Colors.blue.shade800,
-                      )),
-                ],
+                      child: Container(
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Text(
+                          'Search',
+                          style: TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 10),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
+                    buildCategoryItem(context, 'All', Icons.category),
+                    buildCategoryItem(context, 'Home', Icons.home),
+                    buildCategoryItem(context, 'Clothing', Icons.checkroom),
+                    buildCategoryItem(context, 'Electronics', Icons.devices),
+                    buildCategoryItem(context, 'Beauty', Icons.brush),
+                    buildCategoryItem(context, 'Toys', Icons.toys),
+                    buildCategoryItem(context, 'Sports', Icons.sports),
+                    buildCategoryItem(context, 'Food', Icons.fastfood),
+                    buildCategoryItem(context, 'Books', Icons.menu_book),
                     buildCategoryItem(
-                      context,
-                      'Home',
-                      Icons.home,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Clothing',
-                      Icons.checkroom,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Electronics',
-                      Icons.devices,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Beauty',
-                      Icons.brush,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Toys',
-                      Icons.toys,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Sports',
-                      Icons.sports,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Food',
-                      Icons.fastfood,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Books',
-                      Icons.menu_book,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Groceries',
-                      Icons.local_grocery_store,
-                    ),
-                    buildCategoryItem(
-                      context,
-                      'Others',
-                      Icons.more_horiz,
-                    ),
+                        context, 'Groceries', Icons.local_grocery_store),
+                    buildCategoryItem(context, 'Others', Icons.more_horiz),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
-              CustomText(
-                textLabel: 'Recent Products',
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-              const SizedBox(height: 10),
               FutureBuilder<List<QueryDocumentSnapshot>>(
-                future: searchQuery.isEmpty
-                    ? fetchRecentProducts()
-                    : searchProducts(searchQuery),
+                future: fetchProducts(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return Center(
@@ -277,8 +231,11 @@ class _CustomerHomeState extends State<CustomerHome> {
                                   ),
                           ),
                           GestureDetector(
-                            onTap: () => navPush(context,
-                                CustomerProduct(productId: product.id)),
+                            onTap: () {
+                              storeProductClick(userId, product.id);
+                              navPush(context,
+                                  CustomerProduct(productId: product.id));
+                            },
                             child: Container(
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
@@ -298,8 +255,11 @@ class _CustomerHomeState extends State<CustomerHome> {
                             left: 10,
                             right: 10,
                             child: GestureDetector(
-                              onTap: () => navPush(context,
-                                  CustomerProduct(productId: product.id)),
+                              onTap: () {
+                                storeProductClick(userId, product.id);
+                                navPush(context,
+                                    CustomerProduct(productId: product.id));
+                              },
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -354,5 +314,54 @@ class _CustomerHomeState extends State<CustomerHome> {
         ),
       ),
     );
+  }
+}
+
+Future<void> storeProductClick(String userId, String productId) async {
+  final productRef =
+      FirebaseFirestore.instance.collection('products').doc(productId);
+  final productSnapshot = await productRef.get();
+
+  if (!productSnapshot.exists) {
+    return;
+  }
+
+  final productData = productSnapshot.data()!;
+  final String productName = productData['productName'];
+  final String category = productData['category'] ?? "Uncategorized";
+  final String description = productData['description'] ?? "";
+
+  final docRef = FirebaseFirestore.instance
+      .collection('customers')
+      .doc(userId)
+      .collection('productClicks')
+      .doc(productId);
+
+  await docRef.set({
+    'timestamp': FieldValue.serverTimestamp(),
+    'count': FieldValue.increment(1),
+    'productName': productName,
+    'category': category,
+    'description': description,
+  }, SetOptions(merge: true));
+}
+
+Future<void> fetchSearchHistory(String userId) async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('customers')
+      .doc(userId)
+      .collection('searchHistory')
+      .orderBy('timestamp', descending: true)
+      .get();
+
+  if (querySnapshot.docs.isEmpty) {
+    debugPrint("No search history found for user: $userId");
+    return;
+  }
+
+  for (var doc in querySnapshot.docs) {
+    final data = doc.data();
+    debugging(
+        "Search Query: ${data['query']}, Timestamp: ${data['timestamp']}");
   }
 }

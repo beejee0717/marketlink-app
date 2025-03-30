@@ -848,45 +848,72 @@ class _CustomerProductState extends State<CustomerProduct> {
     );
   }
 
-  Future<void> buyNow(String productId, String sellerId, int quantity) async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+Future<void> buyNow(String productId, String sellerId, int quantity) async {
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (userId == null) {
-      errorSnackbar(context, "You must be logged in to place an order.");
+  if (userId == null) {
+    errorSnackbar(context, "You must be logged in to place an order.");
+    return;
+  }
+
+  final now = Timestamp.now();
+
+  try {
+    final productRef = FirebaseFirestore.instance.collection('products').doc(productId);
+    final productSnapshot = await productRef.get();
+
+    if (!productSnapshot.exists) {
+      if (!mounted) return;
+      errorSnackbar(context, "Product not found.");
       return;
     }
 
-    final now = Timestamp.now();
+    final productData = productSnapshot.data()!;
+    final double price = (productData['price'] as num).toDouble();
+    final String productName = productData['productName'];
+     final String productDescription = productData['description'];
+    final String category = productData['category'] ?? "Uncategorized";
 
-    try {
-      final productOrdersRef = FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .collection('orders')
-          .doc(userId);
+    final productOrdersRef = productRef.collection('orders').doc(userId);
+    await productOrdersRef.set({
+      'quantity': quantity,
+      'dateOrdered': now,
+      'status': 'ordered',
+    });
 
-      await productOrdersRef.set({
-        'quantity': quantity,
-        'dateOrdered': now,
-        'delivered': false,
-      });
+    final customerOrdersRef = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(userId)
+        .collection('orders')
+        .doc(productId);
 
-      final customerOrdersRef = FirebaseFirestore.instance
-          .collection('customers')
-          .doc(userId)
-          .collection('orders')
-          .doc(productId);
+    await customerOrdersRef.set({
+      'quantity': quantity,
+      'dateOrdered': now,
+      'status': 'ordered',
+    });
 
-      await customerOrdersRef.set({
-        'quantity': quantity,
-        'dateOrdered': now,
-        'delivered': false,
-      });
-    } catch (error) {
-      if (!mounted) return;
-      errorSnackbar(context, "Failed to place order: $error");
-    }
+    final purchaseHistoryRef = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(userId)
+        .collection('purchaseHistory');
+
+    await purchaseHistoryRef.add({
+      'productId': productId,
+      'productName': productName,
+      'description':productDescription,
+      'category': category,
+      'price': price,
+      'quantity': quantity,
+      'timestamp': now,
+    });
+
+  
+  } catch (error) {
+    if (!mounted) return;
+    errorSnackbar(context, "Failed to place order: $error");
   }
+}
 
   void navigateToMessageSeller(
       String sellerId, String sellerFirstName, String sellerProfilePic) {

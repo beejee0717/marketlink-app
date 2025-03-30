@@ -2,30 +2,30 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:marketlinkapp/seller/product_details.dart';
+import 'package:marketlinkapp/seller/service_details.dart';
 import 'package:provider/provider.dart';
 
 import '../components/auto_size_text.dart';
 import '../components/navigator.dart';
 import '../components/snackbar.dart';
 import '../provider/user_provider.dart';
-import 'add_product.dart';
+import 'add_service.dart';
 
-class SellerAllProducts extends StatefulWidget {
-  const SellerAllProducts({super.key});
+class SellerAllServices extends StatefulWidget {
+  const SellerAllServices({super.key});
 
   @override
-  State<SellerAllProducts> createState() => _SellerAllProductsState();
+  State<SellerAllServices> createState() => _SellerAllServicesState();
 }
 
-class _SellerAllProductsState extends State<SellerAllProducts> {
+class _SellerAllServicesState extends State<SellerAllServices> {
   final TextEditingController searchController = TextEditingController();
-  late Stream<QuerySnapshot> productsStream;
+  late Stream<QuerySnapshot> servicesStream;
 
   @override
   void initState() {
     super.initState();
-    fetchProducts();
+    fetchServices();
   }
   Stream<bool> getSellerApprovalStatus(String sellerId) {
     return FirebaseFirestore.instance
@@ -34,21 +34,21 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
         .snapshots()
         .map((snapshot) => snapshot.data()?['approved'] == true);
   }
- void fetchProducts() {
+void fetchServices() {
   final userInfo = Provider.of<UserProvider>(context, listen: false).user;
   final sellerId = userInfo?.uid ?? "";
 
   String searchQuery = searchController.text.trim().toLowerCase();
 
   var query = FirebaseFirestore.instance
-      .collection('products')
+      .collection('services')
       .where('sellerId', isEqualTo: sellerId);
 
   if (searchQuery.isNotEmpty) {
     query = query.where('searchKeywords', arrayContains: searchQuery);
   }
 
-  productsStream = query.orderBy('dateCreated', descending: true).snapshots();
+  servicesStream = query.orderBy('dateCreated', descending: true).snapshots();
 }
 
 
@@ -69,7 +69,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
         ),
         backgroundColor: Colors.transparent,
         title: const CustomText(
-          textLabel: "All Products",
+          textLabel: "All Services",
           fontSize: 22,
           fontWeight: FontWeight.bold,
           textColor: Colors.white,
@@ -83,13 +83,13 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
               controller: searchController,
               onChanged: (value) {
                 setState(() {
-                  fetchProducts();
+                  fetchServices();
                 });
               },
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
-                hintText: "Search products...",
+                hintText: "Search services...",
                 hintStyle: TextStyle(color: Colors.white),
                 prefixIcon: const Icon(
                   Icons.search,
@@ -106,7 +106,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
             const SizedBox(height: 20),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: productsStream,
+                stream: servicesStream,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -121,7 +121,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                   } else if (snapshot.hasError) {
                     return const Center(
                       child: CustomText(
-                        textLabel: "Error fetching products.",
+                        textLabel: "Error fetching services.",
                         fontSize: 16,
                         textColor: Colors.red,
                       ),
@@ -129,21 +129,21 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                   } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                     return const Center(
                       child: CustomText(
-                        textLabel: "No products found.",
+                        textLabel: "No services found.",
                         fontSize: 16,
                         textColor: Colors.white,
                       ),
                     );
                   }
 
-                  final products = snapshot.data!.docs;
+                  final services = snapshot.data!.docs;
 
                   return ListView.builder(
-                    itemCount: products.length,
+                    itemCount: services.length,
                     itemBuilder: (context, index) {
-                      final productDoc = products[index];
-                      final product = productDoc.data() as Map<String, dynamic>;
-                      final productId = productDoc.id;
+                      final serviceDoc = services[index];
+                      final service = serviceDoc.data() as Map<String, dynamic>;
+                      final serviceId = serviceDoc.id;
 
                       return FadeInLeft(
                         child: Card(
@@ -153,11 +153,11 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: ListTile(
-                            leading: product['imageUrl'] != null
+                            leading: service['imageUrl'] != null
                                 ? ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.network(
-                                      product['imageUrl'],
+                                      service['imageUrl'],
                                       width: 60,
                                       height: 60,
                                       fit: BoxFit.cover,
@@ -170,7 +170,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                                   ),
                             title: CustomText(
                               textLabel:
-                                  product['productName'] ?? "Unnamed Product",
+                                  service['serviceName'] ?? "Unnamed Service",
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -186,7 +186,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                                     ),
                                     CustomText(
                                       textLabel:
-                                          product['category'] ?? 'Uncategorized',
+                                          service['category'] ?? 'Uncategorized',
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -202,28 +202,14 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                                     ),
                                     CustomText(
                                       textLabel:
-                                          "₱${product['price']?.toStringAsFixed(0) ?? 'N/A'}",
+                                          "₱${service['price']?.toStringAsFixed(0) ?? 'N/A'}",
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
                                       textColor: Colors.orange,
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      textLabel: "Stock: ",
-                                      fontSize: 14,
-                                      textColor: Colors.black87,
-                                    ),
-                                    CustomText(
-                                      textLabel: "${product['stock'] ?? 0}",
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
+                               
                                 const SizedBox(height: 4),
                               ],
                             ),
@@ -233,7 +219,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
                             ),
                             onTap: () {
                               navPush(context,
-                                  SellerProductDetails(productId: productId));
+                                  SellerServiceDetails(serviceId: serviceId));
                             },
                           ),
                         ),
@@ -260,7 +246,7 @@ class _SellerAllProductsState extends State<SellerAllProducts> {
     return FloatingActionButton(
       onPressed: () {
         if (isApproved) {
-          navPush(context, SellerAddProduct());
+          navPush(context, SellerAddService());
         } else {
           errorSnackbar(context,
               'This account is not approved yet. Please wait for admin approval before being able to sell items.');

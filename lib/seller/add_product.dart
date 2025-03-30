@@ -95,75 +95,84 @@ class _SellerAddProductState extends State<SellerAddProduct> {
     }
   }
 
-  Future<void> addProduct(String sellerId) async {
-    FocusManager.instance.primaryFocus?.unfocus();
+Future<void> addProduct(String sellerId) async {
+  FocusManager.instance.primaryFocus?.unfocus();
 
-    if (!formKey.currentState!.validate()) {
-      return;
-    }
-    if (localImagePath == null) {
-      errorSnackbar(context, 'Please upload a product image.');
-      return;
-    }
-    setState(() {
-      isLoading = true;
-    });
-    try {
-      final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
-          File(localImagePath!));
-
-      if (cloudinaryUrl == null) {
-        if (!mounted) return;
-        errorSnackbar(context, 'Failed to upload product image.');
-        return;
-      }
-      if (selectedLocation == null || selectedLocation == "AddNew") {
-        if (!mounted) return;
-
-        errorSnackbar(context, 'Please select a valid pickup location.');
-        return;
-      }
-      await FirebaseFirestore.instance.collection('products').add({
-        'productName': productNameController.text.trim(),
-        'lowercaseName': productNameController.text.trim().toLowerCase(),
-        'category': selectedCategory ?? "Uncategorized",
-        'price': double.parse(priceController.text.trim()),
-        'stock': int.parse(stockController.text.trim()),
-        'materials': materialsController.text.trim(),
-        'description': descriptionController.text.trim(),
-        'sellerId': sellerId,
-        'imageUrl': cloudinaryUrl,
-        'pickupLocation': selectedLocation,
-        'dateCreated': FieldValue.serverTimestamp(),
-      });
-
-      if (!mounted) return;
-      successSnackbar(context, "Product added successfully!");
-
-      productNameController.clear();
-      priceController.clear();
-      stockController.clear();
-      descriptionController.clear();
-      materialsController.clear();
-      setState(() {
-        selectedCategory = null;
-        localImagePath = null;
-        selectedLocation = null;
-      });
-
-      if (showWarning != null && showWarning == true) {
-        showWarningDialog();
-      } else {
-        navPushRemove(context, const SellerHome());
-      }
-    } catch (e) {
-      errorSnackbar(context, 'Failed to add product.');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  if (!formKey.currentState!.validate()) {
+    return;
   }
+  if (localImagePath == null) {
+    errorSnackbar(context, 'Please upload a product image.');
+    return;
+  }
+  setState(() {
+    isLoading = true;
+  });
+
+  try {
+    final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
+        File(localImagePath!));
+
+    if (cloudinaryUrl == null) {
+      if (!mounted) return;
+      errorSnackbar(context, 'Failed to upload product image.');
+      return;
+    }
+    if (selectedLocation == null || selectedLocation == "AddNew") {
+      if (!mounted) return;
+      errorSnackbar(context, 'Please select a valid pickup location.');
+      return;
+    }
+
+    List<String> searchKeywords = productNameController.text
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .toSet()
+        .toList(); 
+
+    await FirebaseFirestore.instance.collection('products').add({
+      'productName': productNameController.text.trim(),
+      'searchKeywords': searchKeywords, 
+      'category': selectedCategory ?? "Uncategorized",
+      'price': double.parse(priceController.text.trim()),
+      'stock': int.parse(stockController.text.trim()),
+      'materials': materialsController.text.trim(),
+      'description': descriptionController.text.trim(),
+      'sellerId': sellerId,
+      'imageUrl': cloudinaryUrl,
+      'pickupLocation': selectedLocation,
+      'dateCreated': FieldValue.serverTimestamp(),
+    });
+
+    if (!mounted) return;
+    successSnackbar(context, "Product added successfully!");
+
+    productNameController.clear();
+    priceController.clear();
+    stockController.clear();
+    descriptionController.clear();
+    materialsController.clear();
+    setState(() {
+      selectedCategory = null;
+      localImagePath = null;
+      selectedLocation = null;
+    });
+
+    if (showWarning != null && showWarning == true) {
+      showWarningDialog();
+    } else {
+      navPushRemove(context, const SellerHome());
+    }
+  } catch (e) {
+    errorSnackbar(context, 'Failed to add product.');
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {

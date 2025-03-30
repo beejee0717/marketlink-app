@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import '../chat/messages.dart';
 import '../components/auto_size_text.dart';
@@ -18,6 +19,7 @@ class SellerOrders extends StatefulWidget {
 class _SellerOrdersState extends State<SellerOrders>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _ongoingOrders = [];
+  List<Map<String, dynamic>> _shippedOrders = [];
   List<Map<String, dynamic>> _finishedOrders = [];
   bool isLoading = true;
 
@@ -26,7 +28,7 @@ class _SellerOrdersState extends State<SellerOrders>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadOrders();
   }
 
@@ -45,6 +47,7 @@ class _SellerOrdersState extends State<SellerOrders>
 
     final List<Map<String, dynamic>> ongoing = [];
     final List<Map<String, dynamic>> finished = [];
+     final List<Map<String, dynamic>> shipped = [];
 
     for (var product in products) {
       final productId = product['productId'];
@@ -82,15 +85,18 @@ class _SellerOrdersState extends State<SellerOrders>
           'customerId': customerId,
           'customerName': customerName,
           'dateOrdered': order['dateOrdered'],
-          'delivered': order['delivered'],
+          'status': order['status'],
           'customerProfilePic': customerProfilePic,
           'imageUrl': imageUrl,
           'customerContact': customerContact,
           'amount': amount,
         };
 
-        if (order['delivered'] == false) {
+        if (order['status'] == 'ordered') {
+          debugging(orderData.toString());
           ongoing.add(orderData);
+        } else if(order['status'] == 'shipped') {
+          shipped.add(orderData);
         } else {
           finished.add(orderData);
         }
@@ -100,6 +106,7 @@ class _SellerOrdersState extends State<SellerOrders>
     setState(() {
       _ongoingOrders = ongoing;
       _finishedOrders = finished;
+      _shippedOrders = shipped;
       isLoading = false;
     });
   }
@@ -132,7 +139,7 @@ class _SellerOrdersState extends State<SellerOrders>
         .toList();
   }
 
-  Future<void> markAsDelivered(
+  Future<void> markedAsShipped(
       String productId, String userId, int quantityOrdered) async {
     final productOrderRef = FirebaseFirestore.instance
         .collection('products')
@@ -163,17 +170,17 @@ class _SellerOrdersState extends State<SellerOrders>
       }
 
       await Future.wait([
-        productOrderRef.update({'delivered': true}),
-        customerOrderRef.update({'delivered': true}),
+        productOrderRef.update({'status': 'shipped'}),
+        customerOrderRef.update({'status': 'shipped'}),
       ]);
 
       if (!mounted) return;
-      successSnackbar(context, "Order marked as delivered and stock updated.");
+      successSnackbar(context, "Order marked as shipped and stock updated.");
       await _loadOrders();
     } catch (e) {
       if (!mounted) return;
 
-      errorSnackbar(context, "Failed to mark as delivered: $e");
+      errorSnackbar(context, "Failed to mark as shipped: $e");
     }
   }
 
@@ -200,9 +207,16 @@ class _SellerOrdersState extends State<SellerOrders>
                 textColor: Colors.white,
               ),
             ),
+             Tab(
+              child: CustomText(
+                textLabel: "Shipped",
+                fontSize: 16,
+                textColor: Colors.white,
+              ),
+            ),
             Tab(
               child: CustomText(
-                textLabel: "Finished",
+                textLabel: "Delivered",
                 fontSize: 16,
                 textColor: Colors.white,
               ),
@@ -219,14 +233,15 @@ class _SellerOrdersState extends State<SellerOrders>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildOrderList(_ongoingOrders, true),
-                _buildOrderList(_finishedOrders, false),
+                _buildOrderList(_ongoingOrders, 'ordered'),
+                _buildOrderList(_shippedOrders, 'shipped'),
+                _buildOrderList(_finishedOrders, 'finished'),
               ],
             ),
     );
   }
 
-  Widget _buildOrderList(List<Map<String, dynamic>> orders, bool isOngoing) {
+  Widget _buildOrderList(List<Map<String, dynamic>> orders, String tab) {
     if (orders.isEmpty) {
       return Center(
         child: Column(
@@ -253,7 +268,7 @@ class _SellerOrdersState extends State<SellerOrders>
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          color: Colors.white.withOpacity(0.1), // Card background transparency
+          color: Colors.white.withOpacity(0.1), 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -327,17 +342,17 @@ class _SellerOrdersState extends State<SellerOrders>
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (isOngoing)
+                          if (tab == 'ordered')
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () => markAsDelivered(
+                                onPressed: () => markedAsShipped(
                                   order['productId'],
                                   order['customerId'],
                                   order['quantity'],
                                 ),
                                 child: const CustomText(
-                                  textLabel: "Mark as Delivered",
+                                  textLabel: "Mark as Shipped",
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   textColor: Colors.green,

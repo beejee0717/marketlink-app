@@ -5,9 +5,11 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/seller/add_product.dart';
 import 'package:marketlinkapp/seller/add_service.dart';
 import 'package:marketlinkapp/seller/all_products.dart';
+import 'package:marketlinkapp/seller/all_services.dart';
 import 'package:marketlinkapp/seller/product_details.dart';
 import 'package:marketlinkapp/seller/profile.dart';
 import 'package:marketlinkapp/seller/service_details.dart';
@@ -34,7 +36,7 @@ class _SellerHomeState extends State<SellerHome> {
     super.initState();
     fetchTotalProducts();
     fetchTotalServices();
-    fetchOngoingOrders();
+    fetchOngoingOrders(context);
   }
 
   Stream<int> fetchTotalProducts() {
@@ -75,43 +77,34 @@ class _SellerHomeState extends State<SellerHome> {
     }
   }
 
-  Future<void> fetchOngoingOrders() async {
-    try {
-      final userInfo = Provider.of<UserProvider>(context, listen: false).user;
-      final sellerId = userInfo?.uid ?? "";
+Stream<int> fetchOngoingOrders(BuildContext context) {
+  final userInfo = Provider.of<UserProvider>(context, listen: false).user;
+  final sellerId = userInfo?.uid ?? "";
 
-      final productsSnapshot = await FirebaseFirestore.instance
+  return FirebaseFirestore.instance
+      .collection('products')
+      .where('sellerId', isEqualTo: sellerId)
+      .snapshots()
+      .asyncMap((productsSnapshot) async {
+    int count = 0;
+
+    for (var productDoc in productsSnapshot.docs) {
+      final productId = productDoc.id;
+
+      final ordersSnapshot = await FirebaseFirestore.instance
           .collection('products')
-          .where('sellerId', isEqualTo: sellerId)
-          .get();
+          .doc(productId)
+          .collection('orders')
+          .where('status', isEqualTo: 'ordered')
+          .snapshots()
+          .first; 
 
-      int count = 0;
-
-      for (var productDoc in productsSnapshot.docs) {
-        final productId = productDoc.id;
-
-        final ordersSnapshot = await FirebaseFirestore.instance
-            .collection('products')
-            .doc(productId)
-            .collection('orders')
-            .where('delivered', isEqualTo: false)
-            .get();
-
-        count += ordersSnapshot.docs.length;
-      }
-
-      setState(() {
-        ongoingOrders = count;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      errorSnackbar(context, "Failed to fetch ongoing orders.");
-    } finally {
-      setState(() {
-        isFetchingOngoingOrders = false;
-      });
+      count += ordersSnapshot.docs.length;
     }
-  }
+
+    return count;
+  });
+}
 
   Stream<List<QueryDocumentSnapshot>> fetchRecentProducts(String sellerId) {
     return FirebaseFirestore.instance
@@ -133,47 +126,67 @@ class _SellerHomeState extends State<SellerHome> {
         .map((snapshot) => snapshot.docs);
   }
 
-  Future<List<Map<String, dynamic>>> fetchRecentOrders(String sellerId) async {
+ Stream<List<Map<String, dynamic>>> fetchRecentOrders(String sellerId) {
+  return FirebaseFirestore.instance
+      .collection('products')
+      .where('sellerId', isEqualTo: sellerId)
+      .snapshots()
+      .asyncMap((productsSnapshot) async {
     List<Map<String, dynamic>> recentOrders = [];
+    List<String> customerIds = [];
+    Map<String, String> customerNames = {};
 
-    final productsSnapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .where('sellerId', isEqualTo: sellerId)
-        .get();
-
-    for (var productDoc in productsSnapshot.docs) {
-      final productId = productDoc.id;
-
-      final ordersSnapshot = await FirebaseFirestore.instance
+    final ordersFutures = productsSnapshot.docs.map((productDoc) {
+      return FirebaseFirestore.instance
           .collection('products')
-          .doc(productId)
+          .doc(productDoc.id)
           .collection('orders')
           .orderBy('dateOrdered', descending: true)
-          .limit(5)
+          .limit(3)
           .get();
+    });
 
-      for (var orderDoc in ordersSnapshot.docs) {
+    final ordersSnapshots = await Future.wait(ordersFutures);
+
+    for (int i = 0; i < ordersSnapshots.length; i++) {
+      final productDoc = productsSnapshot.docs[i];
+      final productName = productDoc['productName'] ?? 'Unnamed Product';
+
+      for (var orderDoc in ordersSnapshots[i].docs) {
         final customerId = orderDoc.id;
-        final customerDoc = await FirebaseFirestore.instance
-            .collection('customers')
-            .doc(customerId)
-            .get();
-
-        final customerName = customerDoc.exists
-            ? '${customerDoc['firstName']} ${customerDoc['lastName']}'
-            : 'Unknown Customer';
+        if (!customerNames.containsKey(customerId)) {
+          customerIds.add(customerId);
+        }
 
         recentOrders.add({
-          'productName': productDoc['productName'] ?? 'Unnamed Product',
-          'customerName': customerName,
-          'delivered': orderDoc['delivered'] ?? false,
+          'productName': productName,
+          'customerId': customerId,
+          'status': orderDoc['status'],
           'dateOrdered': orderDoc['dateOrdered'],
         });
       }
     }
 
+    if (customerIds.isNotEmpty) {
+      final customerSnapshots = await FirebaseFirestore.instance
+          .collection('customers')
+          .where(FieldPath.documentId, whereIn: customerIds)
+          .get();
+
+      for (var customerDoc in customerSnapshots.docs) {
+        customerNames[customerDoc.id] =
+            '${customerDoc['firstName']} ${customerDoc['lastName']}';
+      }
+    }
+
+    for (var order in recentOrders) {
+      order['customerName'] =
+          customerNames[order['customerId']] ?? 'Unknown Customer';
+    }
+
     return recentOrders;
-  }
+  });
+}
 
   Stream<bool> getSellerApprovalStatus(String sellerId) {
     return FirebaseFirestore.instance
@@ -265,7 +278,7 @@ class _SellerHomeState extends State<SellerHome> {
                                   stream: fetchTotalProducts(),
                                   builder: (context, snapshot) {
                                     int totalProducts = snapshot.data ?? 0;
-                              
+
                                     return isFetchingProducts ||
                                             isFetchingOngoingOrders
                                         ? SizedBox(
@@ -581,7 +594,7 @@ class _SellerHomeState extends State<SellerHome> {
               },
             ),
             const SizedBox(height: 10),
-              FadeInUp(
+            FadeInUp(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -593,7 +606,7 @@ class _SellerHomeState extends State<SellerHome> {
                   ),
                   TextButton(
                     onPressed: () {
-                      navPush(context, const SellerAllProducts());
+                      navPush(context, const SellerAllServices());
                     },
                     child: CustomText(
                       textLabel: "View All",
@@ -719,8 +732,8 @@ class _SellerHomeState extends State<SellerHome> {
               textColor: Colors.white,
             ),
             const SizedBox(height: 20),
-            FutureBuilder<List<Map<String, dynamic>>>(
-              future: fetchRecentOrders(sellerId),
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: fetchRecentOrders(sellerId),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return Center(
@@ -733,6 +746,7 @@ class _SellerHomeState extends State<SellerHome> {
                     ),
                   );
                 } else if (snapshot.hasError) {
+                  debugging(snapshot.error.toString());
                   return CustomText(
                     textLabel: "Error: ${snapshot.error}",
                     fontSize: 16,
@@ -754,8 +768,7 @@ class _SellerHomeState extends State<SellerHome> {
                     physics: const NeverScrollableScrollPhysics(),
                     itemBuilder: (context, index) {
                       final order = recentOrders[index];
-                      final status =
-                          order['delivered'] ? 'Finished' : 'Ongoing';
+                      final status = order['status'];
                       final formattedDate = DateFormat('MM/dd/yyyy hh:mm a')
                           .format(order['dateOrdered'].toDate());
 

@@ -122,7 +122,7 @@ class _SellerEditServiceState extends State<SellerEditService> {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
- Future<void> updateService() async {
+Future<void> updateService() async {
   FocusManager.instance.primaryFocus?.unfocus();
 
   if (!formKey.currentState!.validate()) {
@@ -169,12 +169,19 @@ class _SellerEditServiceState extends State<SellerEditService> {
     final String formattedEndTime =
         "${endTime!.hour.toString().padLeft(2, '0')}:${endTime!.minute.toString().padLeft(2, '0')}";
 
+    List<String> searchKeywords = serviceNameController.text
+        .trim()
+        .toLowerCase()
+        .split(' ')
+        .toSet()
+        .toList();
+
     await FirebaseFirestore.instance
         .collection('services')
         .doc(widget.serviceId)
         .update({
       'serviceName': serviceNameController.text.trim(),
-      'lowercaseName': serviceNameController.text.trim().toLowerCase(),
+      'searchKeywords': searchKeywords,
       'category': selectedCategory ?? "Uncategorized",
       'price': double.parse(priceController.text.trim()),
       'description': descriptionController.text.trim(),
