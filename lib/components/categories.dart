@@ -12,13 +12,13 @@ final List<String> productCategories = [
 ];
 
 final List<String> serviceCategories = [
-  "Personal Care & Wellness",
+  "Personal Care",
   "Home Services",
   "Automotive",
-  "Health & Medical",
-  "Events & Entertainment",
-  "Education & Coaching",
-  "Tech & IT",
+  "Health",
+  "Event",
+  "Coaching",
+  "Tech",
   "Pets",
   "Others"
 ];

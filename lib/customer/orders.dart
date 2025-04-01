@@ -17,15 +17,16 @@ class CustomerOrders extends StatefulWidget {
 
 class _CustomerOrdersState extends State<CustomerOrders>
     with SingleTickerProviderStateMixin {
-  List<Map<String, dynamic>> _ongoingOrders = [];
-  List<Map<String, dynamic>> _finishedOrders = [];
+  List<Map<String, dynamic>> _packedOrders = [];
+  List<Map<String, dynamic>> _shippedOrders = [];
+  List<Map<String, dynamic>> _deliveredOrders = [];
   bool isLoading = true;
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadOrders();
   }
 
@@ -39,12 +40,14 @@ class _CustomerOrdersState extends State<CustomerOrders>
       return;
     }
 
-    final ongoingOrders = await fetchOrders(userId, status: 'ordered');
-    final finishedOrders = await fetchOrders(userId, status: 'delivered');
+    final packedOrders = await fetchOrders(userId, status: 'ordered');
+    final shippedOrders = await fetchOrders(userId, status: 'shipped');
+    final deliveredOrders = await fetchOrders(userId, status: 'delivered');
     if (!mounted) return;
     setState(() {
-      _ongoingOrders = ongoingOrders;
-      _finishedOrders = finishedOrders;
+      _packedOrders = packedOrders;
+      _shippedOrders = shippedOrders;
+      _deliveredOrders = deliveredOrders;
       isLoading = false;
     });
   }
@@ -55,7 +58,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
         .collection('customers')
         .doc(userId)
         .collection('orders')
-        .where('status', isEqualTo: 'ordered')
+        .where('status', isEqualTo: status)
         .get();
 
     if (querySnapshot.docs.isEmpty) {
@@ -120,14 +123,14 @@ class _CustomerOrdersState extends State<CustomerOrders>
     await Future.wait([productOrderRef.delete(), customerOrderRef.delete()]);
 
     setState(() {
-      _ongoingOrders.removeWhere((order) => order['productId'] == productId);
+      _packedOrders.removeWhere((order) => order['productId'] == productId);
     });
     if (!mounted) return;
     successSnackbar(context, "Order canceled successfully.");
   }
 
   Widget _buildOrderList(
-      List<Map<String, dynamic>> orders, bool showCancelButton) {
+      List<Map<String, dynamic>> orders, String type) {
     return orders.isEmpty
         ? Center(
             child: Column(
@@ -217,7 +220,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                       ),
                     ],
                   ),
-                  trailing: showCancelButton
+                  trailing: type != 'delivered'
                       ? IconButton(
                           icon: const Icon(Icons.cancel, color: Colors.red),
                           onPressed: () {
@@ -276,8 +279,9 @@ class _CustomerOrdersState extends State<CustomerOrders>
           labelColor: Colors.green,
           unselectedLabelColor: Colors.grey,
           tabs: const [
-            Tab(text: 'Ongoing'),
-            Tab(text: 'Finished'),
+            Tab(text: 'Packed'),
+             Tab(text: 'Shipped'),
+            Tab(text: 'Delivered'),
           ],
         ),
       ),
@@ -291,8 +295,9 @@ class _CustomerOrdersState extends State<CustomerOrders>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildOrderList(_ongoingOrders, true),
-                _buildOrderList(_finishedOrders, false),
+                _buildOrderList(_packedOrders, 'packed'),
+                _buildOrderList(_shippedOrders, 'shipped'),
+                _buildOrderList(_deliveredOrders, 'delivered'),
               ],
             ),
     );

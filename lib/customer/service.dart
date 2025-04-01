@@ -4,21 +4,23 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
+import 'package:marketlinkapp/debugging.dart';
+import 'package:marketlinkapp/seller/service_details.dart';
 import 'package:provider/provider.dart';
 
 import '../chat/messages.dart';
 import '../components/navigator.dart';
 import '../provider/user_provider.dart';
 
-class CustomerProduct extends StatefulWidget {
-  final String productId;
-  const CustomerProduct({super.key, required this.productId});
+class CustomerService extends StatefulWidget {
+  final String serviceId;
+  const CustomerService({super.key, required this.serviceId});
 
   @override
-  State<CustomerProduct> createState() => _CustomerProductState();
+  State<CustomerService> createState() => _CustomerServiceState();
 }
 
-class _CustomerProductState extends State<CustomerProduct> {
+class _CustomerServiceState extends State<CustomerService> {
   bool isInWishlist = false;
 
   @override
@@ -35,7 +37,7 @@ class _CustomerProductState extends State<CustomerProduct> {
         .collection('customers')
         .doc(userId)
         .collection('wishlist')
-        .doc(widget.productId);
+        .doc(widget.serviceId);
 
     final wishlistDoc = await wishlistRef.get();
     setState(() {
@@ -43,16 +45,16 @@ class _CustomerProductState extends State<CustomerProduct> {
     });
   }
 
-  Future<Map<String, dynamic>> fetchProductDetails() async {
+  Future<Map<String, dynamic>> fetchServiceDetails() async {
     final doc = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(widget.productId)
+        .collection('services')
+        .doc(widget.serviceId)
         .get();
 
     if (doc.exists) {
       return doc.data()!;
     } else {
-      throw Exception("Product not found.");
+      throw Exception("Service not found.");
     }
   }
 
@@ -78,48 +80,49 @@ class _CustomerProductState extends State<CustomerProduct> {
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchProductDetails(),
-        builder: (context, productSnapshot) {
-          if (productSnapshot.connectionState == ConnectionState.waiting) {
+        future: fetchServiceDetails(),
+        builder: (context, serviceSnapshot) {
+          if (serviceSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: SpinKitFadingCircle(
                 size: 80,
                 color: Colors.green,
               ),
             );
-          } else if (productSnapshot.hasError) {
+          } else if (serviceSnapshot.hasError) {
+            debugging(serviceSnapshot.error.toString());
             return Center(
               child: CustomText(
-                textLabel: "Error loading product details.",
+                textLabel: "Error loading service details.",
                 fontSize: 16,
                 textColor: Colors.red,
               ),
             );
-          } else if (!productSnapshot.hasData ||
-              productSnapshot.data!.isEmpty) {
+          } else if (!serviceSnapshot.hasData ||
+              serviceSnapshot.data!.isEmpty) {
             return const Center(
               child: CustomText(
-                textLabel: "Product not found.",
+                textLabel: "Service not found.",
                 fontSize: 16,
                 textColor: Colors.grey,
               ),
             );
           }
 
-          final product = productSnapshot.data!;
-          final imageUrl = product['imageUrl'] ?? '';
-          final title = product['productName'] ?? 'Unnamed Product';
-          final price = product['price']?.toStringAsFixed(2) ?? 'N/A';
-          final priceInDouble = product['price'];
+          final service = serviceSnapshot.data!;
+          final imageUrl = service['imageUrl'] ?? '';
+          final title = service['serviceName'] ?? 'Unnamed Service';
+          final category = service['category'] ?? 'Uncategorized';
+          final price = service['price']?.toStringAsFixed(2) ?? 'N/A';
+          final priceInDouble = service['price'];
           final description =
-              product['description'] ?? 'No description available.';
-          final materials = (product['materials']?.isEmpty ?? true)
-              ? 'No materials information available.'
-              : product['materials'];
-
-          final pickupLocation =
-              product['pickupLocation'] ?? 'Pickup location not specified.';
-          final sellerId = product['sellerId'];
+              service['description'] ?? 'No description available.';
+          final availableDays =
+              service['availableDays'] ?? 'No Avaible Days Set';
+          final serviceLocation =
+              service['serviceLocation'] ?? 'Service location not specified.';
+          final sellerId = service['sellerId'];
+          final serviceHours = service['serviceHours'];
 
           return FutureBuilder<Map<String, dynamic>>(
             future: fetchSellerDetails(sellerId),
@@ -186,6 +189,10 @@ class _CustomerProductState extends State<CustomerProduct> {
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
+                      CustomText(
+                        textLabel: category,
+                        fontSize: 20,
+                      ),
                       const SizedBox(height: 8),
                       CustomText(
                         textLabel: '₱$price',
@@ -193,49 +200,51 @@ class _CustomerProductState extends State<CustomerProduct> {
                         textColor: Colors.green,
                       ),
                       const SizedBox(height: 8),
-                         FutureBuilder<Map<String, dynamic>>(
-                future: getRating(widget.productId, true),
-                builder: (context, ratingSnapshot) {
-                  if (ratingSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 20,
-                      width: 50,
-                      child: LinearProgressIndicator(),
-                    );
-                  }
-                  if (ratingSnapshot.hasError) {
-                    return const Text('Error');
-                  }
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: getRating(widget.serviceId, true),
+                        builder: (context, ratingSnapshot) {
+                          if (ratingSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 20,
+                              width: 50,
+                              child: LinearProgressIndicator(),
+                            );
+                          }
+                          if (ratingSnapshot.hasError) {
+                            return const Text('Error');
+                          }
 
-                  double averageRating =
-                      (ratingSnapshot.data?['averageRating'] ?? 0.0).toDouble();
-                  int totalReviews = ratingSnapshot.data?['totalReviews'] ?? 0;
+                          double averageRating =
+                              (ratingSnapshot.data?['averageRating'] ?? 0.0)
+                                  .toDouble();
+                          int totalReviews =
+                              ratingSnapshot.data?['totalReviews'] ?? 0;
 
-                  return Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        if (index + 1 <= averageRating) {
-                          return const Icon(Icons.star,
-                              color: Colors.amber, size: 20);
-                        } else if (index + 0.5 <= averageRating) {
-                          return const Icon(Icons.star_half,
-                              color: Colors.amber, size: 20);
-                        } else {
-                          return const Icon(Icons.star_border,
-                              color: Colors.amber, size: 20);
-                        }
-                      }),
-                      const SizedBox(width: 5),
-                      Text(
-                        '($totalReviews)',
-                        style: TextStyle(fontSize: 14, color: Colors.black),
+                          return Row(
+                            children: [
+                              ...List.generate(5, (index) {
+                                if (index + 1 <= averageRating) {
+                                  return const Icon(Icons.star,
+                                      color: Colors.amber, size: 20);
+                                } else if (index + 0.5 <= averageRating) {
+                                  return const Icon(Icons.star_half,
+                                      color: Colors.amber, size: 20);
+                                } else {
+                                  return const Icon(Icons.star_border,
+                                      color: Colors.amber, size: 20);
+                                }
+                              }),
+                              const SizedBox(width: 5),
+                              Text(
+                                '($totalReviews)',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ],
-                  );
-                },
-              ),
-       
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () {
@@ -267,31 +276,21 @@ class _CustomerProductState extends State<CustomerProduct> {
                               .toString()
                               .trim()
                               .isNotEmpty) ...[
-                        CustomText(
-                          textLabel: seller['contactNumber'],
-                          fontSize: 16,
+                        Row(
+                          children: [
+                            CustomText(
+                              textLabel: 'Seller Contact Number: ',
+                              fontSize: 16,
+                            ),
+                            CustomText(
+                              textLabel: seller['contactNumber'],
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ],
                         ),
                       ],
                       const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          CustomText(
-                            textLabel: 'Pickup Location: ',
-                            fontSize: 16,
-                          ),
-                          SizedBox(
-                            width: 5,
-                          ),
-                          Flexible(
-                            child: CustomText(
-                              textLabel: pickupLocation,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              maxLines: 2,
-                            ),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -299,7 +298,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           ElevatedButton(
                             onPressed: () {
                               showBuyNowDialog(
-                                  widget.productId, sellerId, priceInDouble);
+                                  widget.serviceId, sellerId, priceInDouble);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
@@ -308,10 +307,10 @@ class _CustomerProductState extends State<CustomerProduct> {
                               ),
                             ),
                             child: const Padding(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 20.0, vertical: 10.0),
+                              padding: EdgeInsets.all(
+                                   10.0),
                               child: CustomText(
-                                textLabel: 'Buy Now',
+                                textLabel: 'Book Now',
                                 fontSize: 18,
                                 textColor: Colors.white,
                               ),
@@ -319,7 +318,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           ),
                           IconButton(
                             onPressed: () {
-                              addToWishlist(widget.productId, sellerId);
+                              addToWishlist(widget.serviceId, sellerId);
                             },
                             icon: Icon(
                               isInWishlist
@@ -331,7 +330,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           ),
                           IconButton(
                             onPressed: () {
-                              showAddToCartDialog(widget.productId, sellerId);
+                              showAddToCartDialog(widget.serviceId, sellerId);
                             },
                             icon: const Icon(
                               Icons.shopping_cart_outlined,
@@ -342,8 +341,6 @@ class _CustomerProductState extends State<CustomerProduct> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      const Divider(),
-                      const SizedBox(height: 10),
                       DefaultTabController(
                         length: 2,
                         child: Column(
@@ -353,27 +350,314 @@ class _CustomerProductState extends State<CustomerProduct> {
                               unselectedLabelColor: Colors.grey,
                               indicatorColor: Colors.blue,
                               tabs: [
-                                Tab(text: 'Description'),
-                                Tab(text: 'Materials'),
+                                Tab(text: 'Details'),
+                                Tab(text: 'Reviews'),
                               ],
                             ),
                             const SizedBox(height: 10),
                             SizedBox(
-                                height: 100,
+                                height: 400,
                                 child: TabBarView(
                                   children: [
                                     Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CustomText(
-                                        textLabel: description,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                                        padding: const EdgeInsets.all(2.0),
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                               SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Address: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: serviceLocation,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Available Days: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: availableDays
+                                                          .join(', '),
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Service Hours: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: formatServiceHours(
+                                                          serviceHours),
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Category : ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: category,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Description: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: description,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )),
                                     Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CustomText(
-                                        textLabel: materials,
-                                        fontSize: 16,
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: Column(
+                                        children: [
+                                          Center(
+                                            child: ElevatedButton(
+                                              onPressed: () =>
+                                                  showLeaveReviewDialog(),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                   
+                                                    vertical: 5.0),
+                                                child: CustomText(
+                                                  textLabel: 'Leave a Review',
+                                                  fontSize: 15,
+                                                  textColor: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          StreamBuilder<QuerySnapshot>(
+                                            stream: FirebaseFirestore.instance
+                                                .collection('services')
+                                                .doc(widget.serviceId)
+                                                .collection('reviews')
+                                                .snapshots(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              }
+                                              if (!snapshot.hasData ||
+                                                  snapshot.data!.docs.isEmpty) {
+                                                return const CustomText(
+                                                  textLabel:
+                                                      'No reviews yet. Be the first to leave one!',
+                                                  fontSize: 16,
+                                                  textColor: Colors.grey,
+                                                );
+                                              }
+
+                                              final reviews =
+                                                  snapshot.data!.docs;
+
+                                              return Column(
+                                                children:
+                                                    reviews.map((reviewDoc) {
+                                                  final review = reviewDoc
+                                                          .data()
+                                                      as Map<String, dynamic>;
+                                                  final userId = reviewDoc.id;
+                                                  final comment =
+                                                      review['comment'] ?? '';
+                                                  final stars =
+                                                      review['stars'] ?? 0;
+
+                                                  return FutureBuilder<
+                                                      DocumentSnapshot>(
+                                                    future: FirebaseFirestore
+                                                        .instance
+                                                        .collection('customers')
+                                                        .doc(userId)
+                                                        .get(),
+                                                    builder: (context,
+                                                        userSnapshot) {
+                                                      if (userSnapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .waiting) {
+                                                        return const SizedBox();
+                                                      }
+
+                                                      if (!userSnapshot
+                                                              .hasData ||
+                                                          !userSnapshot
+                                                              .data!.exists) {
+                                                        return const CustomText(
+                                                          textLabel:
+                                                              'Unknown user left a review.',
+                                                          fontSize: 16,
+                                                        );
+                                                      }
+
+                                                      final user =
+                                                          userSnapshot.data!;
+                                                      final firstName =
+                                                          user['firstName'] ??
+                                                              'Unknown';
+                                                      final lastName =
+                                                          user['lastName'] ??
+                                                              'User';
+                                                      final userData =
+                                                          user.data() as Map<
+                                                              String, dynamic>?;
+                                                      final profilePicture = (userData !=
+                                                                  null &&
+                                                              userData.containsKey(
+                                                                  'profilePicture') &&
+                                                              userData[
+                                                                      'profilePicture'] !=
+                                                                  null)
+                                                          ? userData[
+                                                                  'profilePicture']
+                                                              as String
+                                                          : '';
+
+                                                      return ListTile(
+                                                        leading: CircleAvatar(
+                                                          backgroundImage: profilePicture
+                                                                  .isNotEmpty
+                                                              ? NetworkImage(
+                                                                  profilePicture)
+                                                              : AssetImage(
+                                                                      'assets/images/profile.png')
+                                                                  as ImageProvider,
+                                                          child: profilePicture
+                                                                  .isEmpty
+                                                              ? null
+                                                              : null,
+                                                        ),
+                                                        title: CustomText(
+                                                          textLabel:
+                                                              '$firstName $lastName',
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        subtitle: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Row(
+                                                              children:
+                                                                  List.generate(
+                                                                5,
+                                                                (index) => Icon(
+                                                                  Icons.star,
+                                                                  color: index <
+                                                                          stars
+                                                                      ? Colors
+                                                                          .amber
+                                                                      : Colors
+                                                                          .grey,
+                                                                  size: 16,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 5),
+                                                            CustomText(
+                                                              textLabel:
+                                                                  comment,
+                                                              fontSize: 14,
+                                                              maxLines: 5,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                }).toList(),
+                                              );
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
@@ -384,155 +668,6 @@ class _CustomerProductState extends State<CustomerProduct> {
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Divider(),
-                      ),
-                      Column(
-                        children: [
-                          Align(
-                              alignment: Alignment.topLeft,
-                              child: CustomText(
-                                textLabel: 'Reviews',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              )),
-                          Center(
-                            child: ElevatedButton(
-                              onPressed: () => showLeaveReviewDialog(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10.0, vertical: 5.0),
-                                child: CustomText(
-                                  textLabel: 'Leave a Review',
-                                  fontSize: 15,
-                                  textColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('products')
-                                .doc(widget.productId)
-                                .collection('reviews')
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (!snapshot.hasData ||
-                                  snapshot.data!.docs.isEmpty) {
-                                return const CustomText(
-                                  textLabel:
-                                      'No reviews yet. Be the first to leave one!',
-                                  fontSize: 16,
-                                  textColor: Colors.grey,
-                                );
-                              }
-
-                              final reviews = snapshot.data!.docs;
-
-                              return Column(
-                                children: reviews.map((reviewDoc) {
-                                  final review =
-                                      reviewDoc.data() as Map<String, dynamic>;
-                                  final userId = reviewDoc.id;
-                                  final comment = review['comment'] ?? '';
-                                  final stars = review['stars'] ?? 0;
-
-                                  return FutureBuilder<DocumentSnapshot>(
-                                    future: FirebaseFirestore.instance
-                                        .collection('customers')
-                                        .doc(userId)
-                                        .get(),
-                                    builder: (context, userSnapshot) {
-                                      if (userSnapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const SizedBox();
-                                      }
-
-                                      if (!userSnapshot.hasData ||
-                                          !userSnapshot.data!.exists) {
-                                        return const CustomText(
-                                          textLabel:
-                                              'Unknown user left a review.',
-                                          fontSize: 16,
-                                        );
-                                      }
-
-                                      final user = userSnapshot.data!;
-                                      final firstName =
-                                          user['firstName'] ?? 'Unknown';
-                                      final lastName =
-                                          user['lastName'] ?? 'User';
-                                      final userData =
-                                          user.data() as Map<String, dynamic>?;
-                                      final profilePicture = (userData !=
-                                                  null &&
-                                              userData.containsKey(
-                                                  'profilePicture') &&
-                                              userData['profilePicture'] !=
-                                                  null)
-                                          ? userData['profilePicture'] as String
-                                          : '';
-
-                                      return ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundImage: profilePicture
-                                                  .isNotEmpty
-                                              ? NetworkImage(profilePicture)
-                                              : AssetImage(
-                                                      'assets/images/profile.png')
-                                                  as ImageProvider,
-                                          child: profilePicture.isEmpty
-                                              ? null
-                                              : null,
-                                        ),
-                                        title: CustomText(
-                                          textLabel: '$firstName $lastName',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: List.generate(
-                                                5,
-                                                (index) => Icon(
-                                                  Icons.star,
-                                                  color: index < stars
-                                                      ? Colors.amber
-                                                      : Colors.grey,
-                                                  size: 16,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 5),
-                                            CustomText(
-                                              textLabel: comment,
-                                              fontSize: 14,
-                                              maxLines: 5,
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -545,7 +680,7 @@ class _CustomerProductState extends State<CustomerProduct> {
     );
   }
 
-  void showAddToCartDialog(String productId, String sellerId) {
+  void showAddToCartDialog(String serviceId, String sellerId) {
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     int quantity = 1;
 
@@ -558,7 +693,7 @@ class _CustomerProductState extends State<CustomerProduct> {
             builder: (BuildContext context, StateSetter setState) {
               return Container(
                 padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+                    const EdgeInsets.all(20),
                 child: Form(
                   key: formKey,
                   child: Column(
@@ -659,11 +794,11 @@ class _CustomerProductState extends State<CustomerProduct> {
                                 return;
                               }
 
-                              await addToCart(productId, sellerId, quantity);
+                              await addToCart(serviceId, sellerId, quantity);
                               if (!context.mounted) return;
                               navPop(context);
                               successSnackbar(
-                                  context, "Product added to cart.");
+                                  context, "Service added to cart.");
                             },
                             child: const CustomText(
                               textLabel: 'Confirm',
@@ -685,7 +820,7 @@ class _CustomerProductState extends State<CustomerProduct> {
   }
 
   Future<void> addToCart(
-      String productId, String sellerId, int quantity) async {
+      String serviceId, String sellerId, int quantity) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
     if (userId == null) {
       errorSnackbar(context, "You must be logged in to add to cart.");
@@ -696,7 +831,7 @@ class _CustomerProductState extends State<CustomerProduct> {
         .collection('customers')
         .doc(userId)
         .collection('cart')
-        .doc(productId);
+        .doc(serviceId);
 
     final cartDoc = await cartRef.get();
 
@@ -712,7 +847,7 @@ class _CustomerProductState extends State<CustomerProduct> {
     }
   }
 
-  Future<void> addToWishlist(String productId, String sellerId) async {
+  Future<void> addToWishlist(String serviceId, String sellerId) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
     if (userId == null) {
@@ -724,25 +859,25 @@ class _CustomerProductState extends State<CustomerProduct> {
         .collection('customers')
         .doc(userId)
         .collection('wishlist')
-        .doc(productId);
+        .doc(serviceId);
 
     final wishlistDoc = await wishlistRef.get();
 
     if (wishlistDoc.exists) {
       if (!mounted) return;
-      errorSnackbar(context, "Product is already in your wishlist.");
+      errorSnackbar(context, "Service is already in your wishlist.");
     } else {
       await wishlistRef.set({'sellerId': sellerId});
       setState(() {
         isInWishlist = true;
       });
       if (!mounted) return;
-      successSnackbar(context, "Product added to your wishlist.");
+      successSnackbar(context, "Service added to your wishlist.");
     }
   }
 
   void showBuyNowDialog(
-      String productId, String sellerId, double pricePerUnit) {
+      String serviceId, String sellerId, double pricePerUnit) {
     final GlobalKey<FormState> formKey = GlobalKey<FormState>();
     int quantity = 1;
     double totalPrice = pricePerUnit;
@@ -868,7 +1003,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                 return;
                               }
 
-                              await buyNow(productId, sellerId, quantity);
+                              await buyNow(serviceId, sellerId, quantity);
                               if (!context.mounted) return;
                               navPop(context);
                               successSnackbar(
@@ -893,72 +1028,71 @@ class _CustomerProductState extends State<CustomerProduct> {
     );
   }
 
-Future<void> buyNow(String productId, String sellerId, int quantity) async {
-  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  Future<void> buyNow(String serviceId, String sellerId, int quantity) async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-  if (userId == null) {
-    errorSnackbar(context, "You must be logged in to place an order.");
-    return;
-  }
-
-  final now = Timestamp.now();
-
-  try {
-    final productRef = FirebaseFirestore.instance.collection('products').doc(productId);
-    final productSnapshot = await productRef.get();
-
-    if (!productSnapshot.exists) {
-      if (!mounted) return;
-      errorSnackbar(context, "Product not found.");
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to place an order.");
       return;
     }
 
-    final productData = productSnapshot.data()!;
-    final double price = (productData['price'] as num).toDouble();
-    final String productName = productData['productName'];
-     final String productDescription = productData['description'];
-    final String category = productData['category'] ?? "Uncategorized";
+    final now = Timestamp.now();
 
-    final productOrdersRef = productRef.collection('orders').doc(userId);
-    await productOrdersRef.set({
-      'quantity': quantity,
-      'dateOrdered': now,
-      'status': 'ordered',
-    });
+    try {
+      final serviceRef =
+          FirebaseFirestore.instance.collection('services').doc(serviceId);
+      final serviceSnapshot = await serviceRef.get();
 
-    final customerOrdersRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('orders')
-        .doc(productId);
+      if (!serviceSnapshot.exists) {
+        if (!mounted) return;
+        errorSnackbar(context, "Service not found.");
+        return;
+      }
 
-    await customerOrdersRef.set({
-      'quantity': quantity,
-      'dateOrdered': now,
-      'status': 'ordered',
-    });
+      final serviceData = serviceSnapshot.data()!;
+      final double price = (serviceData['price'] as num).toDouble();
+      final String serviceName = serviceData['serviceName'];
+      final String serviceDescription = serviceData['description'];
+      final String category = serviceData['category'] ?? "Uncategorized";
 
-    final purchaseHistoryRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('purchaseHistory');
+      final serviceOrdersRef = serviceRef.collection('orders').doc(userId);
+      await serviceOrdersRef.set({
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+      });
 
-    await purchaseHistoryRef.add({
-      'productId': productId,
-      'productName': productName,
-      'description':productDescription,
-      'category': category,
-      'price': price,
-      'quantity': quantity,
-      'timestamp': now,
-    });
+      final customerOrdersRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(userId)
+          .collection('orders')
+          .doc(serviceId);
 
-  
-  } catch (error) {
-    if (!mounted) return;
-    errorSnackbar(context, "Failed to place order: $error");
+      await customerOrdersRef.set({
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+      });
+
+      final purchaseHistoryRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(userId)
+          .collection('purchaseHistory');
+
+      await purchaseHistoryRef.add({
+        'serviceId': serviceId,
+        'serviceName': serviceName,
+        'description': serviceDescription,
+        'category': category,
+        'price': price,
+        'quantity': quantity,
+        'timestamp': now,
+      });
+    } catch (error) {
+      if (!mounted) return;
+      errorSnackbar(context, "Failed to place order: $error");
+    }
   }
-}
 
   void navigateToMessageSeller(
       String sellerId, String sellerFirstName, String sellerProfilePic) {
@@ -1097,8 +1231,8 @@ Future<void> buyNow(String productId, String sellerId, int quantity) async {
     }
 
     final reviewRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(widget.productId)
+        .collection('services')
+        .doc(widget.serviceId)
         .collection('reviews')
         .doc(userId);
 

@@ -59,130 +59,135 @@ class SearchResultsPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Search Results'),
       ),
-      body: FutureBuilder<List<QueryDocumentSnapshot>>(
-        future: searchProducts(query, userId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 80),
-                child: SpinKitFadingCircle(
-                  size: 80,
-                  color: Colors.green,
-                ),
-              ),
-            );
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 50),
-                child: CustomText(
-                  textLabel: "Error displaying products.",
-                  fontSize: 16,
-                  textColor: Colors.red,
-                ),
-              ),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 50),
-                child: CustomText(
-                  textLabel: "No products available.",
-                  fontSize: 16,
-                  textColor: Colors.grey,
-                ),
-              ),
-            );
-          }
-
-          final products = snapshot.data!;
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: 3 / 4,
-            ),
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final product = products[index];
-              final productName = product['productName'] ?? "Unnamed";
-              final price = "₱${product['price']?.toStringAsFixed(2) ?? 'N/A'}";
-              final imageUrl = product['imageUrl'];
-
-              return Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: imageUrl != null
-                        ? Image.network(
-                            imageUrl,
-                            width: double.infinity,
-                            height: double.infinity,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            color: Colors.grey[300],
-                          ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: FutureBuilder<List<QueryDocumentSnapshot>>(
+            future: searchProducts(query, userId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 80),
+                    child: SpinKitFadingCircle(
+                      size: 80,
+                      color: Colors.green,
+                    ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      storeProductClick(userId, product.id);
-                      navPush(context, CustomerProduct(productId: product.id));
-                    },
-                    child: Container(
-                      decoration: BoxDecoration(
+                );
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: CustomText(
+                      textLabel: "Error displaying products.",
+                      fontSize: 16,
+                      textColor: Colors.red,
+                    ),
+                  ),
+                );
+              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 50),
+                    child: CustomText(
+                      textLabel: "No products available.",
+                      fontSize: 16,
+                      textColor: Colors.grey,
+                    ),
+                  ),
+                );
+              }
+          
+              final products = snapshot.data!;
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  childAspectRatio: 3 / 4,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  final productName = product['productName'] ?? "Unnamed";
+                  final price = "₱${product['price']?.toStringAsFixed(2) ?? 'N/A'}";
+                  final imageUrl = product['imageUrl'];
+          
+                  return Stack(
+                    children: [
+                      ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.6),
-                            Colors.transparent,
-                          ],
+                        child: imageUrl != null
+                            ? Image.network(
+                                imageUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                              )
+                            : Container(
+                                color: Colors.grey[300],
+                              ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          storeProductClick(userId, product.id);
+                          navPush(context, CustomerProduct(productId: product.id));
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(10),
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.6),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
-                    child: GestureDetector(
-                      onTap: () {
-                        storeProductClick(userId, product.id);
-                        navPush(
-                            context, CustomerProduct(productId: product.id));
-                      },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            textLabel: productName,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            textColor: Colors.white,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                      Positioned(
+                        bottom: 10,
+                        left: 10,
+                        right: 10,
+                        child: GestureDetector(
+                          onTap: () {
+                            storeProductClick(userId, product.id);
+                            navPush(
+                                context, CustomerProduct(productId: product.id));
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              CustomText(
+                                textLabel: productName,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                textColor: Colors.white,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 5),
+                              CustomText(
+                                textLabel: price,
+                                fontSize: 14,
+                                textColor: Colors.white,
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 5),
-                          CustomText(
-                            textLabel: price,
-                            fontSize: 14,
-                            textColor: Colors.white,
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               );
             },
-          );
-        },
+          ),
+        ),
       ),
     );
   }

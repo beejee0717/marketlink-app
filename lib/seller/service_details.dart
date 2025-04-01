@@ -47,26 +47,7 @@ class SellerServiceDetails extends StatelessWidget {
     }
   }
 
-  String formatServiceHours(Map<String, dynamic>? serviceHours) {
-    if (serviceHours == null ||
-        !serviceHours.containsKey('start') ||
-        !serviceHours.containsKey('end')) {
-      return "Not specified";
-    }
 
-    DateFormat inputFormat = DateFormat("HH:mm");
-    DateFormat outputFormat = DateFormat("h:mm a");
-
-    try {
-      String startTime =
-          outputFormat.format(inputFormat.parse(serviceHours['start']));
-      String endTime =
-          outputFormat.format(inputFormat.parse(serviceHours['end']));
-      return "$startTime - $endTime";
-    } catch (e) {
-      return "Invalid time format";
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -469,3 +450,23 @@ class SellerServiceDetails extends StatelessWidget {
     }
   }
 }
+  String formatServiceHours(Map<String, dynamic>? serviceHours) {
+    if (serviceHours == null ||
+        !serviceHours.containsKey('start') ||
+        !serviceHours.containsKey('end')) {
+      return "Not specified";
+    }
+
+    DateFormat inputFormat = DateFormat("HH:mm");
+    DateFormat outputFormat = DateFormat("h:mm a");
+
+    try {
+      String startTime =
+          outputFormat.format(inputFormat.parse(serviceHours['start']));
+      String endTime =
+          outputFormat.format(inputFormat.parse(serviceHours['end']));
+      return "$startTime - $endTime";
+    } catch (e) {
+      return "Invalid time format";
+    }
+  }

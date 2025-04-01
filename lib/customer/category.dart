@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/customer/components.dart';
+import 'package:marketlinkapp/provider/user_provider.dart';
+import 'package:provider/provider.dart';
 
-import '../components/navigator.dart';
-import 'product.dart';
 
 class CustomerCategory extends StatefulWidget {
   final String category;
@@ -46,13 +47,15 @@ class _CustomerCategoryState extends State<CustomerCategory> {
 
   @override
   Widget build(BuildContext context) {
+      final String userId =
+        Provider.of<UserProvider>(context, listen: false).user!.uid;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         title: CustomText(
           textLabel: widget.category,
-          fontSize: 18,
+          fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -60,23 +63,7 @@ class _CustomerCategoryState extends State<CustomerCategory> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            TextFormField(
-              controller: searchController,
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value.trim().toLowerCase();
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Search what you want...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                filled: true,
-                fillColor: Colors.grey[200],
-              ),
-            ),
+          searchContainer(context, searchController, userId),
             const SizedBox(height: 20),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
@@ -141,70 +128,14 @@ class _CustomerCategoryState extends State<CustomerCategory> {
                     ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
-                      final productSnapshot = products[index];
-                      final product =
-                          productSnapshot.data() as Map<String, dynamic>;
+                      final product = products[index];
+                      final productId = product.id;
+                      final productName = product['productName'] ?? "Unnamed";
+                      final price =
+                          "₱${product['price']?.toStringAsFixed(2) ?? 'N/A'}";
+                      final imageUrl = product['imageUrl'];
 
-                      return GestureDetector(
-                        onTap: () => navPush(
-                          context,
-                          CustomerProduct(productId: productSnapshot.id),
-                        ),
-                        child: Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(10)),
-                                  child: Image.network(
-                                    product['imageUrl'] ?? '',
-                                    fit: BoxFit.cover,
-                                    width: double.infinity,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return const Icon(
-                                        Icons.image,
-                                        size: 50,
-                                        color: Colors.grey,
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    CustomText(
-                                      textLabel: product['productName'] ??
-                                          'Unnamed Product',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 5),
-                                    CustomText(
-                                      textLabel:
-                                          '₱${product['price']?.toStringAsFixed(2) ?? 'N/A'}',
-                                      fontSize: 14,
-                                      textColor: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
+                      return itemDisplay(context, imageUrl, userId, productId, productName, price, true); },
                   );
                 },
               ),

@@ -9,7 +9,7 @@ This is a capstone project made and developed for MSMEs.
 ## Features
 
 #User
-AI algorithm based on search history, recently purchased
+AI algorithm based on search history, recently purchased, product clicks
 
 
 #Seller
