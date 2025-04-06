@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -103,7 +104,7 @@ class _CustomerHomeState extends State<CustomerHome>
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: CustomText(textLabel: 'Explore What You Need...', fontSize: 18),
+        title: FadeInLeft(child: CustomText(textLabel: 'Explore What You Need...', fontSize: 18)),
         actions: [
           IconButton(
             icon: Icon(Icons.message, color: Colors.black),

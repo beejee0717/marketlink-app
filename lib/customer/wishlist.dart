@@ -356,22 +356,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
                                 textColor: Colors.green,
                               ),
                               const SizedBox(height: 5),
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: 'Pickup: ',
-                                    fontSize: 14,
-                                    textColor: Colors.grey,
-                                  ),
-                                  CustomText(
-                                    textLabel:
-                                        '${wishlistItem['pickupLocation'] ?? 'Not specified'}',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ],
-                              ),
-                            ],
+                              ],
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

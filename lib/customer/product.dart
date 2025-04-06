@@ -116,6 +116,7 @@ class _CustomerProductState extends State<CustomerProduct> {
           final materials = (product['materials']?.isEmpty ?? true)
               ? 'No materials information available.'
               : product['materials'];
+               final String category = product['category'] ?? "Uncategorized";
 
           final pickupLocation =
               product['pickupLocation'] ?? 'Pickup location not specified.';
@@ -267,31 +268,21 @@ class _CustomerProductState extends State<CustomerProduct> {
                               .toString()
                               .trim()
                               .isNotEmpty) ...[
-                        CustomText(
-                          textLabel: seller['contactNumber'],
-                          fontSize: 16,
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          CustomText(
-                            textLabel: 'Pickup Location: ',
-                            fontSize: 16,
-                          ),
-                          SizedBox(
-                            width: 5,
-                          ),
-                          Flexible(
-                            child: CustomText(
-                              textLabel: pickupLocation,
+                       Row(
+                          children: [
+                            CustomText(
+                              textLabel: 'Seller Contact Number: ',
+                              fontSize: 16,
+                            ),
+                            CustomText(
+                              textLabel: seller['contactNumber'],
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              maxLines: 2,
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
+             
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -344,7 +335,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                       const SizedBox(height: 20),
                       const Divider(),
                       const SizedBox(height: 10),
-                      DefaultTabController(
+                            DefaultTabController(
                         length: 2,
                         child: Column(
                           children: [
@@ -353,188 +344,304 @@ class _CustomerProductState extends State<CustomerProduct> {
                               unselectedLabelColor: Colors.grey,
                               indicatorColor: Colors.blue,
                               tabs: [
-                                Tab(text: 'Description'),
-                                Tab(text: 'Materials'),
+                                Tab(text: 'Details'),
+                                Tab(text: 'Reviews'),
                               ],
                             ),
                             const SizedBox(height: 10),
                             SizedBox(
-                                height: 100,
+                                height: 400,
                                 child: TabBarView(
                                   children: [
                                     Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CustomText(
-                                        textLabel: description,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                                        padding: const EdgeInsets.all(2.0),
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                               SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Address: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: pickupLocation,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                                  RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Category : ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: category,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Materials : ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: materials,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: Colors.black),
+                                                  children: [
+                                                    TextSpan(
+                                                      text: "Description: ",
+                                                      style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold),
+                                                    ),
+                                                    TextSpan(
+                                                      text: description,
+                                                      style: TextStyle(
+                                                          fontWeight: FontWeight
+                                                              .normal),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )),
                                     Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: CustomText(
-                                        textLabel: materials,
-                                        fontSize: 16,
+                                      padding: const EdgeInsets.all(2.0),
+                                      child: Column(
+                                        children: [
+                                          Center(
+                                            child: ElevatedButton(
+                                              onPressed: () =>
+                                                  showLeaveReviewDialog(),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.green,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                              ),
+                                              child: const Padding(
+                                                padding: EdgeInsets.symmetric(
+                                                   
+                                                    vertical: 5.0),
+                                                child: CustomText(
+                                                  textLabel: 'Leave a Review',
+                                                  fontSize: 15,
+                                                  textColor: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 10),
+                                          StreamBuilder<QuerySnapshot>(
+                                            stream: FirebaseFirestore.instance
+                                                .collection('services')
+                                                .doc(widget.productId)
+                                                .collection('reviews')
+                                                .snapshots(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return const Center(
+                                                  child:
+                                                      CircularProgressIndicator(),
+                                                );
+                                              }
+                                              if (!snapshot.hasData ||
+                                                  snapshot.data!.docs.isEmpty) {
+                                                return const CustomText(
+                                                  textLabel:
+                                                      'No reviews yet. Be the first to leave one!',
+                                                  fontSize: 16,
+                                                  textColor: Colors.grey,
+                                                );
+                                              }
+
+                                              final reviews =
+                                                  snapshot.data!.docs;
+
+                                              return Column(
+                                                children:
+                                                    reviews.map((reviewDoc) {
+                                                  final review = reviewDoc
+                                                          .data()
+                                                      as Map<String, dynamic>;
+                                                  final userId = reviewDoc.id;
+                                                  final comment =
+                                                      review['comment'] ?? '';
+                                                  final stars =
+                                                      review['stars'] ?? 0;
+
+                                                  return FutureBuilder<
+                                                      DocumentSnapshot>(
+                                                    future: FirebaseFirestore
+                                                        .instance
+                                                        .collection('customers')
+                                                        .doc(userId)
+                                                        .get(),
+                                                    builder: (context,
+                                                        userSnapshot) {
+                                                      if (userSnapshot
+                                                              .connectionState ==
+                                                          ConnectionState
+                                                              .waiting) {
+                                                        return const SizedBox();
+                                                      }
+
+                                                      if (!userSnapshot
+                                                              .hasData ||
+                                                          !userSnapshot
+                                                              .data!.exists) {
+                                                        return const CustomText(
+                                                          textLabel:
+                                                              'Unknown user left a review.',
+                                                          fontSize: 16,
+                                                        );
+                                                      }
+
+                                                      final user =
+                                                          userSnapshot.data!;
+                                                      final firstName =
+                                                          user['firstName'] ??
+                                                              'Unknown';
+                                                      final lastName =
+                                                          user['lastName'] ??
+                                                              'User';
+                                                      final userData =
+                                                          user.data() as Map<
+                                                              String, dynamic>?;
+                                                      final profilePicture = (userData !=
+                                                                  null &&
+                                                              userData.containsKey(
+                                                                  'profilePicture') &&
+                                                              userData[
+                                                                      'profilePicture'] !=
+                                                                  null)
+                                                          ? userData[
+                                                                  'profilePicture']
+                                                              as String
+                                                          : '';
+
+                                                      return ListTile(
+                                                        leading: CircleAvatar(
+                                                          backgroundImage: profilePicture
+                                                                  .isNotEmpty
+                                                              ? NetworkImage(
+                                                                  profilePicture)
+                                                              : AssetImage(
+                                                                      'assets/images/profile.png')
+                                                                  as ImageProvider,
+                                                          child: profilePicture
+                                                                  .isEmpty
+                                                              ? null
+                                                              : null,
+                                                        ),
+                                                        title: CustomText(
+                                                          textLabel:
+                                                              '$firstName $lastName',
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        subtitle: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Row(
+                                                              children:
+                                                                  List.generate(
+                                                                5,
+                                                                (index) => Icon(
+                                                                  Icons.star,
+                                                                  color: index <
+                                                                          stars
+                                                                      ? Colors
+                                                                          .amber
+                                                                      : Colors
+                                                                          .grey,
+                                                                  size: 16,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 5),
+                                                            CustomText(
+                                                              textLabel:
+                                                                  comment,
+                                                              fontSize: 14,
+                                                              maxLines: 5,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  );
+                                                }).toList(),
+                                              );
+                                            },
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
-                                )),
+                                )
+                                ),
                           ],
                         ),
                       ),
+       
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Divider(),
                       ),
-                      Column(
-                        children: [
-                          Align(
-                              alignment: Alignment.topLeft,
-                              child: CustomText(
-                                textLabel: 'Reviews',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              )),
-                          Center(
-                            child: ElevatedButton(
-                              onPressed: () => showLeaveReviewDialog(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Padding(
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 10.0, vertical: 5.0),
-                                child: CustomText(
-                                  textLabel: 'Leave a Review',
-                                  fontSize: 15,
-                                  textColor: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          StreamBuilder<QuerySnapshot>(
-                            stream: FirebaseFirestore.instance
-                                .collection('products')
-                                .doc(widget.productId)
-                                .collection('reviews')
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (!snapshot.hasData ||
-                                  snapshot.data!.docs.isEmpty) {
-                                return const CustomText(
-                                  textLabel:
-                                      'No reviews yet. Be the first to leave one!',
-                                  fontSize: 16,
-                                  textColor: Colors.grey,
-                                );
-                              }
-
-                              final reviews = snapshot.data!.docs;
-
-                              return Column(
-                                children: reviews.map((reviewDoc) {
-                                  final review =
-                                      reviewDoc.data() as Map<String, dynamic>;
-                                  final userId = reviewDoc.id;
-                                  final comment = review['comment'] ?? '';
-                                  final stars = review['stars'] ?? 0;
-
-                                  return FutureBuilder<DocumentSnapshot>(
-                                    future: FirebaseFirestore.instance
-                                        .collection('customers')
-                                        .doc(userId)
-                                        .get(),
-                                    builder: (context, userSnapshot) {
-                                      if (userSnapshot.connectionState ==
-                                          ConnectionState.waiting) {
-                                        return const SizedBox();
-                                      }
-
-                                      if (!userSnapshot.hasData ||
-                                          !userSnapshot.data!.exists) {
-                                        return const CustomText(
-                                          textLabel:
-                                              'Unknown user left a review.',
-                                          fontSize: 16,
-                                        );
-                                      }
-
-                                      final user = userSnapshot.data!;
-                                      final firstName =
-                                          user['firstName'] ?? 'Unknown';
-                                      final lastName =
-                                          user['lastName'] ?? 'User';
-                                      final userData =
-                                          user.data() as Map<String, dynamic>?;
-                                      final profilePicture = (userData !=
-                                                  null &&
-                                              userData.containsKey(
-                                                  'profilePicture') &&
-                                              userData['profilePicture'] !=
-                                                  null)
-                                          ? userData['profilePicture'] as String
-                                          : '';
-
-                                      return ListTile(
-                                        leading: CircleAvatar(
-                                          backgroundImage: profilePicture
-                                                  .isNotEmpty
-                                              ? NetworkImage(profilePicture)
-                                              : AssetImage(
-                                                      'assets/images/profile.png')
-                                                  as ImageProvider,
-                                          child: profilePicture.isEmpty
-                                              ? null
-                                              : null,
-                                        ),
-                                        title: CustomText(
-                                          textLabel: '$firstName $lastName',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        subtitle: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: List.generate(
-                                                5,
-                                                (index) => Icon(
-                                                  Icons.star,
-                                                  color: index < stars
-                                                      ? Colors.amber
-                                                      : Colors.grey,
-                                                  size: 16,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 5),
-                                            CustomText(
-                                              textLabel: comment,
-                                              fontSize: 14,
-                                              maxLines: 5,
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
+                 ],
                   ),
                 ),
               );

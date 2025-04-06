@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:provider/provider.dart';
@@ -16,18 +17,94 @@ class CustomerOrders extends StatefulWidget {
 }
 
 class _CustomerOrdersState extends State<CustomerOrders>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   List<Map<String, dynamic>> _packedOrders = [];
   List<Map<String, dynamic>> _shippedOrders = [];
   List<Map<String, dynamic>> _deliveredOrders = [];
+  List<Map<String, dynamic>> _bookedServices = [];
   bool isLoading = true;
   late TabController _tabController;
-
+  late TabController _categoryController;
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _categoryController = TabController(length: 2, vsync: this);
     _loadOrders();
+    _loadBookings();
+  }
+
+  Future<void> _loadBookings() async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final bookedServices = await fetchBooking(userId);
+
+    if (!mounted) return;
+    setState(() {
+      _bookedServices = bookedServices;
+      isLoading = false;
+    });
+  }
+
+  Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('customers')
+        .doc(userId)
+        .collection('bookings')
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      return [];
+    }
+
+    List<Map<String, dynamic>> bookings = [];
+    for (var doc in querySnapshot.docs) {
+      final serviceId = doc.id;
+      final serviceDoc = await FirebaseFirestore.instance
+          .collection('services')
+          .doc(serviceId)
+          .get();
+
+      if (serviceDoc.exists) {
+        final serviceData = serviceDoc.data()!;
+        final sellerId = serviceData['sellerId'];
+
+        final sellerDoc = await FirebaseFirestore.instance
+            .collection('sellers')
+            .doc(sellerId)
+            .get();
+
+        final sellerName = sellerDoc.exists
+            ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+            : 'Unknown Seller';
+
+        final sellerContact = sellerDoc.exists &&
+                sellerDoc.data()!.containsKey('contactNumber') &&
+                (sellerDoc['contactNumber']?.isNotEmpty ?? false)
+            ? sellerDoc['contactNumber']
+            : 'No Contact No.';
+
+        bookings.add({
+          'serviceId': serviceId,
+          'serviceName': serviceData['serviceName'],
+          'price': serviceData['price'],
+          'serviceLocation': serviceData['serviceLocation'],
+          'dateBooked': doc['dateBooked'],
+          'status': doc['status'],
+          'imageUrl': serviceData['imageUrl'],
+          'sellerName': sellerName,
+          'sellerContact': sellerContact
+        });
+      }
+    }
+    return bookings;
   }
 
   Future<void> _loadOrders() async {
@@ -129,8 +206,29 @@ class _CustomerOrdersState extends State<CustomerOrders>
     successSnackbar(context, "Order canceled successfully.");
   }
 
-  Widget _buildOrderList(
-      List<Map<String, dynamic>> orders, String type) {
+  Future<void> cancelBooking(String userId, String serviceId) async {
+    final productOrderRef = FirebaseFirestore.instance
+        .collection('services')
+        .doc(serviceId)
+        .collection('bookings')
+        .doc(userId);
+
+    final customerOrderRef = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(userId)
+        .collection('bookings')
+        .doc(serviceId);
+
+    await Future.wait([productOrderRef.delete(), customerOrderRef.delete()]);
+
+    setState(() {
+      _bookedServices.removeWhere((order) => order['serviceId'] == serviceId);
+    });
+    if (!mounted) return;
+    successSnackbar(context, "Booking canceled successfully.");
+  }
+
+  Widget _buildOrderList(List<Map<String, dynamic>> orders, String type) {
     return orders.isEmpty
         ? Center(
             child: Column(
@@ -247,6 +345,180 @@ class _CustomerOrdersState extends State<CustomerOrders>
           );
   }
 
+  Widget _buildBookedList(List<Map<String, dynamic>> bookings) {
+    return bookings.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: const [
+                Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
+                SizedBox(height: 10),
+                CustomText(
+                  textLabel: "No Bookings found.",
+                  fontSize: 18,
+                  textColor: Colors.grey,
+                ),
+              ],
+            ),
+          )
+        : ListView.builder(
+            itemCount: bookings.length,
+            itemBuilder: (context, index) {
+              final booking = bookings[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          booking['imageUrl'] ?? '',
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.image, size: 40),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(
+                              textLabel:
+                                  booking['serviceName'] ?? 'Unnamed Service',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            const SizedBox(height: 4),
+                            CustomText(
+                              textLabel:
+                                  '₱${booking['price'].toStringAsFixed(2)}',
+                              fontSize: 16,
+                              textColor: Colors.green,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  textLabel: 'Status: ',
+                                  fontSize: 14,
+                                  textColor: Colors.grey,
+                                ),
+                                Flexible(
+                                  child: CustomText(
+                                    textLabel: booking['status'] == 'pending'
+                                        ? 'Pending'
+                                        : 'Confirmed',
+                                    fontSize: 14,
+                                    textColor: booking['status'] == 'pending'
+                                        ? const Color.fromARGB(255, 255, 167, 4)
+                                        : Colors.green,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  textLabel: 'Service Location: ',
+                                  fontSize: 14,
+                                  textColor: Colors.grey,
+                                ),
+                                Flexible(
+                                  child: CustomText(
+                                    textLabel: booking['serviceLocation'] ??
+                                        'Not specified',
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  textLabel: 'Date: ',
+                                  fontSize: 14,
+                                  textColor: Colors.grey,
+                                ),
+                                Flexible(
+                                  child: CustomText(
+                                    textLabel: booking['dateBooked'] != null
+                                        ? '${DateFormat('yyyy-MM-dd').format(booking['dateBooked'].toDate())} ${DateFormat('hh:mm a').format(booking['dateBooked'].toDate())}'
+                                        : 'Not specified',
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  textLabel: 'Seller: ',
+                                  fontSize: 14,
+                                  textColor: Colors.grey,
+                                ),
+                                Flexible(
+                                  child: CustomText(
+                                    textLabel: booking['sellerName'],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            CustomText(
+                              textLabel:
+                                  booking['sellerContact'] ?? 'No Contact No.',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.cancel, color: Colors.red),
+                        onPressed: () {
+                          customDialog(
+                            context,
+                            booking['serviceName'] ?? 'Unnamed Product',
+                            'Cancel this Booking?',
+                            () {
+                              cancelBooking(
+                                Provider.of<UserProvider>(context,
+                                        listen: false)
+                                    .user!
+                                    .uid,
+                                booking['serviceId'],
+                              );
+                              if (Navigator.canPop(context)) {
+                                navPop(context);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
@@ -270,36 +542,65 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(textLabel: 'Orders', fontSize: 25),
+        title: const CustomText(textLabel: 'Orders & Bookings', fontSize: 25),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
         bottom: TabBar(
-          controller: _tabController,
+          controller: _categoryController,
           indicatorColor: Colors.green,
           labelColor: Colors.green,
           unselectedLabelColor: Colors.grey,
           tabs: const [
-            Tab(text: 'Packed'),
-             Tab(text: 'Shipped'),
-            Tab(text: 'Delivered'),
+            Tab(text: 'Orders'),
+            Tab(text: 'Bookings'),
           ],
         ),
       ),
-      body: isLoading
-          ? const Center(
-              child: SpinKitFadingCircle(
-                size: 80,
-                color: Colors.green,
+      body: TabBarView(
+        controller: _categoryController,
+        children: [
+          Column(
+            children: [
+              TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.green,
+                labelColor: Colors.green,
+                unselectedLabelColor: Colors.grey,
+                tabs: const [
+                  Tab(text: 'Packed'),
+                  Tab(text: 'Shipped'),
+                  Tab(text: 'Delivered'),
+                ],
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOrderList(_packedOrders, 'packed'),
-                _buildOrderList(_shippedOrders, 'shipped'),
-                _buildOrderList(_deliveredOrders, 'delivered'),
-              ],
-            ),
+              Expanded(
+                child: isLoading
+                    ? const Center(
+                        child: SpinKitFadingCircle(
+                          size: 80,
+                          color: Colors.green,
+                        ),
+                      )
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildOrderList(_packedOrders, 'packed'),
+                          _buildOrderList(_shippedOrders, 'shipped'),
+                          _buildOrderList(_deliveredOrders, 'delivered'),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+          isLoading
+              ? const Center(
+                  child: SpinKitFadingCircle(
+                    size: 80,
+                    color: Colors.green,
+                  ),
+                )
+              : _buildBookedList(_bookedServices),
+        ],
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
@@ -295,27 +296,60 @@ class _CustomerServiceState extends State<CustomerService> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          ElevatedButton(
-                            onPressed: () {
-                              showBuyNowDialog(
-                                  widget.serviceId, sellerId, priceInDouble);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                            child: const Padding(
-                              padding: EdgeInsets.all(
-                                   10.0),
-                              child: CustomText(
-                                textLabel: 'Book Now',
-                                fontSize: 18,
-                                textColor: Colors.white,
-                              ),
-                            ),
-                          ),
+    ElevatedButton(
+  onPressed: () async {
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+    );
+
+    if (!context.mounted) return;
+
+    if (selectedDate == null) return;
+
+    TimeOfDay? selectedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+
+    if (!context.mounted) return;
+
+    if (selectedTime == null) return;
+
+    final DateTime selectedDateTime = DateTime(
+      selectedDate.year,
+      selectedDate.month,
+      selectedDate.day,
+      selectedTime.hour,
+      selectedTime.minute,
+    );
+
+    showBookDialog(
+      widget.serviceId,
+      title,
+      sellerId,
+      priceInDouble,
+      selectedDateTime,
+    );
+  },
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(30),
+    ),
+  ),
+  child: const Padding(
+    padding: EdgeInsets.all(10.0),
+    child: CustomText(
+      textLabel: 'Book Now',
+      fontSize: 18,
+      textColor: Colors.white,
+    ),
+  ),
+),
+
                           IconButton(
                             onPressed: () {
                               addToWishlist(widget.serviceId, sellerId);
@@ -661,7 +695,8 @@ class _CustomerServiceState extends State<CustomerService> {
                                       ),
                                     ),
                                   ],
-                                )),
+                                )
+                                ),
                           ],
                         ),
                       ),
@@ -876,163 +911,105 @@ class _CustomerServiceState extends State<CustomerService> {
     }
   }
 
-  void showBuyNowDialog(
-      String serviceId, String sellerId, double pricePerUnit) {
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    int quantity = 1;
-    double totalPrice = pricePerUnit;
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CustomText(
-                        textLabel: "Buy Now",
-                        fontSize: 20,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 30),
-                      const CustomText(
-                        textLabel: "Enter the quantity:",
-                        fontSize: 16,
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              if (quantity > 1) {
-                                setState(() {
-                                  quantity--;
-                                  totalPrice = pricePerUnit * quantity;
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.remove_circle_outline,
-                                color: Colors.red),
-                          ),
-                          SizedBox(
-                            width: 60,
-                            child: TextFormField(
-                              readOnly: true,
-                              key: ValueKey(quantity),
-                              initialValue: quantity.toString(),
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              validator: (value) {
-                                final int? input = int.tryParse(value ?? "");
-                                if (input == null || input <= 0) {
-                                  return "Invalid quantity";
-                                }
-                                return null;
-                              },
-                              onChanged: (value) {
-                                final int? input = int.tryParse(value);
-                                if (input != null && input > 0) {
-                                  setState(() {
-                                    quantity = input;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                quantity++;
-                                totalPrice = pricePerUnit * quantity;
-                              });
-                            },
-                            icon: const Icon(Icons.add_circle_outline,
-                                color: Colors.green),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      CustomText(
-                        textLabel:
-                            "Total Price: ₱${totalPrice.toStringAsFixed(2)}",
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        textColor: Colors.green,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              navPop(context);
-                            },
-                            child: const CustomText(
-                              textLabel: 'Cancel',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              if (!formKey.currentState!.validate()) {
-                                errorSnackbar(
-                                    context, 'Please enter a valid number.');
-                                return;
-                              }
-
-                              await buyNow(serviceId, sellerId, quantity);
-                              if (!context.mounted) return;
-                              navPop(context);
-                              successSnackbar(
-                                  context, "Order placed successfully!");
-                            },
-                            child: const CustomText(
-                              textLabel: 'Confirm',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+void showBookDialog(String serviceId, String title, String sellerId, double price, DateTime dateTime) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        actionsPadding: const EdgeInsets.only(right: 12, bottom: 8),
+        title: const Text(
+          'Confirm Booking',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CustomText(
+              textLabel: title,
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                CustomText(
+                  textLabel: 'Date: ',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              );
-            },
+                CustomText(
+                  textLabel: DateFormat('yyyy-MM-dd').format(dateTime),
+                  fontSize: 18,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                CustomText(
+                  textLabel: 'Time: ',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                CustomText(
+                  textLabel: DateFormat('hh:mm a').format(dateTime),
+                  fontSize: 18,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                CustomText(
+                  textLabel: 'Price: ₱',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                CustomText(
+                  textLabel: price.toStringAsFixed(2),
+                  fontSize: 18,
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: ()async {
+           await bookNow(serviceId, sellerId, dateTime);
+    if (context.mounted) {
+      Navigator.of(context).pop();
+    }
+  },
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const Text(
+              'Confirm',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
           ),
-        );
-      },
-    );
-  }
+        ],
+      );
+    },
+  );
+}
 
-  Future<void> buyNow(String serviceId, String sellerId, int quantity) async {
+
+  Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
     if (userId == null) {
-      errorSnackbar(context, "You must be logged in to place an order.");
+      errorSnackbar(context, "You must be logged in to book.");
       return;
     }
 
@@ -1055,29 +1032,29 @@ class _CustomerServiceState extends State<CustomerService> {
       final String serviceDescription = serviceData['description'];
       final String category = serviceData['category'] ?? "Uncategorized";
 
-      final serviceOrdersRef = serviceRef.collection('orders').doc(userId);
+      final serviceOrdersRef = serviceRef.collection('bookings').doc(userId);
       await serviceOrdersRef.set({
-        'quantity': quantity,
+        'dateBooked': dateBooked,
         'dateOrdered': now,
-        'status': 'ordered',
+        'status': 'pending',
       });
 
       final customerOrdersRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
-          .collection('orders')
+          .collection('bookings')
           .doc(serviceId);
 
       await customerOrdersRef.set({
-        'quantity': quantity,
+        'dateBooked': dateBooked,
         'dateOrdered': now,
-        'status': 'ordered',
+        'status': 'pending',
       });
 
       final purchaseHistoryRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
-          .collection('purchaseHistory');
+          .collection('bookingHistory');
 
       await purchaseHistoryRef.add({
         'serviceId': serviceId,
@@ -1085,12 +1062,14 @@ class _CustomerServiceState extends State<CustomerService> {
         'description': serviceDescription,
         'category': category,
         'price': price,
-        'quantity': quantity,
+        'dateBooked': dateBooked,
         'timestamp': now,
       });
+    if(!mounted) return;
+       successSnackbar(context, "Booked Successfully!");
     } catch (error) {
       if (!mounted) return;
-      errorSnackbar(context, "Failed to place order: $error");
+      errorSnackbar(context, "Failed to book: $error");
     }
   }
 
