@@ -116,11 +116,13 @@ class _CustomerProductState extends State<CustomerProduct> {
           final materials = (product['materials']?.isEmpty ?? true)
               ? 'No materials information available.'
               : product['materials'];
-               final String category = product['category'] ?? "Uncategorized";
+          final String category = product['category'] ?? "Uncategorized";
 
           final pickupLocation =
               product['pickupLocation'] ?? 'Pickup location not specified.';
           final sellerId = product['sellerId'];
+          final currentUser =
+              Provider.of<UserProvider>(context, listen: false).user?.uid;
 
           return FutureBuilder<Map<String, dynamic>>(
             future: fetchSellerDetails(sellerId),
@@ -194,49 +196,51 @@ class _CustomerProductState extends State<CustomerProduct> {
                         textColor: Colors.green,
                       ),
                       const SizedBox(height: 8),
-                         FutureBuilder<Map<String, dynamic>>(
-                future: getRating(widget.productId, true),
-                builder: (context, ratingSnapshot) {
-                  if (ratingSnapshot.connectionState ==
-                      ConnectionState.waiting) {
-                    return const SizedBox(
-                      height: 20,
-                      width: 50,
-                      child: LinearProgressIndicator(),
-                    );
-                  }
-                  if (ratingSnapshot.hasError) {
-                    return const Text('Error');
-                  }
+                      FutureBuilder<Map<String, dynamic>>(
+                        future: getRating(widget.productId, true),
+                        builder: (context, ratingSnapshot) {
+                          if (ratingSnapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 20,
+                              width: 50,
+                              child: LinearProgressIndicator(),
+                            );
+                          }
+                          if (ratingSnapshot.hasError) {
+                            return const Text('Error');
+                          }
 
-                  double averageRating =
-                      (ratingSnapshot.data?['averageRating'] ?? 0.0).toDouble();
-                  int totalReviews = ratingSnapshot.data?['totalReviews'] ?? 0;
+                          double averageRating =
+                              (ratingSnapshot.data?['averageRating'] ?? 0.0)
+                                  .toDouble();
+                          int totalReviews =
+                              ratingSnapshot.data?['totalReviews'] ?? 0;
 
-                  return Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        if (index + 1 <= averageRating) {
-                          return const Icon(Icons.star,
-                              color: Colors.amber, size: 20);
-                        } else if (index + 0.5 <= averageRating) {
-                          return const Icon(Icons.star_half,
-                              color: Colors.amber, size: 20);
-                        } else {
-                          return const Icon(Icons.star_border,
-                              color: Colors.amber, size: 20);
-                        }
-                      }),
-                      const SizedBox(width: 5),
-                      Text(
-                        '($totalReviews)',
-                        style: TextStyle(fontSize: 14, color: Colors.black),
+                          return Row(
+                            children: [
+                              ...List.generate(5, (index) {
+                                if (index + 1 <= averageRating) {
+                                  return const Icon(Icons.star,
+                                      color: Colors.amber, size: 20);
+                                } else if (index + 0.5 <= averageRating) {
+                                  return const Icon(Icons.star_half,
+                                      color: Colors.amber, size: 20);
+                                } else {
+                                  return const Icon(Icons.star_border,
+                                      color: Colors.amber, size: 20);
+                                }
+                              }),
+                              const SizedBox(width: 5),
+                              Text(
+                                '($totalReviews)',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                              ),
+                            ],
+                          );
+                        },
                       ),
-                    ],
-                  );
-                },
-              ),
-       
                       const SizedBox(height: 8),
                       GestureDetector(
                         onTap: () {
@@ -268,7 +272,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                               .toString()
                               .trim()
                               .isNotEmpty) ...[
-                       Row(
+                        Row(
                           children: [
                             CustomText(
                               textLabel: 'Seller Contact Number: ',
@@ -282,7 +286,6 @@ class _CustomerProductState extends State<CustomerProduct> {
                           ],
                         ),
                       ],
-             
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -335,7 +338,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                       const SizedBox(height: 20),
                       const Divider(),
                       const SizedBox(height: 10),
-                            DefaultTabController(
+                      DefaultTabController(
                         length: 2,
                         child: Column(
                           children: [
@@ -360,7 +363,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                               SizedBox(height: 10),
+                                              SizedBox(height: 10),
                                               RichText(
                                                 text: TextSpan(
                                                   style: TextStyle(
@@ -383,7 +386,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                 ),
                                               ),
                                               SizedBox(height: 10),
-                                                  RichText(
+                                              RichText(
                                                 text: TextSpan(
                                                   style: TextStyle(
                                                       fontSize: 16,
@@ -468,7 +471,6 @@ class _CustomerProductState extends State<CustomerProduct> {
                                               ),
                                               child: const Padding(
                                                 padding: EdgeInsets.symmetric(
-                                                   
                                                     vertical: 5.0),
                                                 child: CustomText(
                                                   textLabel: 'Leave a Review',
@@ -481,7 +483,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                           const SizedBox(height: 10),
                                           StreamBuilder<QuerySnapshot>(
                                             stream: FirebaseFirestore.instance
-                                                .collection('services')
+                                                .collection('products')
                                                 .doc(widget.productId)
                                                 .collection('reviews')
                                                 .snapshots(),
@@ -538,10 +540,64 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                               .hasData ||
                                                           !userSnapshot
                                                               .data!.exists) {
-                                                        return const CustomText(
-                                                          textLabel:
-                                                              'Unknown user left a review.',
-                                                          fontSize: 16,
+                                                        return ListTile(
+                                                          leading: CircleAvatar(
+                                                            backgroundImage: AssetImage(
+                                                                    'assets/images/profile.png')
+                                                                as ImageProvider,
+                                                            child: null,
+                                                          ),
+                                                          title: CustomText(
+                                                            textLabel:
+                                                                'Unknown User',
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
+                                                          subtitle: Column(
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            children: [
+                                                              Row(
+                                                                children: List
+                                                                    .generate(
+                                                                  5,
+                                                                  (index) =>
+                                                                      Icon(
+                                                                    Icons.star,
+                                                                    color: index <
+                                                                            stars
+                                                                        ? Colors
+                                                                            .amber
+                                                                        : Colors
+                                                                            .grey,
+                                                                    size: 16,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              const SizedBox(
+                                                                  height: 5),
+                                                              CustomText(
+                                                                textLabel:
+                                                                    comment,
+                                                                fontSize: 14,
+                                                                maxLines: 5,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                          trailing: userId ==
+                                                                  currentUser
+                                                              ? IconButton(
+                                                                  icon: Icon(
+                                                                      Icons
+                                                                          .delete,
+                                                                      color: Colors
+                                                                          .red),
+                                                                  onPressed:
+                                                                      () {},
+                                                                )
+                                                              : null,
                                                         );
                                                       }
 
@@ -577,10 +633,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                               : AssetImage(
                                                                       'assets/images/profile.png')
                                                                   as ImageProvider,
-                                                          child: profilePicture
-                                                                  .isEmpty
-                                                              ? null
-                                                              : null,
+                                                        
                                                         ),
                                                         title: CustomText(
                                                           textLabel:
@@ -620,6 +673,52 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                             ),
                                                           ],
                                                         ),
+                                                        trailing:
+                                                            userId ==
+                                                                    currentUser
+                                                                ? IconButton(
+                                                                    icon: Icon(
+                                                                        Icons
+                                                                            .delete,
+                                                                        color: Colors
+                                                                            .red),
+                                                                    onPressed:
+                                                                        () {
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title:
+                                                                                Text("Delete Review"),
+                                                                            content:
+                                                                                Text("Are you sure you want to delete your review?"),
+                                                                            actions: [
+                                                                              TextButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("Cancel"),
+                                                                              ),
+                                                                              TextButton(
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await deleteReview();
+                                                                                },
+                                                                                child: Text(
+                                                                                  "Delete",
+                                                                                  style: TextStyle(color: Colors.red),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    },
+                                                                  )
+                                                                : null,
                                                       );
                                                     },
                                                   );
@@ -631,17 +730,15 @@ class _CustomerProductState extends State<CustomerProduct> {
                                       ),
                                     ),
                                   ],
-                                )
-                                ),
+                                )),
                           ],
                         ),
                       ),
-       
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Divider(),
                       ),
-                 ],
+                    ],
                   ),
                 ),
               );
@@ -1000,72 +1097,71 @@ class _CustomerProductState extends State<CustomerProduct> {
     );
   }
 
-Future<void> buyNow(String productId, String sellerId, int quantity) async {
-  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  Future<void> buyNow(String productId, String sellerId, int quantity) async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-  if (userId == null) {
-    errorSnackbar(context, "You must be logged in to place an order.");
-    return;
-  }
-
-  final now = Timestamp.now();
-
-  try {
-    final productRef = FirebaseFirestore.instance.collection('products').doc(productId);
-    final productSnapshot = await productRef.get();
-
-    if (!productSnapshot.exists) {
-      if (!mounted) return;
-      errorSnackbar(context, "Product not found.");
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to place an order.");
       return;
     }
 
-    final productData = productSnapshot.data()!;
-    final double price = (productData['price'] as num).toDouble();
-    final String productName = productData['productName'];
-     final String productDescription = productData['description'];
-    final String category = productData['category'] ?? "Uncategorized";
+    final now = Timestamp.now();
 
-    final productOrdersRef = productRef.collection('orders').doc(userId);
-    await productOrdersRef.set({
-      'quantity': quantity,
-      'dateOrdered': now,
-      'status': 'ordered',
-    });
+    try {
+      final productRef =
+          FirebaseFirestore.instance.collection('products').doc(productId);
+      final productSnapshot = await productRef.get();
 
-    final customerOrdersRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('orders')
-        .doc(productId);
+      if (!productSnapshot.exists) {
+        if (!mounted) return;
+        errorSnackbar(context, "Product not found.");
+        return;
+      }
 
-    await customerOrdersRef.set({
-      'quantity': quantity,
-      'dateOrdered': now,
-      'status': 'ordered',
-    });
+      final productData = productSnapshot.data()!;
+      final double price = (productData['price'] as num).toDouble();
+      final String productName = productData['productName'];
+      final String productDescription = productData['description'];
+      final String category = productData['category'] ?? "Uncategorized";
 
-    final purchaseHistoryRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('purchaseHistory');
+      final productOrdersRef = productRef.collection('orders').doc(userId);
+      await productOrdersRef.set({
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+      });
 
-    await purchaseHistoryRef.add({
-      'productId': productId,
-      'productName': productName,
-      'description':productDescription,
-      'category': category,
-      'price': price,
-      'quantity': quantity,
-      'timestamp': now,
-    });
+      final customerOrdersRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(userId)
+          .collection('orders')
+          .doc(productId);
 
-  
-  } catch (error) {
-    if (!mounted) return;
-    errorSnackbar(context, "Failed to place order: $error");
+      await customerOrdersRef.set({
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+      });
+
+      final purchaseHistoryRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(userId)
+          .collection('purchaseHistory');
+
+      await purchaseHistoryRef.add({
+        'productId': productId,
+        'productName': productName,
+        'description': productDescription,
+        'category': category,
+        'price': price,
+        'quantity': quantity,
+        'timestamp': now,
+      });
+    } catch (error) {
+      if (!mounted) return;
+      errorSnackbar(context, "Failed to place order: $error");
+    }
   }
-}
 
   void navigateToMessageSeller(
       String sellerId, String sellerFirstName, String sellerProfilePic) {
@@ -1193,6 +1289,29 @@ Future<void> buyNow(String productId, String sellerId, int quantity) async {
         );
       },
     );
+  }
+
+  Future<void> deleteReview() async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to delete your review.");
+      return;
+    }
+
+    final reviewRef = FirebaseFirestore.instance
+        .collection('products')
+        .doc(widget.productId)
+        .collection('reviews')
+        .doc(userId);
+
+    try {
+      await reviewRef.delete();
+      if (!mounted) return;
+      successSnackbar(context, "Your review has been deleted.");
+    } catch (e) {
+      errorSnackbar(context, "Failed to delete review: $e");
+    }
   }
 
   Future<void> leaveReview(String comment, int stars) async {

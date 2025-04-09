@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 
@@ -50,9 +51,9 @@ class _CustomerProfileState extends State<CustomerProfile> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Colors.purple.shade900,
-                Colors.purple.shade600,
-                Colors.purple.shade300
+                Colors.green.shade900,
+                Colors.green.shade600,
+                Colors.green.shade300
               ],
               begin: Alignment.topLeft,
               end: Alignment.topRight,
@@ -343,7 +344,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple,
+                                  backgroundColor: AppColors.appGreen,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
                                   ),

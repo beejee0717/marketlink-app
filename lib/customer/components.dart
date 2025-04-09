@@ -2,6 +2,7 @@ import 'package:animate_do/animate_do.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
@@ -61,7 +62,7 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
                   textLabel: itemName,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  textColor: Colors.white,
+                  textColor: AppColors.white,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -69,7 +70,7 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
                 CustomText(
                   textLabel: price,
                   fontSize: 14,
-                  textColor: Colors.white,
+                  textColor: AppColors.white,
                 ),
                 FutureBuilder<Map<String, dynamic>>(
                   future: getRating(itemId, isProduct),
@@ -95,13 +96,13 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
                         ...List.generate(5, (index) {
                           if (index + 1 <= averageRating) {
                             return const Icon(Icons.star,
-                                color: Colors.amber, size: 20);
+                                color: AppColors.goldenYellow, size: 20);
                           } else if (index + 0.5 <= averageRating) {
                             return const Icon(Icons.star_half,
-                                color: Colors.amber, size: 20);
+                                color: AppColors.goldenYellow, size: 20);
                           } else {
                             return const Icon(Icons.star_border,
-                                color: Colors.amber, size: 20);
+                                color: AppColors.goldenYellow, size: 20);
                           }
                         }),
                         const SizedBox(width: 5),
@@ -156,7 +157,7 @@ Widget searchContainer(BuildContext context,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.green,
+              color: AppColors.appGreen,
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(
@@ -174,7 +175,7 @@ Widget searchContainer(BuildContext context,
 Future<Map<String, dynamic>> getRating(String productId, bool isProduct) async {
   try {
     CollectionReference reviewsRef = FirebaseFirestore.instance
-        .collection('products')
+        .collection(isProduct? 'products':'services')
         .doc(productId)
         .collection('reviews');
 

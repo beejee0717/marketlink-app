@@ -124,6 +124,8 @@ class _CustomerServiceState extends State<CustomerService> {
               service['serviceLocation'] ?? 'Service location not specified.';
           final sellerId = service['sellerId'];
           final serviceHours = service['serviceHours'];
+          final currentUser =
+              Provider.of<UserProvider>(context, listen: false).user?.uid;
 
           return FutureBuilder<Map<String, dynamic>>(
             future: fetchSellerDetails(sellerId),
@@ -202,7 +204,7 @@ class _CustomerServiceState extends State<CustomerService> {
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<Map<String, dynamic>>(
-                        future: getRating(widget.serviceId, true),
+                        future: getRating(widget.serviceId, false),
                         builder: (context, ratingSnapshot) {
                           if (ratingSnapshot.connectionState ==
                               ConnectionState.waiting) {
@@ -602,11 +604,101 @@ class _CustomerServiceState extends State<CustomerService> {
                                                               .hasData ||
                                                           !userSnapshot
                                                               .data!.exists) {
-                                                        return const CustomText(
+                                                             return ListTile(
+                                                        leading: CircleAvatar(
+                                                          backgroundImage: AssetImage(
+                                                                      'assets/images/profile.png')
+                                                                  as ImageProvider,
+                                                          child
+                                                              : null,
+                                                        ),
+                                                        title: CustomText(
                                                           textLabel:
-                                                              'Unknown user left a review.',
+                                                              'Unknown User',
                                                           fontSize: 16,
-                                                        );
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                        subtitle: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Row(
+                                                              children:
+                                                                  List.generate(
+                                                                5,
+                                                                (index) => Icon(
+                                                                  Icons.star,
+                                                                  color: index <
+                                                                          stars
+                                                                      ? Colors
+                                                                          .amber
+                                                                      : Colors
+                                                                          .grey,
+                                                                  size: 16,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 5),
+                                                            CustomText(
+                                                              textLabel:
+                                                                  comment,
+                                                              fontSize: 14,
+                                                              maxLines: 5,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                          trailing:
+                                                            userId ==
+                                                                    currentUser
+                                                                ? IconButton(
+                                                                    icon: Icon(
+                                                                        Icons
+                                                                            .delete,
+                                                                        color: Colors
+                                                                            .red),
+                                                                    onPressed:
+                                                                        () {
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title:
+                                                                                Text("Delete Review"),
+                                                                            content:
+                                                                                Text("Are you sure you want to delete your review?"),
+                                                                            actions: [
+                                                                              TextButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("Cancel"),
+                                                                              ),
+                                                                              TextButton(
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await deleteReview();
+                                                                                },
+                                                                                child: Text(
+                                                                                  "Delete",
+                                                                                  style: TextStyle(color: Colors.red),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    },
+                                                                  )
+                                                                : null,
+                                                      
+                                                      );
+                                                
                                                       }
 
                                                       final user =
@@ -641,10 +733,7 @@ class _CustomerServiceState extends State<CustomerService> {
                                                               : AssetImage(
                                                                       'assets/images/profile.png')
                                                                   as ImageProvider,
-                                                          child: profilePicture
-                                                                  .isEmpty
-                                                              ? null
-                                                              : null,
+                                                       
                                                         ),
                                                         title: CustomText(
                                                           textLabel:
@@ -684,6 +773,53 @@ class _CustomerServiceState extends State<CustomerService> {
                                                             ),
                                                           ],
                                                         ),
+                                                          trailing:
+                                                            userId ==
+                                                                    currentUser
+                                                                ? IconButton(
+                                                                    icon: Icon(
+                                                                        Icons
+                                                                            .delete,
+                                                                        color: Colors
+                                                                            .red),
+                                                                    onPressed:
+                                                                        () {
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title:
+                                                                                Text("Delete Review"),
+                                                                            content:
+                                                                                Text("Are you sure you want to delete your review?"),
+                                                                            actions: [
+                                                                              TextButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("Cancel"),
+                                                                              ),
+                                                                              TextButton(
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await deleteReview();
+                                                                                },
+                                                                                child: Text(
+                                                                                  "Delete",
+                                                                                  style: TextStyle(color: Colors.red),
+                                                                                ),
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    },
+                                                                  )
+                                                                : null,
+                                                      
                                                       );
                                                     },
                                                   );
@@ -1199,6 +1335,28 @@ void showBookDialog(String serviceId, String title, String sellerId, double pric
         );
       },
     );
+  }
+  Future<void> deleteReview() async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to delete your review.");
+      return;
+    }
+
+    final reviewRef = FirebaseFirestore.instance
+        .collection('services')
+        .doc(widget.serviceId)
+        .collection('reviews')
+        .doc(userId);
+
+    try {
+      await reviewRef.delete();
+      if (!mounted) return;
+      successSnackbar(context, "Your review has been deleted.");
+    } catch (e) {
+      errorSnackbar(context, "Failed to delete review: $e");
+    }
   }
 
   Future<void> leaveReview(String comment, int stars) async {

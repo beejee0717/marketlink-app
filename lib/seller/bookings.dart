@@ -8,18 +8,17 @@ import '../components/navigator.dart';
 import '../components/snackbar.dart';
 import '../provider/user_provider.dart';
 
-class SellerOrders extends StatefulWidget {
-  const SellerOrders({super.key});
+class SellerBookings extends StatefulWidget {
+  const SellerBookings({super.key});
 
   @override
-  State<SellerOrders> createState() => _SellerOrdersState();
+  State<SellerBookings> createState() => _SellerBookingsState();
 }
 
-class _SellerOrdersState extends State<SellerOrders>
+class _SellerBookingsState extends State<SellerBookings>
     with SingleTickerProviderStateMixin {
-  List<Map<String, dynamic>> _ongoingOrders = [];
-  List<Map<String, dynamic>> _shippedOrders = [];
-  List<Map<String, dynamic>> _finishedOrders = [];
+  List<Map<String, dynamic>> _pendingBookings = [];
+  List<Map<String, dynamic>> _approvedBookings = [];
   bool isLoading = true;
 
   late TabController _tabController;
@@ -27,11 +26,11 @@ class _SellerOrdersState extends State<SellerOrders>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _loadOrders();
+    _tabController = TabController(length: 2, vsync: this);
+    _loadBookings();
   }
 
-  Future<void> _loadOrders() async {
+  Future<void> _loadBookings() async {
     final sellerId =
         Provider.of<UserProvider>(context, listen: false).user?.uid;
 
@@ -42,20 +41,19 @@ class _SellerOrdersState extends State<SellerOrders>
       return;
     }
 
-    final products = await _fetchSellerProducts(sellerId);
+    final services = await _fetchSellerServices(sellerId);
 
-    final List<Map<String, dynamic>> ongoing = [];
-    final List<Map<String, dynamic>> finished = [];
-     final List<Map<String, dynamic>> shipped = [];
+    final List<Map<String, dynamic>> pending = [];
+    final List<Map<String, dynamic>> approved = [];
 
-    for (var product in products) {
-      final productId = product['productId'];
-      final imageUrl = product['imageUrl'];
-      final price = product['price'];
-      final orders = await _fetchProductOrders(productId);
+    for (var service in services) {
+      final serviceId = service['serviceId'];
+      final imageUrl = service['imageUrl'];
+      final price = service['price'];
+      final bookings = await _fetchServiceBookings(serviceId);
 
-      for (var order in orders) {
-        final customerId = order['customerId'];
+      for (var booking in bookings) {
+        final customerId = booking['customerId'];
         final customerDoc = await FirebaseFirestore.instance
             .collection('customers')
             .doc(customerId)
@@ -74,59 +72,55 @@ class _SellerOrdersState extends State<SellerOrders>
             ? customerDoc['contactNumber']
             : 'N/A';
 
-        final quantity = order['quantity'] ?? 0;
-        final amount = (price ?? 0) * quantity;
+      
 
         final orderData = {
-          'productId': productId,
-          'productName': product['productName'],
-          'quantity': quantity,
+          'serviceId': serviceId,
+          'serviceName': service['serviceName'],
+          'dateBooked': booking['dateBooked'],
           'customerId': customerId,
           'customerName': customerName,
-          'dateOrdered': order['dateOrdered'],
-          'status': order['status'],
+          'dateOrdered': booking['dateOrdered'],
+          'status': booking['status'],
           'customerProfilePic': customerProfilePic,
           'imageUrl': imageUrl,
           'customerContact': customerContact,
-          'amount': amount,
+          'amount': price,
         };
 
-        if (order['status'] == 'ordered') {
-          ongoing.add(orderData);
-        } else if(order['status'] == 'shipped') {
-          shipped.add(orderData);
+        if (booking['status'] == 'pending') {
+          pending.add(orderData);
         } else {
-          finished.add(orderData);
+          approved.add(orderData);
         }
       }
     }
     if (!mounted) return;
     setState(() {
-      _ongoingOrders = ongoing;
-      _finishedOrders = finished;
-      _shippedOrders = shipped;
+      _pendingBookings = pending;
+      _approvedBookings = approved;
       isLoading = false;
     });
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSellerProducts(
+  Future<List<Map<String, dynamic>>> _fetchSellerServices(
       String sellerId) async {
     final querySnapshot = await FirebaseFirestore.instance
-        .collection('products')
+        .collection('services')
         .where('sellerId', isEqualTo: sellerId)
         .get();
 
     return querySnapshot.docs
-        .map((doc) => {'productId': doc.id, ...doc.data()})
+        .map((doc) => {'serviceId': doc.id, ...doc.data()})
         .toList();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchProductOrders(
-      String productId) async {
+  Future<List<Map<String, dynamic>>> _fetchServiceBookings(
+      String serviceId) async {
     final querySnapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
+        .collection('services')
+        .doc(serviceId)
+        .collection('bookings')
         .get();
 
     return querySnapshot.docs
@@ -137,48 +131,36 @@ class _SellerOrdersState extends State<SellerOrders>
         .toList();
   }
 
-  Future<void> markedAsShipped(
-      String productId, String userId, int quantityOrdered) async {
-    final productOrderRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
+  Future<void> markAsApproved(
+      String serviceId, String userId) async {
+    final serviceBookingRef = FirebaseFirestore.instance
+        .collection('services')
+        .doc(serviceId)
+        .collection('bookings')
         .doc(userId);
 
-    final customerOrderRef = FirebaseFirestore.instance
+    final customerBookingRef = FirebaseFirestore.instance
         .collection('customers')
         .doc(userId)
-        .collection('orders')
-        .doc(productId);
+        .collection('bookings')
+        .doc(serviceId);
 
-    final productRef =
-        FirebaseFirestore.instance.collection('products').doc(productId);
 
     try {
-      final productSnapshot = await productRef.get();
-      if (productSnapshot.exists) {
-        final productData = productSnapshot.data()!;
-        final currentStock = productData['stock'] ?? 0;
-
-        final newStock = (currentStock - quantityOrdered) > 0
-            ? currentStock - quantityOrdered
-            : 0;
-
-        await productRef.update({'stock': newStock});
-      }
+   
 
       await Future.wait([
-        productOrderRef.update({'status': 'shipped'}),
-        customerOrderRef.update({'status': 'shipped'}),
+        serviceBookingRef.update({'status': 'approved'}),
+        customerBookingRef.update({'status': 'approved'}),
       ]);
 
       if (!mounted) return;
-      successSnackbar(context, "Order marked as shipped and stock updated.");
-      await _loadOrders();
+      successSnackbar(context, "Booking marked as approved.");
+      await _loadBookings();
     } catch (e) {
       if (!mounted) return;
 
-      errorSnackbar(context, "Failed to mark as shipped: $e");
+      errorSnackbar(context, "Failed to mark as approved: $e");
     }
   }
 
@@ -189,7 +171,7 @@ class _SellerOrdersState extends State<SellerOrders>
       appBar: AppBar(
         backgroundColor: Colors.purple.shade900,
         title: const CustomText(
-          textLabel: 'Orders',
+          textLabel: 'Bookings',
           fontSize: 25,
           textColor: Colors.white,
           fontWeight: FontWeight.bold,
@@ -200,25 +182,19 @@ class _SellerOrdersState extends State<SellerOrders>
           tabs: const [
             Tab(
               child: CustomText(
-                textLabel: "Ongoing",
+                textLabel: "Pending",
                 fontSize: 16,
                 textColor: Colors.white,
               ),
             ),
              Tab(
               child: CustomText(
-                textLabel: "Shipped",
+                textLabel: "Approved",
                 fontSize: 16,
                 textColor: Colors.white,
               ),
             ),
-            Tab(
-              child: CustomText(
-                textLabel: "Delivered",
-                fontSize: 16,
-                textColor: Colors.white,
-              ),
-            ),
+          
           ],
         ),
       ),
@@ -231,24 +207,23 @@ class _SellerOrdersState extends State<SellerOrders>
           : TabBarView(
               controller: _tabController,
               children: [
-                _buildOrderList(_ongoingOrders, 'ordered'),
-                _buildOrderList(_shippedOrders, 'shipped'),
-                _buildOrderList(_finishedOrders, 'finished'),
+                _buildBookingList(_pendingBookings, 'ordered'),
+                _buildBookingList(_approvedBookings, 'approved'),
               ],
             ),
     );
   }
 
-  Widget _buildOrderList(List<Map<String, dynamic>> orders, String tab) {
-    if (orders.isEmpty) {
+  Widget _buildBookingList(List<Map<String, dynamic>> bookings, String tab) {
+    if (bookings.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
+            Icon(Icons.timer_outlined, size: 80, color: Colors.grey),
             SizedBox(height: 10),
             CustomText(
-              textLabel: "No orders found.",
+              textLabel: "No bookings found.",
               fontSize: 18,
               textColor: Colors.grey,
             ),
@@ -258,12 +233,14 @@ class _SellerOrdersState extends State<SellerOrders>
     }
 
     return ListView.builder(
-      itemCount: orders.length,
+      itemCount: bookings.length,
       itemBuilder: (context, index) {
-        final order = orders[index];
+        final booking = bookings[index];
         final formattedDate = DateFormat('MM/dd/yyyy hh:mm a')
-            .format(order['dateOrdered'].toDate());
-
+            .format(booking['dateOrdered'].toDate());
+           final bookedDate = DateFormat('MM/dd/yyyy hh:mm a')
+            .format(booking['dateBooked'].toDate());
+          
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           color: Colors.white.withOpacity(0.1), 
@@ -277,7 +254,7 @@ class _SellerOrdersState extends State<SellerOrders>
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Image.network(
-                    order['imageUrl'] ?? '',
+                    booking['imageUrl'] ?? '',
                     height: 60,
                     width: 60,
                     fit: BoxFit.cover,
@@ -299,7 +276,7 @@ class _SellerOrdersState extends State<SellerOrders>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CustomText(
-                        textLabel: order['productName'] ?? 'Unnamed Product',
+                        textLabel: booking['serviceName'] ?? 'Unnamed Service',
                         fontSize: 16,
                         maxLines: 2,
                         fontWeight: FontWeight.bold,
@@ -307,33 +284,33 @@ class _SellerOrdersState extends State<SellerOrders>
                       ),
                       const SizedBox(height: 4),
                       CustomText(
-                        textLabel: 'Quantity: ${order['quantity']}',
+                        textLabel: 'Chosen Date: $bookedDate',
                         fontSize: 14,
                         textColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
-                        textLabel: 'Customer: ${order['customerName']}',
-                        fontSize: 14,
-                        textColor: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 4),
-                      CustomText(
-                        textLabel:
-                            'Amount: ₱${order['amount'].toStringAsFixed(2)}',
+                        textLabel: 'Customer: ${booking['customerName']}',
                         fontSize: 14,
                         textColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel:
-                            'Contact: ${order['customerContact'] ?? 'N/A'}',
+                            'Amount: ₱${booking['amount'].toStringAsFixed(2)}',
                         fontSize: 14,
                         textColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
-                        textLabel: 'Date Ordered: $formattedDate',
+                        textLabel:
+                            'Contact: ${booking['customerContact'] ?? 'N/A'}',
+                        fontSize: 14,
+                        textColor: Colors.grey.shade300,
+                      ),
+                      const SizedBox(height: 4),
+                      CustomText(
+                        textLabel: 'Date Booked: $formattedDate',
                         fontSize: 14,
                         textColor: Colors.grey.shade300,
                       ),
@@ -344,13 +321,12 @@ class _SellerOrdersState extends State<SellerOrders>
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () => markedAsShipped(
-                                  order['productId'],
-                                  order['customerId'],
-                                  order['quantity'],
-                                ),
+                                onPressed: () => markAsApproved(
+                                  booking['serviceId'],
+                                  booking['customerId'],
+                                                               ),
                                 child: const CustomText(
-                                  textLabel: "Mark as Shipped",
+                                  textLabel: "Mark as Approved",
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   textColor: Colors.green,
@@ -362,9 +338,9 @@ class _SellerOrdersState extends State<SellerOrders>
                                 const Icon(Icons.message, color: Colors.green),
                             onPressed: () {
                               navigateToMessages(
-                                order['customerId'],
-                                order['customerName'],
-                                order['customerProfilePic'],
+                                booking['customerId'],
+                                booking['customerName'],
+                                booking['customerProfilePic'],
                               );
                             },
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:marketlinkapp/chat/chat.dart';
 import 'package:marketlinkapp/components/dialog.dart';
+import 'package:marketlinkapp/seller/bookings.dart';
 import 'package:marketlinkapp/seller/home.dart';
 import 'package:marketlinkapp/seller/orders.dart';
 
@@ -23,6 +24,7 @@ class _SellerState extends State<Seller> {
     _pages = [
       const SellerHome(),
       const SellerOrders(),
+      const SellerBookings(),
       Chat(
         userId: widget.userId,
         backButton: false,
