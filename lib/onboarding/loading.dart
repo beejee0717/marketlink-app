@@ -6,6 +6,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/customer.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
+import 'package:marketlinkapp/rider/rider.dart';
 import 'package:marketlinkapp/seller/seller.dart';
 import 'package:provider/provider.dart';
 import '../components/snackbar.dart';
@@ -78,6 +79,14 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
         return;
       }
 
+       userDoc =
+          await FirebaseFirestore.instance.collection('riders').doc(uid).get();
+
+      if (userDoc.exists) {
+        await handleUserFound(userDoc, 'Rider');
+        return;
+      }
+
       if (!mounted) return;
       errorSnackbar(context, "User not found in customers or sellers.");
       navPop(context);
@@ -102,17 +111,22 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     Provider.of<UserProvider>(context, listen: false).setUser(userInfo);
 
     await FirebaseFirestore.instance
-        .collection(role == 'Customer' ? 'customers' : 'sellers')
+         .collection('${role.toLowerCase()}s') 
         .doc(userInfo.uid)
         .update({'dateLastLogin': FieldValue.serverTimestamp()});
     if (!mounted) return;
 
     successSnackbar(context, "Welcome back, ${userInfo.firstName}!");
 
-    navPushRemove(
-      context,
-      role == 'Customer' ? const Customer() : Seller(userId: userInfo.uid),
-    );
+  navPushRemove(
+  context,
+  role == 'Customer'
+      ? const Customer()
+      : role == 'Seller'
+          ? Seller(userId: userInfo.uid)
+          : Rider(userId: userInfo.uid),
+);
+
   }
 
   @override

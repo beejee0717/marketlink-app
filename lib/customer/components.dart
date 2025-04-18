@@ -148,10 +148,10 @@ Widget searchContainer(BuildContext context,
           onTap: () {
             String query = searchController.text.trim();
             if (query.isNotEmpty) {
-              navPush(
-                context,
-                SearchResultsPage(query: query, userId: userId),
-              );
+              // navPush(
+              //   context,
+              //   SearchResultsPage(query: query, userId: userId),
+              // );
             }
           },
           child: Container(

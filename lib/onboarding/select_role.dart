@@ -47,7 +47,7 @@ class SelectRole extends StatelessWidget {
                   GestureDetector(
                       onTap: () {
                         navPushReplacement(
-                            context, const SignUp(role: 'Customer'));
+                            context, const SignUp(role: 'customer'));
                       },
                       child: Container(
                         padding:
@@ -80,7 +80,7 @@ class SelectRole extends StatelessWidget {
                   GestureDetector(
                       onTap: () {
                         navPushReplacement(
-                            context, const SignUp(role: 'Seller'));
+                            context, const SignUp(role: 'seller'));
                       },
                       child: Container(
                         padding:
@@ -115,7 +115,7 @@ class SelectRole extends StatelessWidget {
               SizedBox(height: 20),
               GestureDetector(
                   onTap: () {
-                    navPushReplacement(context, const SignUp(role: 'Rider'));
+                    navPushReplacement(context, const SignUp(role: 'rider'));
                   },
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),

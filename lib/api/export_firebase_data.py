@@ -1,45 +1,48 @@
 import firebase_admin
 from firebase_admin import credentials, firestore
-import pandas as pd
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
+import os
 
+# Step 1: Init Firebase
 cred = credentials.Certificate("marketlink-app.json")  
 firebase_admin.initialize_app(cred)
-
 db = firestore.client()
 
-data = []
+# Step 2: Load Products
+products_ref = db.collection("products")
+products_docs = products_ref.stream()
 
-# Fetch user search history
-users_ref = db.collection('customers')
-users = users_ref.stream()
+product_texts = []
+product_metadata = []
 
-for user in users:
-    user_id = user.id
-    
-    # Fetch search history
-    searches_ref = users_ref.document(user_id).collection('searchHistory').stream()
-    for search in searches_ref:
-        data.append([user_id, search.get('query'), 1.0]) 
+for doc in products_docs:
+    data = doc.to_dict()
+    text = f"{data.get('productName', '')}. {data.get('description', '')} Category: {data.get('category', '')}"
+    product_texts.append(text)
+    product_metadata.append({
+        "type": "product",
+        "id": doc.id,
+        "name": data.get("productName", "")
+    })
 
-    # Fetch product clicks (FIXED: Get actual product ID instead of product name)
-    clicks_ref = users_ref.document(user_id).collection('productClicks').stream()
-    for click in clicks_ref:
-        product_name = click.get('productName')  
-        
-        # Query Firestore to find the product document ID
-        product_query = db.collection('products').where('productName', '==', product_name).limit(1).stream()
-        product_doc = next(product_query, None)  # Get first matching document
-        
-        if product_doc:
-            product_id = product_doc.id  # Use document ID instead of product name
-            data.append([user_id, product_id, 3.0]) 
+# Step 3: Load Services
+services_ref = db.collection("services")
+services_docs = services_ref.stream()
 
-    # Fetch purchase history
-    purchases_ref = users_ref.document(user_id).collection('purchaseHistory').stream()
-    for purchase in purchases_ref:
-        data.append([user_id, purchase.get('productId'), 5.0]) 
+for doc in services_docs:
+    data = doc.to_dict()
+    text = f"{data.get('serviceName', '')}. {data.get('description', '')} Category: {data.get('category', '')}"
+    product_texts.append(text)
+    product_metadata.append({
+        "type": "service",
+        "id": doc.id,
+        "name": data.get("serviceName", "")
+    })
 
-df = pd.DataFrame(data, columns=['userId', 'productId', 'rating'])
-df.to_csv("firebase_data.csv", index=False)
+# Step 4: Generate Embeddings with HuggingFace
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-print("Data exported successfully!")
+# Step 5: Create and Save Vector Store
+vector_store = FAISS.from_texts(product_texts, embeddings, metadatas=product_metadata)
+vector_store.save_local("search_index")

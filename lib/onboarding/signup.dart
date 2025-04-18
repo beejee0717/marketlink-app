@@ -124,7 +124,7 @@ class _SignUpState extends State<SignUp> {
         });
         return;
       }
-      if (widget.role == 'Seller' &&
+      if (widget.role == 'seller' &&
           (localImagePath == null || localImagePath!.isEmpty)) {
         errorSnackbar(context, 'Please upload your identification image.');
         setState(() {
@@ -218,18 +218,18 @@ class _SignUpState extends State<SignUp> {
 
         if (user != null) {
           final String collectionName =
-              widget.role == 'Customer' ? 'customers' : 'sellers';
-
+              '${widget.role}s';
+          
           final Map<String, dynamic> userData = {
             'firstName': _firstNameController.text.trim(),
             'lastName': _lastNameController.text.trim(),
             'email': _emailController.text.trim(),
-            'role': widget.role,
+            'role': widget.role[0].toUpperCase() + widget.role.substring(1),
             'createdAt': Timestamp.now(),
             'disabled': false
           };
 
-          if (widget.role == 'Seller') {
+          if (widget.role == 'seller' || widget.role == 'rider') {
             final cloudinaryUrl =
                 await CloudinaryService.uploadImageToCloudinary(
                     File(localImagePath!));
@@ -295,7 +295,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   CustomText(
-                    textLabel: widget.role,
+ textLabel: widget.role[0].toUpperCase() + widget.role.substring(1),
                     fontSize: 25,
                     textColor: Colors.white,
                     letterSpacing: 1,
@@ -440,7 +440,7 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  if (widget.role == 'Seller') ...[
+                  if (widget.role == 'seller' || widget.role == 'rider') ...[
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 15),
