@@ -11,23 +11,23 @@ vector_store = FAISS.load_local("search_index", embeddings, allow_dangerous_dese
 
 @app.route("/search", methods=["POST"])
 def search():
-    data = request.get_json()
-    query = data.get("query", "")
-    if not query:
-        return jsonify({"error": "Missing query"}), 400
+    try:
+        data = request.get_json()
+        query = data.get("query", "")
+        if not query:
+            return jsonify({"error": "Missing query"}), 400
 
-    results = vector_store.similarity_search_with_score(query, k=10)
-    output = []
+        results = vector_store.similarity_search_with_score(query, k=10)
+        output = []
 
-    for doc, score in results:
-        output.append({
-            "content": doc.page_content,
-            "metadata": doc.metadata,
-            "score": score
-        })
+        for doc, score in results:
+            output.append({
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "score": score
+            })
 
-    return jsonify(output)
-
-# Start the Flask app
-port = int(os.environ.get("PORT", 8080))
-app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+        return jsonify(output)
+    except Exception as e:
+        print(f"[ERROR] {e}")
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
