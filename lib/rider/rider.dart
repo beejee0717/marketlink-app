@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:marketlinkapp/chat/chat.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/rider/home.dart';
 import 'package:marketlinkapp/seller/orders.dart';
@@ -48,22 +49,21 @@ class _RiderState extends State<Rider> {
       },
       child: Scaffold(
         body: _pages[_selectedIndex],
-        bottomNavigationBar: BottomNavigationBar(
+       bottomNavigationBar: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color.fromARGB(255, 119, 22, 136),
+          selectedItemColor: AppColors.purple,
           unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home),
               label: 'Home',
             ),
+            
             BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_cart_checkout_sharp),
-              label: 'Orders',
-            ),
-            BottomNavigationBarItem(
+                icon: Icon(Icons.list), label: 'Deliveries'),
+         BottomNavigationBarItem(
               icon: Icon(Icons.chat),
               label: 'Chat',
             ),

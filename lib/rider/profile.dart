@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 
@@ -19,15 +18,128 @@ import '../components/navigator.dart';
 import '../components/user_info.dart';
 import '../provider/user_provider.dart';
 
-class CustomerProfile extends StatefulWidget {
-  const CustomerProfile({super.key});
+class RiderProfile extends StatefulWidget {
+  const RiderProfile({super.key});
 
   @override
-  State<CustomerProfile> createState() => _CustomerProfileState();
+  State<RiderProfile> createState() => _RiderProfileState();
 }
 
-class _CustomerProfileState extends State<CustomerProfile> {
+class _RiderProfileState extends State<RiderProfile> {
   bool isLoading = false;
+  List<String> addresses = [];
+  @override
+  void initState() {
+    super.initState();
+    _fetchRiderData();
+  }
+
+  Future<void> _fetchRiderData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final riderDoc = await FirebaseFirestore.instance
+            .collection('riders')
+            .doc(user.uid)
+            .get();
+
+        if (riderDoc.exists) {
+          final data = riderDoc.data()!;
+          setState(() {
+            addresses = List<String>.from(data['addresses'] ?? []);
+          });
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      errorSnackbar(context, "Failed to load rider data.");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _addAddress() async {
+    if (addresses.length >= 5) {
+      errorSnackbar(context, "You can only add up to 5 addresses.");
+      return;
+    }
+
+    final TextEditingController controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Add Address"),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              maxLength: 50,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return "Address cannot be empty.";
+                }
+                return null;
+              },
+              decoration: const InputDecoration(
+                  labelText: "Enter Address", counterText: ''),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  setState(() {
+                    addresses.add(controller.text.trim());
+                  });
+                  await _saveAddresses();
+                  if (!context.mounted) return;
+                  navPop(context);
+                }
+              },
+              child: const Text("Add"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _removeAddress(int index) async {
+    setState(() {
+      addresses.removeAt(index);
+    });
+    await _saveAddresses();
+  }
+
+  Future<void> _saveAddresses() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('riders')
+            .doc(user.uid)
+            .update({'addresses': addresses});
+        if (!mounted) return;
+
+        successSnackbar(context, "Addresses updated successfully.");
+      }
+    } catch (e) {
+      errorSnackbar(context, "Failed to update addresses.");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +336,53 @@ class _CustomerProfileState extends State<CustomerProfile> {
                           const SizedBox(height: 15),
                           Align(
                             alignment: Alignment.topLeft,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const CustomText(
+                                  textLabel: "Addresses",
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                const SizedBox(height: 10),
+                                ...List.generate(addresses.length, (index) {
+                                  return ListTile(
+                                    title: CustomText(
+                                      textLabel: addresses[index],
+                                      fontSize: 16,
+                                      textColor: Colors.black,
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete,
+                                          color: Colors.red),
+                                      onPressed: () => _removeAddress(index),
+                                    ),
+                                  );
+                                }),
+                                if (addresses.length < 5)
+                                  Center(
+                                    child: ElevatedButton(
+                                      onPressed: _addAddress,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.purple.shade700,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: CustomText(
+                                        textLabel: 'Add Address',
+                                        textColor: Colors.white,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          Align(
+                            alignment: Alignment.topLeft,
                             child: CustomText(
                               textLabel: 'Contact Number',
                               fontSize: 16,
@@ -344,7 +503,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.purple,
+                                  backgroundColor: Colors.purple,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
                                   ),
@@ -362,6 +521,9 @@ class _CustomerProfileState extends State<CustomerProfile> {
                               ),
                             ),
                           ),
+                          SizedBox(
+                            height: 20,
+                          )
                         ],
                       ),
                     ),
@@ -483,7 +645,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
 
       if (user != null) {
         await FirebaseFirestore.instance
-            .collection('customers')
+            .collection('riders')
             .doc(user.uid)
             .update({field: newValue});
 
@@ -492,7 +654,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
         await fetchAndSetUserData(user.uid, context);
         if (!context.mounted) return;
         successSnackbar(context, 'Updated successfully!');
-        navPushReplacement(context, const CustomerProfile());
+        navPushReplacement(context, const RiderProfile());
       }
     } catch (e) {
       errorSnackbar(context, 'Failed to update. Please try again.');
@@ -667,7 +829,7 @@ class _UserImageState extends State<UserImage> {
         final userInfo = Provider.of<UserProvider>(context, listen: false).user;
         if (userInfo != null) {
           await FirebaseFirestore.instance
-              .collection('customers')
+              .collection('riders')
               .doc(userInfo.uid)
               .update({'profilePicture': cloudinaryUrl});
 
@@ -708,7 +870,7 @@ class _UserImageState extends State<UserImage> {
 Future<UserInformation?> fetchAndSetUserData(
     String uid, BuildContext context) async {
   DocumentSnapshot userDocument =
-      await FirebaseFirestore.instance.collection('customers').doc(uid).get();
+      await FirebaseFirestore.instance.collection('riders').doc(uid).get();
 
   if (userDocument.exists) {
     UserInformation fetchedUser = UserInformation.fromFirestore(userDocument);

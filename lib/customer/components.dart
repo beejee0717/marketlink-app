@@ -6,7 +6,6 @@ import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
-import 'package:marketlinkapp/customer/search.dart';
 import 'package:marketlinkapp/customer/service.dart';
 
 Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
@@ -157,7 +156,7 @@ Widget searchContainer(BuildContext context,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.appGreen,
+              color: AppColors.purple,
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(

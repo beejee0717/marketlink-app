@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
@@ -71,7 +72,7 @@ class SearchResultsPage extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 80),
                     child: SpinKitFadingCircle(
                       size: 80,
-                      color: Colors.green,
+                      color: AppColors.purple,
                     ),
                   ),
                 );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:provider/provider.dart';
@@ -144,7 +145,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
     List<Map<String, dynamic>> orders = [];
     for (var doc in querySnapshot.docs) {
-      final productId = doc.id;
+    
+      final productId = doc['productId'];
       final productDoc = await FirebaseFirestore.instance
           .collection('products')
           .doc(productId)
@@ -171,6 +173,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
         orders.add({
           'productId': productId,
+          'orderId':doc['orderId'],
           'productName': productData['productName'],
           'price': productData['price'],
           'pickupLocation': productData['pickupLocation'],
@@ -184,18 +187,18 @@ class _CustomerOrdersState extends State<CustomerOrders>
     return orders;
   }
 
-  Future<void> cancelOrder(String userId, String productId) async {
+  Future<void> cancelOrder(String userId, String productId, String orderId) async {
     final productOrderRef = FirebaseFirestore.instance
         .collection('products')
         .doc(productId)
         .collection('orders')
-        .doc(userId);
+        .doc(orderId);
 
     final customerOrderRef = FirebaseFirestore.instance
         .collection('customers')
         .doc(userId)
         .collection('orders')
-        .doc(productId);
+        .doc(orderId);
 
     await Future.wait([productOrderRef.delete(), customerOrderRef.delete()]);
 
@@ -276,7 +279,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         textLabel:
                             '₱${totalPrice.toStringAsFixed(2)} (x${order['quantity']})',
                         fontSize: 16,
-                        textColor: Colors.green,
+                        textColor: AppColors.purple,
                       ),
                       const SizedBox(height: 5),
                       Row(
@@ -331,7 +334,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                                           listen: false)
                                       .user!
                                       .uid,
-                                  order['productId']);
+                                  order['productId'], order['orderId']);
                               if (Navigator.canPop(context)) {
                                 navPop(context);
                               }
@@ -399,7 +402,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                               textLabel:
                                   '₱${booking['price'].toStringAsFixed(2)}',
                               fontSize: 16,
-                              textColor: Colors.green,
+                              textColor: AppColors.purple,
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -418,7 +421,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                                     fontSize: 14,
                                     textColor: booking['status'] == 'pending'
                                         ? const Color.fromARGB(255, 255, 167, 4)
-                                        : Colors.green,
+                                        : AppColors.purple,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -547,8 +550,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
         iconTheme: const IconThemeData(color: Colors.black),
         bottom: TabBar(
           controller: _categoryController,
-          indicatorColor: Colors.green,
-          labelColor: Colors.green,
+          indicatorColor: AppColors.purple,
+          labelColor: AppColors.purple,
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Orders'),
@@ -563,8 +566,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
             children: [
               TabBar(
                 controller: _tabController,
-                indicatorColor: Colors.green,
-                labelColor: Colors.green,
+                indicatorColor: AppColors.purple,
+                labelColor: AppColors.purple,
                 unselectedLabelColor: Colors.grey,
                 tabs: const [
                   Tab(text: 'Packed'),
@@ -577,7 +580,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                     ? const Center(
                         child: SpinKitFadingCircle(
                           size: 80,
-                          color: Colors.green,
+                          color: AppColors.purple,
                         ),
                       )
                     : TabBarView(
@@ -595,7 +598,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
               ? const Center(
                   child: SpinKitFadingCircle(
                     size: 80,
-                    color: Colors.green,
+                    color: AppColors.purple,
                   ),
                 )
               : _buildBookedList(_bookedServices),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/customer/components.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:provider/provider.dart';
@@ -81,7 +82,7 @@ class _CustomerCategoryState extends State<CustomerCategory> {
                     return Center(
                       child: SpinKitFadingCircle(
                         size: 60,
-                        color: Colors.green,
+                        color: AppColors.purple,
                       ),
                     );
                   } else if (snapshot.hasError) {

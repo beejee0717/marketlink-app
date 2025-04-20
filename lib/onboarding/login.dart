@@ -58,11 +58,41 @@ class _LogInState extends State<LogIn> {
         FocusManager.instance.primaryFocus?.unfocus();
         navPush(context, const Loading());
       }
-    } catch (e) {
-      if (!mounted) return;
+   } catch (e) {
+  if (!mounted) return;
 
-      errorSnackbar(context, 'Login failed: ${e.toString()}');
-    } finally {
+  String errorMessage = 'Login failed. Please try again.';
+
+  if (e is FirebaseAuthException) {
+    switch (e.code) {
+      case 'user-not-found':
+        errorMessage = 'No user found for that email.';
+        break;
+      case 'invalid-credential':
+        errorMessage = 'Incorrect password. Please try again.';
+        break;
+      case 'invalid-email':
+        errorMessage = 'The email address is badly formatted.';
+        break;
+      case 'user-disabled':
+        errorMessage = 'This user has been disabled.';
+        break;
+      case 'too-many-requests':
+        errorMessage = 'Too many attempts. Please try again later.';
+        break;
+      case 'operation-not-allowed':
+        errorMessage = 'Email/password sign-in is not enabled.';
+        break;
+      default:
+        errorMessage = 'Login failed: ${e.message}';
+    }
+  } else {
+    errorMessage = 'An unexpected error occurred.';
+  }
+
+  errorSnackbar(context, errorMessage);
+}
+finally {
       setState(() {
         isLoading = false;
       });

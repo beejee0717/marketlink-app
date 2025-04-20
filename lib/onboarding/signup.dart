@@ -217,9 +217,8 @@ class _SignUpState extends State<SignUp> {
         final User? user = userCredential.user;
 
         if (user != null) {
-          final String collectionName =
-              '${widget.role}s';
-          
+          final String collectionName = '${widget.role}s';
+
           final Map<String, dynamic> userData = {
             'firstName': _firstNameController.text.trim(),
             'lastName': _lastNameController.text.trim(),
@@ -263,6 +262,26 @@ class _SignUpState extends State<SignUp> {
     }
   }
 
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+      ),
+    );
+  }
+
+  Widget _sectionText(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        height: 1.5,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -295,7 +314,8 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ),
                   CustomText(
- textLabel: widget.role[0].toUpperCase() + widget.role.substring(1),
+                    textLabel:
+                        widget.role[0].toUpperCase() + widget.role.substring(1),
                     fontSize: 25,
                     textColor: Colors.white,
                     letterSpacing: 1,
@@ -461,25 +481,120 @@ class _SignUpState extends State<SignUp> {
                     ),
                   ],
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Checkbox(
                         value: _isAccepted,
                         activeColor: Colors.yellow.shade800,
-                        onChanged: (bool? value) {
-                          setState(() {
-                            _isAccepted = value ?? false;
-                          });
+                        onChanged: (_) {
+                          _isAccepted
+                              ? setState(() {
+                                  _isAccepted = false;
+                                })
+                              : showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      scrollable: true,
+                                      title: Text('Terms and Conditions'),
+                                      content: SingleChildScrollView(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            _sectionTitle('General'),
+                                            _sectionText(
+                                                'By using this app, you agree to comply with all applicable laws and regulations. '
+                                                'We reserve the right to modify the platform at any time without prior notice. '
+                                                'Users must not engage in fraudulent, abusive, or illegal activity on the platform.'),
+                                            SizedBox(height: 10),
+                                            _sectionTitle('For Customers'),
+                                            _sectionText(
+                                                '• Customers are responsible for ensuring that their delivery details are correct.\n'
+                                                '• Payment should be made through approved payment methods only.\n'
+                                                '• Any dispute with an order should be reported within 48 hours after delivery.\n'
+                                                '• Customers should treat sellers and riders with respect at all times.'),
+                                            SizedBox(height: 10),
+                                            _sectionTitle('For Sellers'),
+                                            _sectionText(
+                                                '• Sellers must ensure that all product listings are accurate and up-to-date.\n'
+                                                '• Orders must be fulfilled within the time agreed upon during listing.\n'
+                                                '• Sellers must handle returns and complaints in accordance with our platform policy.\n'
+                                                '• Any misuse or misrepresentation may lead to suspension or removal.'),
+                                            SizedBox(height: 10),
+                                            _sectionTitle(
+                                                'For Delivery Riders'),
+                                            _sectionText(
+                                                '• Riders must ensure timely and safe delivery of orders.\n'
+                                                '• Only verified riders are allowed to accept delivery tasks.\n'
+                                                '• Riders are expected to maintain professional conduct when interacting with customers and sellers.\n'
+                                                '• Failure to complete deliveries or repeated complaints may result in account suspension.'),
+                                            SizedBox(height: 20),
+                                            _sectionText(
+                                                'By continuing to use this platform, you confirm that you have read, understood, and agreed to these Terms and Conditions.'),
+                                            SizedBox(height: 30),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.end,
+                                              children: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: Text('Cancel'),
+                                                ),
+                                                SizedBox(width: 8),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+
+                                                    setState(() {
+                                                      _isAccepted = true;
+                                                    });
+                                                  },
+                                                  child: Text('Accept'),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
                         },
                         side: BorderSide(
                           color: Colors.white,
                           width: 2,
                         ),
                       ),
-                      CustomText(
-                        textLabel: 'I accept the Terms and Conditions.',
-                        fontSize: 15,
-                        textColor: Colors.white,
-                      )
+                      SizedBox(width: 6),
+                      Flexible(
+                        child: Row(
+                          children: [
+                            CustomText(
+                              textLabel: 'I accept the',
+                              fontSize: 15,
+                              textColor: Colors.white,
+                            ),
+                            SizedBox(width: 4),
+                            TextButton(
+                              onPressed: () {
+                                // Optional: Show the terms directly from here too
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size(0, 0),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: CustomText(
+                                textLabel: 'Terms and Conditions.',
+                                fontSize: 15,
+                                textColor: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 20),

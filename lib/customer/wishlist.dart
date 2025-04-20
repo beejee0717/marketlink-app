@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
@@ -176,7 +177,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
                               });
                             },
                             icon: const Icon(Icons.add_circle_outline,
-                                color: Colors.green),
+                                color: AppColors.purple),
                           ),
                         ],
                       ),
@@ -186,7 +187,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
                             "Total Price: ₱${totalPrice.toStringAsFixed(2)}",
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        textColor: Colors.green,
+                        textColor: AppColors.purple,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
@@ -286,7 +287,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
           ? const Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: Colors.green,
+                color: AppColors.purple,
               ),
             )
           : _wishlistItems.isEmpty
@@ -353,7 +354,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
                                 textLabel:
                                     '₱${wishlistItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
                                 fontSize: 16,
-                                textColor: Colors.green,
+                                textColor: AppColors.purple,
                               ),
                               const SizedBox(height: 5),
                               ],
@@ -367,7 +368,7 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
                                     wishlistItem['productId'],
                                     wishlistItem['sellerId'],
                                     wishlistItem['price']),
-                                color: Colors.green,
+                                color: AppColors.purple,
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete),

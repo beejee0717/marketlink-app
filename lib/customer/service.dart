@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
 import 'package:marketlinkapp/debugging.dart';
@@ -87,7 +88,7 @@ class _CustomerServiceState extends State<CustomerService> {
             return const Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: Colors.green,
+                color: AppColors.purple,
               ),
             );
           } else if (serviceSnapshot.hasError) {
@@ -134,7 +135,7 @@ class _CustomerServiceState extends State<CustomerService> {
                 return const Center(
                   child: SpinKitFadingCircle(
                     size: 80,
-                    color: Colors.green,
+                    color: AppColors.purple,
                   ),
                 );
               } else if (sellerSnapshot.hasError) {
@@ -200,7 +201,7 @@ class _CustomerServiceState extends State<CustomerService> {
                       CustomText(
                         textLabel: '₱$price',
                         fontSize: 20,
-                        textColor: Colors.green,
+                        textColor: AppColors.purple,
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<Map<String, dynamic>>(
@@ -261,7 +262,7 @@ class _CustomerServiceState extends State<CustomerService> {
                           children: [
                             Icon(
                               Icons.message,
-                              color: Colors.green,
+                              color: AppColors.purple,
                             ),
                             SizedBox(
                               width: 5,
@@ -337,7 +338,7 @@ class _CustomerServiceState extends State<CustomerService> {
     );
   },
   style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.green,
+    backgroundColor: AppColors.purple,
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(30),
     ),
@@ -382,9 +383,9 @@ class _CustomerServiceState extends State<CustomerService> {
                         child: Column(
                           children: [
                             const TabBar(
-                              labelColor: Colors.blue,
+                              labelColor: AppColors.purple,
                               unselectedLabelColor: Colors.grey,
-                              indicatorColor: Colors.blue,
+                              indicatorColor: AppColors.purple,
                               tabs: [
                                 Tab(text: 'Details'),
                                 Tab(text: 'Reviews'),
@@ -526,7 +527,7 @@ class _CustomerServiceState extends State<CustomerService> {
                                               onPressed: () =>
                                                   showLeaveReviewDialog(),
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
+                                                backgroundColor: AppColors.purple,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(10),
@@ -939,7 +940,7 @@ class _CustomerServiceState extends State<CustomerService> {
                               });
                             },
                             icon: const Icon(Icons.add_circle_outline,
-                                color: Colors.green),
+                                color: AppColors.purple),
                           ),
                         ],
                       ),
@@ -1122,7 +1123,7 @@ void showBookDialog(String serviceId, String title, String sellerId, double pric
     }
   },
             style: TextButton.styleFrom(
-              backgroundColor: Colors.green,
+              backgroundColor: AppColors.purple,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               shape: RoundedRectangleBorder(

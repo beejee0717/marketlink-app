@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/chat/chat.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/category.dart';
 import 'package:marketlinkapp/customer/components.dart';
@@ -126,8 +127,8 @@ class _CustomerHomeState extends State<CustomerHome>
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.green,
-          labelColor: Colors.green,
+          indicatorColor: AppColors.purple,
+          labelColor: AppColors.purple,
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Products'),
@@ -153,8 +154,8 @@ class _CustomerHomeState extends State<CustomerHome>
           children: [
             CircleAvatar(
               radius: 35,
-              backgroundColor: Colors.green[100],
-              child: Icon(icon, color: Colors.green, size: 30),
+              backgroundColor: const Color.fromARGB(211, 206, 123, 212),
+              child: Icon(icon, color: AppColors.purple, size: 30),
             ),
             const SizedBox(height: 8),
             CustomText(textLabel: title, fontSize: 14, maxLines: 2,)
@@ -196,7 +197,7 @@ class _CustomerHomeState extends State<CustomerHome>
                       padding: const EdgeInsets.only(top: 80),
                       child: SpinKitFadingCircle(
                         size: 80,
-                        color: Colors.green,
+                        color: AppColors.purple,
                       ),
                     ),
                   );

@@ -15,13 +15,14 @@ def search():
     if not query:
         return jsonify({"error": "Missing query"}), 400
 
-    results = vector_store.similarity_search(query, k=10)
-    output = []
-    for result in results:
-        output.append({
-            "content": result.page_content,
-            "metadata": result.metadata
-        })
+   results = vector_store.similarity_search_with_score(query, k=10)
+  output = []
+for doc, score in results:
+    output.append({
+        "content": doc.page_content,
+        "metadata": doc.metadata,
+        "score": score 
+    })
     return jsonify(output)
 
 port = int(os.environ.get("PORT", 8080))

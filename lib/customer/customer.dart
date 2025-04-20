@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/customer/cart.dart';
 import 'package:marketlinkapp/customer/home.dart';
@@ -46,7 +47,7 @@ class _CustomerState extends State<Customer> {
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
           backgroundColor: Colors.white,
-          selectedItemColor: const Color.fromARGB(255, 15, 104, 176),
+          selectedItemColor: AppColors.purple,
           unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(

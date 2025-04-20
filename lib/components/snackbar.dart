@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 
 void successSnackbar(BuildContext context, String content) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    backgroundColor: Color.fromARGB(255, 83, 207, 87),
+    backgroundColor: AppColors.purple,
     behavior: SnackBarBehavior.floating,
     margin: const EdgeInsets.all(16),
     content: CustomText(

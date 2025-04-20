@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/product.dart';
 import 'package:provider/provider.dart';
@@ -114,58 +115,73 @@ class _CustomerCartState extends State<CustomerCart> {
     }
   }
 
-  Future<void> checkout(String userId) async {
-    final now = Timestamp.now();
+Future<void> checkout(String userId) async {
+  try {
+    for (var item in _cartItems) {
+      final productId = item['productId'];
+      final quantity = item['quantity'];
 
-    try {
-      for (var item in _cartItems) {
-        final productId = item['productId'];
-        final quantity = item['quantity'];
+      final orderId = FirebaseFirestore.instance
+          .collection('orders') 
+          .doc()
+          .id;
 
-        final productOrdersRef = FirebaseFirestore.instance
-            .collection('products')
-            .doc(productId)
-            .collection('orders')
-            .doc(userId);
+      final now = Timestamp.now();
 
-        await productOrdersRef.set({
-          'quantity': quantity,
-          'dateOrdered': now,
-          'delivered': false,
-        });
+      // add to products collection
+      final productOrdersRef = FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .collection('orders')
+          .doc(orderId);
 
-        final customerOrdersRef = FirebaseFirestore.instance
-            .collection('customers')
-            .doc(userId)
-            .collection('orders')
-            .doc(productId);
+      await productOrdersRef.set({
+        'orderId': orderId,
+        'userId': userId,
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+        'hasRider': false,
+      });
 
-        await customerOrdersRef.set({
-          'quantity': quantity,
-          'dateOrdered': now,
-          'delivered': false,
-        });
-      }
-
-      final cartRef = FirebaseFirestore.instance
+      // add to customers collection with same orderId
+      final customerOrdersRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
-          .collection('cart');
+          .collection('orders')
+          .doc(orderId);
 
-      final cartDocs = await cartRef.get();
-      for (var doc in cartDocs.docs) {
-        await doc.reference.delete();
-      }
-
-      setState(() {
-        _cartItems.clear();
+      await customerOrdersRef.set({
+        'orderId': orderId,
+        'productId': productId,
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+        'hasRider': false,
       });
-      if (!mounted) return;
-      successSnackbar(context, "Order placed successfully!");
-    } catch (error) {
-      errorSnackbar(context, "Failed to place order: $error");
     }
+
+    // Clear cart
+    final cartRef = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(userId)
+        .collection('cart');
+
+    final cartDocs = await cartRef.get();
+    for (var doc in cartDocs.docs) {
+      await doc.reference.delete();
+    }
+
+    setState(() {
+      _cartItems.clear();
+    });
+
+    if (!mounted) return;
+    successSnackbar(context, "Order placed successfully!");
+  } catch (error) {
+    errorSnackbar(context, "Failed to place order: $error");
   }
+}
 
   void showCheckoutDialog(String userId) {
     showDialog(
@@ -201,11 +217,7 @@ class _CustomerCartState extends State<CustomerCart> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CustomText(
-                          textLabel: "Pickup Location: ${entry.key}",
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                       
                         const SizedBox(height: 8),
                         ...entry.value.map((item) {
                           return ListTile(
@@ -240,7 +252,7 @@ class _CustomerCartState extends State<CustomerCart> {
                     textLabel: "Total Cost: ₱${totalCost.toStringAsFixed(2)}",
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    textColor: Colors.green,
+                    textColor: AppColors.purple,
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -302,7 +314,7 @@ class _CustomerCartState extends State<CustomerCart> {
           ? const Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: Colors.green,
+                color: AppColors.purple,
               ),
             )
           : _cartItems.isEmpty
@@ -379,31 +391,9 @@ class _CustomerCartState extends State<CustomerCart> {
                                           textLabel:
                                               '₱${cartItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
                                           fontSize: 16,
-                                          textColor: Colors.green,
+                                          textColor: AppColors.purple,
                                         ),
-                                        const SizedBox(height: 5),
-                                        CustomText(
-                                          textLabel:
-                                              '${cartItem['contactNumber']?.isNotEmpty == true ? cartItem['contactNumber'] : "No contact number"}',
-                                          fontSize: 14,
-                                          textColor: Colors.black87,
-                                        ),
-                                        const SizedBox(height: 5),
-                                        Row(
-                                          children: [
-                                            CustomText(
-                                              textLabel: 'Pickup: ',
-                                              fontSize: 14,
-                                              textColor: Colors.grey,
-                                            ),
-                                            CustomText(
-                                              textLabel:
-                                                  '${cartItem['pickupLocation'] ?? 'Not specified'}',
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ],
-                                        ),
+                                       
                                       ],
                                     ),
                                   ),
@@ -417,7 +407,7 @@ class _CustomerCartState extends State<CustomerCart> {
                                         ),
                                         icon: const Icon(
                                             Icons.add_circle_outline),
-                                        color: Colors.green,
+                                        color: AppColors.purple,
                                       ),
                                       CustomText(
                                         textLabel:
@@ -451,7 +441,7 @@ class _CustomerCartState extends State<CustomerCart> {
                           showCheckoutDialog(userId);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: AppColors.purple,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
 import 'package:provider/provider.dart';
@@ -84,7 +85,7 @@ class _CustomerProductState extends State<CustomerProduct> {
             return const Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: Colors.green,
+                color: AppColors.purple,
               ),
             );
           } else if (productSnapshot.hasError) {
@@ -131,7 +132,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                 return const Center(
                   child: SpinKitFadingCircle(
                     size: 80,
-                    color: Colors.green,
+                    color: AppColors.purple,
                   ),
                 );
               } else if (sellerSnapshot.hasError) {
@@ -193,7 +194,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                       CustomText(
                         textLabel: '₱$price',
                         fontSize: 20,
-                        textColor: Colors.green,
+                        textColor: AppColors.purple,
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<Map<String, dynamic>>(
@@ -254,7 +255,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           children: [
                             Icon(
                               Icons.message,
-                              color: Colors.green,
+                              color: AppColors.purple,
                             ),
                             SizedBox(
                               width: 5,
@@ -296,7 +297,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                   widget.productId, sellerId, priceInDouble);
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
+                              backgroundColor: AppColors.purple,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -343,9 +344,9 @@ class _CustomerProductState extends State<CustomerProduct> {
                         child: Column(
                           children: [
                             const TabBar(
-                              labelColor: Colors.blue,
+                              labelColor: AppColors.purple,
                               unselectedLabelColor: Colors.grey,
-                              indicatorColor: Colors.blue,
+                              indicatorColor: AppColors.purple,
                               tabs: [
                                 Tab(text: 'Details'),
                                 Tab(text: 'Reviews'),
@@ -463,7 +464,8 @@ class _CustomerProductState extends State<CustomerProduct> {
                                               onPressed: () =>
                                                   showLeaveReviewDialog(),
                                               style: ElevatedButton.styleFrom(
-                                                backgroundColor: Colors.green,
+                                                backgroundColor:
+                                                    AppColors.purple,
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(10),
@@ -633,7 +635,6 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                               : AssetImage(
                                                                       'assets/images/profile.png')
                                                                   as ImageProvider,
-                                                        
                                                         ),
                                                         title: CustomText(
                                                           textLabel:
@@ -837,7 +838,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                               });
                             },
                             icon: const Icon(Icons.add_circle_outline,
-                                color: Colors.green),
+                                color: AppColors.purple),
                           ),
                         ],
                       ),
@@ -1037,7 +1038,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                               });
                             },
                             icon: const Icon(Icons.add_circle_outline,
-                                color: Colors.green),
+                                color: AppColors.purple),
                           ),
                         ],
                       ),
@@ -1047,7 +1048,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                             "Total Price: ₱${totalPrice.toStringAsFixed(2)}",
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        textColor: Colors.green,
+                        textColor: AppColors.purple,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
@@ -1124,30 +1125,38 @@ class _CustomerProductState extends State<CustomerProduct> {
       final String productDescription = productData['description'];
       final String category = productData['category'] ?? "Uncategorized";
 
-      final productOrdersRef = productRef.collection('orders').doc(userId);
+      final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
+
+      // Add to product's orders
+      final productOrdersRef = productRef.collection('orders').doc(orderId);
       await productOrdersRef.set({
+        'orderId': orderId,
+        'userId': userId,
         'quantity': quantity,
         'dateOrdered': now,
         'status': 'ordered',
+        'hasRider': false,
       });
 
+      // Add to customer's orders
       final customerOrdersRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
           .collection('orders')
-          .doc(productId);
-
+          .doc(orderId);
       await customerOrdersRef.set({
+        'orderId': orderId,
+        'productId': productId,
         'quantity': quantity,
         'dateOrdered': now,
         'status': 'ordered',
+        'hasRider': false,
       });
 
       final purchaseHistoryRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
           .collection('purchaseHistory');
-
       await purchaseHistoryRef.add({
         'productId': productId,
         'productName': productName,
