@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 print("[INFO] Initializing embeddings and vector store...")
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(model_name="./models/all-MiniLM-L6-v2")
 vector_store = FAISS.load_local("search_index", embeddings, allow_dangerous_deserialization=True)
 print("[INFO] Vector store loaded.")
 
