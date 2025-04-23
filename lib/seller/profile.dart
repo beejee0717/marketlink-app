@@ -834,6 +834,7 @@ class _UserImageState extends State<UserImage> {
               .update({'profilePicture': cloudinaryUrl});
 
           final updatedUser = UserInformation(
+            address:userInfo.address,//might wanna check later why seller doesnt have address
               uid: userInfo.uid,
               firstName: userInfo.firstName,
               lastName: userInfo.lastName,

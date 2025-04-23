@@ -8,6 +8,7 @@ class UserInformation {
   final String uid;
   final String firstName;
   final String lastName;
+  final String address;
   final String email;
   final String contactNumber;
   final String role;
@@ -20,6 +21,7 @@ class UserInformation {
       {required this.uid,
       required this.firstName,
       required this.lastName,
+      required this.address,
       required this.email,
       required this.contactNumber,
       required this.role,
@@ -37,6 +39,7 @@ class UserInformation {
       lastName: data['lastName'] ?? '',
       email: data['email'] ?? '',
       contactNumber: data['contactNumber'] ?? '',
+      address:  data['address'] ?? '',
       role: data['role'] ?? '',
       profilePicturePath: data['profilePicture'] ?? '',
       approved: data['approved'] ?? false,

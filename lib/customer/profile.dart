@@ -222,6 +222,56 @@ class _CustomerProfileState extends State<CustomerProfile> {
                             ),
                           ),
                           const SizedBox(height: 15),
+                           Align(
+                            alignment: Alignment.topLeft,
+                            child: CustomText(
+                              textLabel: 'Address',
+                              fontSize: 16,
+                              textColor: Colors.grey.shade700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                           initialValue: userInfo.address.isEmpty ? 'Please Add Your Address' : userInfo.address,
+                           style: userInfo.address.isEmpty? TextStyle(color: Colors.red) : null,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              suffixIcon: IconButton(
+                                  onPressed: () {
+                                    editFieldDialog(context, 'Edit Address',
+                                        userInfo.address, (newValue) {
+                                      updateField(context, 'address', newValue);
+                                    });
+                                  },
+                                  icon: const Icon(Icons.edit)),
+                              fillColor: Colors.white,
+                              filled: true,
+                              labelStyle: const TextStyle(fontSize: 16),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Colors.black, width: 1.5)),
+                              enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.black)),
+                              errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.orange)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 10,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                         
                           Align(
                             alignment: Alignment.topLeft,
                             child: CustomText(
@@ -233,7 +283,8 @@ class _CustomerProfileState extends State<CustomerProfile> {
                           ),
                           const SizedBox(height: 10),
                           TextFormField(
-                            initialValue: userInfo.contactNumber,
+                            initialValue: userInfo.contactNumber.isEmpty? 'Please Add Your Contact Number' : userInfo.contactNumber,
+                            style: userInfo.contactNumber.isEmpty? TextStyle(color: Colors.red):null,
                             readOnly: true,
                             decoration: InputDecoration(
                               suffixIcon: IconButton(
@@ -675,6 +726,7 @@ class _UserImageState extends State<UserImage> {
               uid: userInfo.uid,
               firstName: userInfo.firstName,
               lastName: userInfo.lastName,
+              address: userInfo.address,
               email: userInfo.email,
               contactNumber: userInfo.contactNumber,
               role: userInfo.role,

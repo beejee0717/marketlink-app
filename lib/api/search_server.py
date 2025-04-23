@@ -16,7 +16,8 @@ def search():
     if not query:
         return jsonify({"error": "Missing query"}), 400
 
-    results = vector_store.similarity_search(query, k=10)
+    query_vector = embeddings.embed_query(query)
+    results = vector_store.similarity_search_by_vector(query_vector, k=10)
     output = []
     for result in results:
         output.append({
@@ -24,6 +25,7 @@ def search():
             "metadata": result.metadata
         })
     return jsonify(output)
+
 
 # Bind to correct port for Railway
 port = int(os.environ.get("PORT", 8080))

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 
@@ -27,119 +28,6 @@ class RiderProfile extends StatefulWidget {
 
 class _RiderProfileState extends State<RiderProfile> {
   bool isLoading = false;
-  List<String> addresses = [];
-  @override
-  void initState() {
-    super.initState();
-    _fetchRiderData();
-  }
-
-  Future<void> _fetchRiderData() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final riderDoc = await FirebaseFirestore.instance
-            .collection('riders')
-            .doc(user.uid)
-            .get();
-
-        if (riderDoc.exists) {
-          final data = riderDoc.data()!;
-          setState(() {
-            addresses = List<String>.from(data['addresses'] ?? []);
-          });
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-      errorSnackbar(context, "Failed to load rider data.");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _addAddress() async {
-    if (addresses.length >= 5) {
-      errorSnackbar(context, "You can only add up to 5 addresses.");
-      return;
-    }
-
-    final TextEditingController controller = TextEditingController();
-    final formKey = GlobalKey<FormState>();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Add Address"),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              maxLength: 50,
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return "Address cannot be empty.";
-                }
-                return null;
-              },
-              decoration: const InputDecoration(
-                  labelText: "Enter Address", counterText: ''),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState!.validate()) {
-                  setState(() {
-                    addresses.add(controller.text.trim());
-                  });
-                  await _saveAddresses();
-                  if (!context.mounted) return;
-                  navPop(context);
-                }
-              },
-              child: const Text("Add"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _removeAddress(int index) async {
-    setState(() {
-      addresses.removeAt(index);
-    });
-    await _saveAddresses();
-  }
-
-  Future<void> _saveAddresses() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('riders')
-            .doc(user.uid)
-            .update({'addresses': addresses});
-        if (!mounted) return;
-
-        successSnackbar(context, "Addresses updated successfully.");
-      }
-    } catch (e) {
-      errorSnackbar(context, "Failed to update addresses.");
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -334,53 +222,56 @@ class _RiderProfileState extends State<RiderProfile> {
                             ),
                           ),
                           const SizedBox(height: 15),
-                          Align(
+                           Align(
                             alignment: Alignment.topLeft,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const CustomText(
-                                  textLabel: "Addresses",
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                const SizedBox(height: 10),
-                                ...List.generate(addresses.length, (index) {
-                                  return ListTile(
-                                    title: CustomText(
-                                      textLabel: addresses[index],
-                                      fontSize: 16,
-                                      textColor: Colors.black,
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(Icons.delete,
-                                          color: Colors.red),
-                                      onPressed: () => _removeAddress(index),
-                                    ),
-                                  );
-                                }),
-                                if (addresses.length < 5)
-                                  Center(
-                                    child: ElevatedButton(
-                                      onPressed: _addAddress,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.purple.shade700,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                      ),
-                                      child: CustomText(
-                                        textLabel: 'Add Address',
-                                        textColor: Colors.white,
-                                        fontSize: 18,
-                                      ),
-                                    ),
-                                  ),
-                              ],
+                            child: CustomText(
+                              textLabel: 'Address',
+                              fontSize: 16,
+                              textColor: Colors.grey.shade700,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          TextFormField(
+                           initialValue: userInfo.address.isEmpty ? 'Please Add Your Address' : userInfo.address,
+                           style: userInfo.address.isEmpty? TextStyle(color: Colors.red) : null,
+                            readOnly: true,
+                            decoration: InputDecoration(
+                              suffixIcon: IconButton(
+                                  onPressed: () {
+                                    editFieldDialog(context, 'Edit Address',
+                                        userInfo.address, (newValue) {
+                                      updateField(context, 'address', newValue);
+                                    });
+                                  },
+                                  icon: const Icon(Icons.edit)),
+                              fillColor: Colors.white,
+                              filled: true,
+                              labelStyle: const TextStyle(fontSize: 16),
+                              border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.black)),
+                              focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                      color: Colors.black, width: 1.5)),
+                              enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.black)),
+                              errorBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide:
+                                      const BorderSide(color: Colors.orange)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 10,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 15),
+                         
                           Align(
                             alignment: Alignment.topLeft,
                             child: CustomText(
@@ -392,7 +283,8 @@ class _RiderProfileState extends State<RiderProfile> {
                           ),
                           const SizedBox(height: 10),
                           TextFormField(
-                            initialValue: userInfo.contactNumber,
+                            initialValue: userInfo.contactNumber.isEmpty? 'Please Add Your Contact Number' : userInfo.contactNumber,
+                            style: userInfo.contactNumber.isEmpty? TextStyle(color: Colors.red):null,
                             readOnly: true,
                             decoration: InputDecoration(
                               suffixIcon: IconButton(
@@ -503,7 +395,7 @@ class _RiderProfileState extends State<RiderProfile> {
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.purple,
+                                  backgroundColor: AppColors.purple,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
                                   ),
@@ -521,9 +413,6 @@ class _RiderProfileState extends State<RiderProfile> {
                               ),
                             ),
                           ),
-                          SizedBox(
-                            height: 20,
-                          )
                         ],
                       ),
                     ),
@@ -837,6 +726,7 @@ class _UserImageState extends State<UserImage> {
               uid: userInfo.uid,
               firstName: userInfo.firstName,
               lastName: userInfo.lastName,
+              address: userInfo.address,
               email: userInfo.email,
               contactNumber: userInfo.contactNumber,
               role: userInfo.role,

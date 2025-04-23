@@ -325,7 +325,7 @@ class _SellerHomeState extends State<SellerHome> {
 
 ///////////////////
 
-  Stream<bool> getSellerApprovalStatus(String sellerId) {
+  Stream<bool> getSellerApprovalStatus(String? sellerId) {
     return FirebaseFirestore.instance
         .collection('sellers')
         .doc(sellerId)
@@ -529,7 +529,7 @@ class _SellerHomeState extends State<SellerHome> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 StreamBuilder<bool>(
-                  stream: getSellerApprovalStatus(userInfo!.uid),
+                  stream: getSellerApprovalStatus(userInfo?.uid),
                   builder: (context, snapshot) {
                     bool isApproved = snapshot.data ?? false;
 
@@ -562,7 +562,7 @@ class _SellerHomeState extends State<SellerHome> {
                   },
                 ),
                 StreamBuilder<bool>(
-                  stream: getSellerApprovalStatus(userInfo.uid),
+                  stream: getSellerApprovalStatus(userInfo?.uid),
                   builder: (context, snapshot) {
                     bool isApproved = snapshot.data ?? false;
 

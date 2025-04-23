@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/debugging.dart';
-import 'package:marketlinkapp/seller/profile.dart';
+import 'package:marketlinkapp/rider/delivery_details.dart';
+import 'package:marketlinkapp/rider/profile.dart';
 import 'package:provider/provider.dart';
 import '../components/snackbar.dart';
 import '../provider/user_provider.dart';
@@ -29,7 +30,6 @@ class _RiderHomeState extends State<RiderHome> {
   @override
   void initState() {
     super.initState();
-   
   }
 
   @override
@@ -42,83 +42,85 @@ class _RiderHomeState extends State<RiderHome> {
       productsStream = fetchAvailableOrders();
       productsStrInitialized = true;
     }
-
-   
-    
   }
 
+  Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
+    return FirebaseFirestore.instance
+        .collectionGroup('orders')
+        .where('hasRider', isEqualTo: false)
+        .orderBy('dateOrdered', descending: true)
+        .limit(3)
+        .snapshots()
+        .asyncMap((querySnapshot) async {
+      List<Map<String, dynamic>> orders = [];
 
-Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
-  return FirebaseFirestore.instance
-      .collectionGroup('orders')
-      .where('hasRider', isEqualTo: false)
-      .orderBy('dateOrdered', descending: true)
-      .limit(3)
-      .snapshots()
-      .asyncMap((querySnapshot) async {
-    List<Map<String, dynamic>> orders = [];
+    
 
-    for (var doc in querySnapshot.docs) {
-      final data = doc.data();
-      final productId = data['productId'];
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final productId = data['productId'];
 
-      // 1. Get product
-      final productDoc = await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .get();
+//product data
+        final productDoc = await FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .get();
 
-      if (!productDoc.exists) continue;
+        if (!productDoc.exists) continue;
 
-      final productData = productDoc.data()!;
-      final sellerId = productData['sellerId'];
+        final productData = productDoc.data()!;
+        final sellerId = productData['sellerId'];
+//seller data
+        final sellerDoc = await FirebaseFirestore.instance
+            .collection('sellers')
+            .doc(sellerId)
+            .get();
 
-      // 2. Get seller
-      final sellerDoc = await FirebaseFirestore.instance
-          .collection('sellers')
-          .doc(sellerId)
-          .get();
+        final sellerName = sellerDoc.exists
+            ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+            : 'Unknown Seller';
 
-      final sellerName = sellerDoc.exists
-          ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
-          : 'Unknown Seller';
+        final sellerContact = sellerDoc.exists &&
+                sellerDoc.data()!.containsKey('contactNumber') &&
+                (sellerDoc['contactNumber']?.isNotEmpty ?? false)
+            ? sellerDoc['contactNumber']
+            : 'No Contact No.';
+//customer data
+        final customerId = doc.reference.parent.parent?.id ?? '';
+        final customerDoc = await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(customerId)
+            .get();
 
-      final sellerContact = sellerDoc.exists &&
-              sellerDoc.data()!.containsKey('contactNumber') &&
-              (sellerDoc['contactNumber']?.isNotEmpty ?? false)
-          ? sellerDoc['contactNumber']
-          : 'No Contact No.';
+        final customerName = customerDoc.exists
+            ? '${customerDoc['firstName']} ${customerDoc['lastName']}'
+            : 'Unknown Customer';
+        final customerAddress =
+            customerDoc.exists ? customerDoc['address'] : 'Unknown Location';
+        final customerContact =
+            customerDoc.exists ? customerDoc['contactNumber'] : 'No Number';
 
-      // 3. Get customer (via parent of the order doc)
-      final customerId = doc.reference.parent.parent?.id ?? '';
-      final customerDoc = await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(customerId)
-          .get();
+        orders.add({
+          'orderId': data['orderId'],
+          'productId': productId,
+          'productName': productData['productName'],
+          'price': productData['price'],
+          'quantity': data['quantity'],
+          'imageUrl': productData['imageUrl'],
+          'customerAddress': customerAddress,
+          'customerId': customerId,
+          'customerName': customerName,
+          'dateOrdered': data['dateOrdered'],
+          'customerContact': customerContact,
+          'sellerName': sellerName,
+          'sellerContact': sellerContact,
+          'pickupLocation': productData['pickupLocation'],
+        });
+      }
 
-      final customerName = customerDoc.exists
-          ? '${customerDoc['firstName']} ${customerDoc['lastName']}'
-          : 'Unknown Customer';
-
-      orders.add({
-        'orderId': data['orderId'],
-        'productId': productId,
-        'productName': productData['productName'],
-        'price': productData['price'],
-        'pickupLocation': productData['pickupLocation'],
-        'quantity': data['quantity'],
-        'imageUrl': productData['imageUrl'],
-        'sellerName': sellerName,
-        'sellerContact': sellerContact,
-        'customerName': customerName,
-        'dateOrdered': data['dateOrdered'],
-      });
-    }
-
-    return orders;
-  });
-}
-
+      return orders;
+    });
+  }
 
   Stream<bool> getRiderApprovalStatus(String riderId) {
     return FirebaseFirestore.instance
@@ -129,21 +131,17 @@ Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
   }
 // this is the rider home, my idea as of now is show available products that can be delivered
 
-
-
-
   @override
   Widget build(BuildContext context) {
-    
     final userInfo = Provider.of<UserProvider>(context, listen: false).user;
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 0, 237, 118),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         actions: [
           IconButton(
               onPressed: () {
-                navPush(context, const SellerProfile());
+                navPush(context, const RiderProfile());
               },
               icon: Icon(
                 Icons.person,
@@ -172,111 +170,139 @@ Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
- StreamBuilder<List<Map<String, dynamic>>>(
-              stream: productsStream,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 10),
-                      child: SpinKitDoubleBounce(
-                        size: 50,
-                        color: Colors.yellow,
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: productsStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: SpinKitDoubleBounce(
+                      size: 50,
+                      color: Colors.yellow,
+                    ),
+                  ),
+                );
+              } else if (snapshot.hasError) {
+                return Center(
+                  child: CustomText(
+                    textLabel: "Error: ${snapshot.error}",
+                    fontSize: 16,
+                    textColor: Colors.red,
+                  ),
+                );
+              } else if (snapshot.data == null || snapshot.data!.isEmpty) {
+                
+                return Center(
+                  child: const CustomText(
+                    textLabel: "No Orders Available.",
+                    fontSize: 16,
+                    textColor: Colors.black,
+                  ),
+                );
+              } else {
+                return ListView.builder(
+                  itemCount: snapshot.data!.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final product = snapshot.data![index];
+debugging(snapshot.data!.length.toString());
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  debugging(snapshot.error.toString());
-                  return Center(
-                    child: CustomText(
-                      textLabel: "Error: ${snapshot.error}",
-                      fontSize: 16,
-                      textColor: Colors.red,
-                    ),
-                  );
-                } else if (snapshot.data == null || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: const CustomText(
-                      textLabel: "No products found.",
-                      fontSize: 16,
-                      textColor: Colors.white,
-                    ),
-                  );
-                } else {
-                  return ListView.builder(
-                    itemCount: snapshot.data!.length,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final product = snapshot.data![index];
-                    debugging(product.toString());
-                     
-                      return Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        margin: const EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          title: CustomText(
-                            textLabel: product['productName'],
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: "Price: ",
-                                    fontSize: 14,
-                                    textColor: Colors.black87,
-                                  ),
-                                  CustomText(
-                                    textLabel: '₱',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    textColor: Colors.orange,
-                                  ),
-                                ],
+                      margin: const EdgeInsets.only(bottom: 10),
+                      child: ListTile(
+                        leading: product['imageUrl'] != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  product['imageUrl'],
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.image,
+                                size: 60,
+                                color: Colors.grey,
                               ),
-                              Row(
-                                children: [
-                                  CustomText(
-                                    textLabel: "Category: ",
-                                    fontSize: 14,
-                                    textColor: Colors.black87,
-                                  ),
-                                  CustomText(
-                                    textLabel: 'category',
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          trailing: Icon(
-                            Icons.chevron_right,
-                            color: Colors.yellow.shade800,
-                          ),
-                          onTap: () {
-                            // navPush(context,
-                            //     SellerProductDetails(productId: product.id));
-                          },
+                        title: CustomText(
+                          textLabel: product['productName'],
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
-                      );
-                    },
-                  );
-                }
-              },
-            ),
-
-          ]   ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                CustomText(
+                                  textLabel: "Price: ",
+                                  fontSize: 14,
+                                  textColor: Colors.black87,
+                                ),
+                                CustomText(
+                                  textLabel: '₱${product['price']}',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  textColor: Colors.orange,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  textLabel: "Pickup Address: ",
+                                  fontSize: 14,
+                                  textColor: Colors.black87,
+                                ),
+                                CustomText(
+                                  textLabel: product['pickupLocation'],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                CustomText(
+                                  textLabel: "Delivery Address: ",
+                                  fontSize: 14,
+                                  textColor: Colors.black87,
+                                ),
+                                CustomText(
+                                  textLabel: product['customerAddress'],
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right,
+                          color: Colors.yellow.shade800,
+                        ),
+                        onTap: () {
+                          navPush(
+                              context,
+                              DeliveryDetails(
+                                data: product,
+                              ));
+                        },
+                      ),
+                    );
+                  },
+                );
+              }
+            },
+          ),
+        ]),
       ),
     );
   }
