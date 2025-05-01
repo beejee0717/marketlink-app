@@ -6,6 +6,7 @@ import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
+import 'package:marketlinkapp/customer/search.dart';
 import 'package:marketlinkapp/customer/service.dart';
 
 Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
@@ -147,10 +148,10 @@ Widget searchContainer(BuildContext context,
           onTap: () {
             String query = searchController.text.trim();
             if (query.isNotEmpty) {
-              // navPush(
-              //   context,
-              //   SearchResultsPage(query: query, userId: userId),
-              // );
+              navPush(
+                context,
+                SearchResultsPage(query: query, userId: userId),
+              );
             }
           },
           child: Container(

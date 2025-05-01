@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:marketlinkapp/chat/chat.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
+import 'package:marketlinkapp/rider/deliveries.dart';
 import 'package:marketlinkapp/rider/home.dart';
-import 'package:marketlinkapp/seller/orders.dart';
 
 class Rider extends StatefulWidget {
   final String userId;
@@ -23,7 +23,7 @@ class _RiderState extends State<Rider> {
     super.initState();
     _pages = [
       const RiderHome(),
-      const SellerOrders(),
+      const RiderDeliveries(),
       Chat(
         userId: widget.userId,
         backButton: false,

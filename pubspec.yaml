@@ -54,12 +54,17 @@ dependencies:
   cupertino_icons: ^1.0.6
   animate_do: ^4.2.0
   process_run: ^1.2.2+1
+  image: ^3.0.1
+  tflite_flutter: ^0.11.0
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
-  flutter_launcher_icons: ^0.13.1
+  flutter_launcher_icons: ^0.11.0
+
+
 
     
 flutter_launcher_icons:
@@ -88,6 +93,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/svg/
+    - assets/all-MiniLM-L6-v2.tflite
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

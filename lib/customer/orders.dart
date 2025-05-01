@@ -23,7 +23,9 @@ class _CustomerOrdersState extends State<CustomerOrders>
   List<Map<String, dynamic>> _shippedOrders = [];
   List<Map<String, dynamic>> _deliveredOrders = [];
   List<Map<String, dynamic>> _bookedServices = [];
-  bool isLoading = true;
+  bool ordersLoading = true;
+  bool bookingsLoading = true;
+
   late TabController _tabController;
   late TabController _categoryController;
   @override
@@ -40,7 +42,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
     if (userId == null) {
       setState(() {
-        isLoading = false;
+        bookingsLoading = false;
       });
       return;
     }
@@ -50,7 +52,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
     if (!mounted) return;
     setState(() {
       _bookedServices = bookedServices;
-      isLoading = false;
+      bookingsLoading = false;
     });
   }
 
@@ -113,7 +115,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
     if (userId == null) {
       setState(() {
-        isLoading = false;
+        ordersLoading = false;
       });
       return;
     }
@@ -126,7 +128,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
       _packedOrders = packedOrders;
       _shippedOrders = shippedOrders;
       _deliveredOrders = deliveredOrders;
-      isLoading = false;
+      ordersLoading = false;
     });
   }
 
@@ -282,23 +284,9 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         textColor: AppColors.purple,
                       ),
                       const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          CustomText(
-                            textLabel: 'Pickup: ',
-                            fontSize: 14,
-                            textColor: Colors.grey,
-                          ),
-                          SizedBox(width: 5),
-                          CustomText(
-                            textLabel:
-                                order['pickupLocation'] ?? 'Not specified',
-                            fontSize: 14,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
+                     
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           CustomText(
                             textLabel: 'Seller: ',
@@ -310,12 +298,21 @@ class _CustomerOrdersState extends State<CustomerOrders>
                             textLabel: order['sellerName'],
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            
                           ),
                         ],
                       ),
                       const SizedBox(height: 5),
                       CustomText(
                         textLabel: order['sellerContact'] ?? 'No Contact No.',
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                       const SizedBox(height: 5),
+                      CustomText(
+                        textLabel: order['pickupLocation'] ?? 'No Address.',
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -576,7 +573,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                 ],
               ),
               Expanded(
-                child: isLoading
+                child: ordersLoading
                     ? const Center(
                         child: SpinKitFadingCircle(
                           size: 80,
@@ -594,7 +591,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
               ),
             ],
           ),
-          isLoading
+          bookingsLoading
               ? const Center(
                   child: SpinKitFadingCircle(
                     size: 80,

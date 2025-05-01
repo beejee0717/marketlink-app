@@ -579,7 +579,7 @@ class _SignUpState extends State<SignUp> {
                             SizedBox(width: 4),
                             TextButton(
                               onPressed: () {
-                                // Optional: Show the terms directly from here too
+                                // we can Show the terms directly from here too
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,

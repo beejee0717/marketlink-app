@@ -353,28 +353,28 @@ class _CustomerServiceState extends State<CustomerService> {
   ),
 ),
 
-                          IconButton(
-                            onPressed: () {
-                              addToWishlist(widget.serviceId, sellerId);
-                            },
-                            icon: Icon(
-                              isInWishlist
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.red,
-                              size: 28,
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              showAddToCartDialog(widget.serviceId, sellerId);
-                            },
-                            icon: const Icon(
-                              Icons.shopping_cart_outlined,
-                              color: Colors.black,
-                              size: 28,
-                            ),
-                          ),
+                          // IconButton(
+                          //   onPressed: () {
+                          //     addToWishlist(widget.serviceId, sellerId);
+                          //   },
+                          //   icon: Icon(
+                          //     isInWishlist
+                          //         ? Icons.favorite
+                          //         : Icons.favorite_border,
+                          //     color: Colors.red,
+                          //     size: 28,
+                          //   ),
+                          // ),
+                          // IconButton(
+                          //   onPressed: () {
+                          //     showAddToCartDialog(widget.serviceId, sellerId);
+                          //   },
+                          //   icon: const Icon(
+                          //     Icons.shopping_cart_outlined,
+                          //     color: Colors.black,
+                          //     size: 28,
+                          //   ),
+                          // ),
                         ],
                       ),
                       const SizedBox(height: 20),

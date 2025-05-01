@@ -17,7 +17,7 @@ def search():
         return jsonify({"error": "Missing query"}), 400
 
     query_vector = embeddings.embed_query(query)
-    results = vector_store.similarity_search_by_vector(query_vector, k=10)
+    results = vector_store.similarity_search_by_vector(query_vector, k=30)
     output = []
     for result in results:
         output.append({
