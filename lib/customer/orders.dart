@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
 import '../components/snackbar.dart';
@@ -147,7 +148,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
     List<Map<String, dynamic>> orders = [];
     for (var doc in querySnapshot.docs) {
-    
       final productId = doc['productId'];
       final productDoc = await FirebaseFirestore.instance
           .collection('products')
@@ -175,7 +175,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
         orders.add({
           'productId': productId,
-          'orderId':doc['orderId'],
+          'orderId': doc['orderId'],
           'productName': productData['productName'],
           'price': productData['price'],
           'pickupLocation': productData['pickupLocation'],
@@ -189,7 +189,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
     return orders;
   }
 
-  Future<void> cancelOrder(String userId, String productId, String orderId) async {
+  Future<void> cancelOrder(
+      String userId, String productId, String orderId) async {
     final productOrderRef = FirebaseFirestore.instance
         .collection('products')
         .doc(productId)
@@ -253,6 +254,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final order = orders[index];
+
               final totalPrice =
                   (order['price'] ?? 0) * (order['quantity'] ?? 1);
               return Card(
@@ -284,7 +286,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         textColor: AppColors.purple,
                       ),
                       const SizedBox(height: 5),
-                     
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -300,7 +301,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
                             fontWeight: FontWeight.w500,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
-                            
                           ),
                         ],
                       ),
@@ -310,7 +310,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
-                       const SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       CustomText(
                         textLabel: order['pickupLocation'] ?? 'No Address.',
                         fontSize: 14,
@@ -318,8 +318,92 @@ class _CustomerOrdersState extends State<CustomerOrders>
                       ),
                     ],
                   ),
-                  trailing: type != 'delivered'
+                  trailing: type == 'delivered'
                       ? IconButton(
+                          icon: const Icon(Icons.image,
+                              color: AppColors.goldenYellow),
+                          onPressed: () async {
+                            final orderId = order['orderId'];
+                            final userId = Provider.of<UserProvider>(context,
+                                    listen: false)
+                                .user
+                                ?.uid;
+                            DocumentSnapshot<Map<String, dynamic>> snapshot =
+                                await FirebaseFirestore.instance
+                                    .collection('customers')
+                                    .doc(userId)
+                                    .collection('orders')
+                                    .doc(orderId)
+                                    .get();
+
+                            final deliveryData = snapshot.data();
+                            if (context.mounted) {
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: const Text('Delivery Proof'),
+                                  content: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (deliveryData?['deliveryProof'] !=
+                                          null)
+                                        Image.network(
+                                          deliveryData!['deliveryProof'],
+                                          loadingBuilder: (context, child,
+                                                  progress) =>
+                                              progress == null
+                                                  ? child
+                                                  : const Padding(
+                                                      padding:
+                                                          EdgeInsets.all(16.0),
+                                                      child:
+                                                          CircularProgressIndicator(),
+                                                    ),
+                                          errorBuilder:
+                                              (context, error, stackTrace) =>
+                                                  const Text(
+                                                      'Failed to load image'),
+                                        )
+                                      else
+                                        const Text(
+                                            'No delivery proof available'),
+                                      const SizedBox(height: 16),
+                                      if (deliveryData?['deliveryTimestamp'] !=
+                                          null)
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Delivery Date & Time:',
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            Text(
+                                              DateFormat(
+                                                      'MMMM d, y – h:mm:ss a')
+                                                  .format(
+                                                (deliveryData![
+                                                            'deliveryTimestamp']
+                                                        as Timestamp)
+                                                    .toDate(),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                    ],
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: const Text('Close'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          })
+                      : IconButton(
                           icon: const Icon(Icons.cancel, color: Colors.red),
                           onPressed: () {
                             customDialog(
@@ -331,14 +415,14 @@ class _CustomerOrdersState extends State<CustomerOrders>
                                           listen: false)
                                       .user!
                                       .uid,
-                                  order['productId'], order['orderId']);
+                                  order['productId'],
+                                  order['orderId']);
                               if (Navigator.canPop(context)) {
                                 navPop(context);
                               }
                             });
                           },
-                        )
-                      : null,
+                        ),
                 ),
               );
             },

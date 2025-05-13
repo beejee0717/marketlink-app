@@ -459,29 +459,47 @@ class _CustomerProductState extends State<CustomerProduct> {
                                       padding: const EdgeInsets.all(2.0),
                                       child: Column(
                                         children: [
-                                          Center(
-                                            child: ElevatedButton(
-                                              onPressed: () =>
-                                                  showLeaveReviewDialog(),
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    AppColors.purple,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                              ),
-                                              child: const Padding(
-                                                padding: EdgeInsets.symmetric(
-                                                    vertical: 5.0),
-                                                child: CustomText(
-                                                  textLabel: 'Leave a Review',
-                                                  fontSize: 15,
-                                                  textColor: Colors.white,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
+                                     FutureBuilder<QuerySnapshot>(
+  future: FirebaseFirestore.instance
+      .collection('products')
+      .doc(widget.productId)
+      .collection('orders')
+      .where('userId', isEqualTo: currentUser) 
+      .where('status', isEqualTo: 'delivered')
+      .get(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const SizedBox(); 
+    }
+
+    final hasPurchased = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+    if (!hasPurchased) {
+      return const SizedBox(); 
+    }
+
+    return Center(
+      child: ElevatedButton(
+        onPressed: () => showLeaveReviewDialog(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.purple,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 5.0),
+          child: CustomText(
+            textLabel: 'Leave a Review',
+            fontSize: 15,
+            textColor: Colors.white,
+          ),
+        ),
+      ),
+    );
+  },
+),
+
                                           const SizedBox(height: 10),
                                           StreamBuilder<QuerySnapshot>(
                                             stream: FirebaseFirestore.instance
@@ -501,7 +519,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                   snapshot.data!.docs.isEmpty) {
                                                 return const CustomText(
                                                   textLabel:
-                                                      'No reviews yet. Be the first to leave one!',
+                                                      'No reviews yet.',
                                                   fontSize: 16,
                                                   textColor: Colors.grey,
                                                 );

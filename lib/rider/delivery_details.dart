@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:marketlinkapp/components/cloudinary.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:provider/provider.dart';
-
 import '../components/auto_size_text.dart';
 import '../components/navigator.dart';
 import '../components/snackbar.dart';
@@ -28,23 +29,23 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   bool _isLoading = false;
   String? localImagePath;
 
-  Stream<bool> checkIfMarkedAsDelivery(String? riderId, String orderId) {
+  Stream<DocumentSnapshot<Map<String, dynamic>>> deliveryStream(
+    String? riderId,
+    String orderId,
+  ) {
     return FirebaseFirestore.instance
         .collection('riders')
         .doc(riderId)
         .collection('deliveries')
         .doc(orderId)
-        .snapshots()
-        .map((docSnapshot) => docSnapshot.exists);
+        .snapshots();
   }
 
   @override
   Widget build(BuildContext context) {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-    // debugging('recieved data ${widget.isDelivery}');
-    // debugging('Local Image path $localImagePath');
+    debugging('recieved data: ${widget.data}');
 
-    bool isDelivery = widget.isDelivery;
     return Scaffold(
         backgroundColor: AppColors.white,
         appBar: AppBar(
@@ -112,20 +113,60 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                             ),
                           ),
                         )
-                      : StreamBuilder<bool>(
-                          stream: checkIfMarkedAsDelivery(
-                            userId,
-                            widget.data['orderId'],
-                          ),
+                      : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+                          stream:
+                              deliveryStream(userId, widget.data['orderId']),
                           builder: (context, snapshot) {
-                            final isMarkedAsDelivered = snapshot.data == true;
+                            if (!snapshot.hasData) {
+                              return const SizedBox();
+                            }
+
+                            final deliveryData = snapshot.data?.data();
+                            final isMarkedAsDelivery = deliveryData != null;
+                            final isDelivered =
+                                deliveryData?['isDelivered'] == true;
 
                             return Column(
                               children: [
-                                isDelivery && isMarkedAsDelivered
-                                    ? ElevatedButton(
+                                if (!isMarkedAsDelivery && !isDelivered)
+                                  // Case 1: Not claimed by a rider
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      _markAsDelivery(
+                                        context,
+                                        widget.data['productId'],
+                                        widget.data['customerId'],
+                                        widget.data['orderId'],
+                                        widget.data,
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 40, vertical: 15),
+                                      backgroundColor: AppColors.purple,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const CustomText(
+                                      textLabel: 'Deliver Product',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      textColor: Colors.white,
+                                    ),
+                                  )
+                                else if (isMarkedAsDelivery && !isDelivered)
+                                  // Case 2: Claimed but not yet delivered
+                                  Column(
+                                    children: [
+                                      ElevatedButton(
                                         onPressed: () {
-                                          showCameraDialog(context);
+                                          showCameraDialogAndUpload(
+                                            context,
+                                            widget.data['productId'],
+                                            widget.data['customerId'],
+                                            widget.data['orderId'],
+                                          );
                                         },
                                         style: ElevatedButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
@@ -136,56 +177,167 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                                                 BorderRadius.circular(10),
                                           ),
                                         ),
-                                        child: CustomText(
+                                        child: const CustomText(
                                           textLabel: 'Mark As Delivered',
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
                                           textColor: Colors.white,
                                         ),
-                                      )
-                                    : SizedBox(),
-                                SizedBox(
-                                  height: 10,
-                                ),
-                                ElevatedButton(
-                                  onPressed: () {
-                                    if (isMarkedAsDelivered) {
-                                      _cancelDelivery(
-                                        context,
-                                        widget.data['productId'],
-                                        widget.data['customerId'],
-                                        widget.data['orderId'],
-                                        widget.data,
-                                      );
-                                    } else {
-                                      _markAsDelivery(
-                                        context,
-                                        widget.data['productId'],
-                                        widget.data['customerId'],
-                                        widget.data['orderId'],
-                                        widget.data,
-                                      );
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 40, vertical: 15),
-                                    backgroundColor: isMarkedAsDelivered
-                                        ? Colors.red
-                                        : AppColors.purple,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          _cancelDelivery(
+                                            context,
+                                            widget.data['productId'],
+                                            widget.data['customerId'],
+                                            widget.data['orderId'],
+                                            widget.data,
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 40, vertical: 15),
+                                          backgroundColor: Colors.red,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        child: const CustomText(
+                                          textLabel: 'Cancel Delivery',
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          textColor: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else if (isDelivered)
+                                  // Case 3: Delivered
+                                  Column(
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: const [
+                                          Icon(Icons.check_circle,
+                                              color: Colors.green),
+                                          SizedBox(width: 8),
+                                          CustomText(
+                                            textLabel: 'Product Delivered',
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            textColor: Colors.green,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      ElevatedButton(
+                                        onPressed: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (_) => AlertDialog(
+                                              title:
+                                                  const Text('Delivery Proof'),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  // Loading image with progress indicator
+                                                  deliveryData?[
+                                                              'deliveryProof'] !=
+                                                          null
+                                                      ? Image.network(
+                                                          deliveryData![
+                                                              'deliveryProof'],
+                                                          loadingBuilder: (context,
+                                                              child,
+                                                              loadingProgress) {
+                                                            if (loadingProgress ==
+                                                                null) {
+                                                              return child;
+                                                            }
+                                                            return const Center(
+                                                              child: Padding(
+                                                                padding:
+                                                                    EdgeInsets
+                                                                        .all(
+                                                                            16.0),
+                                                                child:
+                                                                    CircularProgressIndicator(),
+                                                              ),
+                                                            );
+                                                          },
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            return const Text(
+                                                                'Failed to load image');
+                                                          },
+                                                        )
+                                                      : const Text(
+                                                          'No delivery proof available'),
+
+                                                  const SizedBox(height: 16),
+
+                                                  // Delivery Date & Time
+                                                  if (deliveryData?[
+                                                          'deliveryTimestamp'] !=
+                                                      null)
+                                                    Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        const Text(
+                                                          'Delivery Date & Time:',
+                                                          style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold),
+                                                        ),
+                                                        Text(
+                                                          DateFormat(
+                                                                  'MMMM d, y – h:mm:ss a')
+                                                              .format(
+                                                            (deliveryData![
+                                                                        'deliveryTimestamp']
+                                                                    as Timestamp)
+                                                                .toDate(),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                ],
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(context),
+                                                  child: const Text('Close'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 30, vertical: 15),
+                                          backgroundColor: Colors.blue,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        child: const CustomText(
+                                          textLabel: 'Show Delivery Proof',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          textColor: Colors.white,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: CustomText(
-                                    textLabel: isMarkedAsDelivered
-                                        ? 'Cancel Delivery'
-                                        : 'Deliver Product',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    textColor: Colors.white,
-                                  ),
-                                ),
                               ],
                             );
                           },
@@ -354,7 +506,7 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
         ));
   }
 
-  Future<void> _buyNow(BuildContext context, Map<String, dynamic> data) async {
+  Future<void> _addToDeliveries(BuildContext context, Map<String, dynamic> data) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
     if (userId == null) {
@@ -380,7 +532,8 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
         'deliveryAddress': data['customerAddress'],
         'sellerName': data['sellerName'],
         'sellerContact': data['sellerContact'],
-        'pickupLocation': data['pickupLocation']
+        'pickupLocation': data['pickupLocation'],
+        'isDelivered': false
       });
     } catch (error) {
       if (!context.mounted) return;
@@ -405,10 +558,10 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
         .doc(orderId);
 
     try {
-      await _buyNow(context, data);
+      await _addToDeliveries(context, data);
       await Future.wait([
-        productsRef.update({'hasRider': true}),
-        customerBookingRef.update({'hasRider': true}),
+        productsRef.update({'hasRider': true, 'status':'shipped'}),
+        customerBookingRef.update({'hasRider': true,'status':'shipped'}),
       ]);
       if (context.mounted) {
         successSnackbar(context, 'Order Marked as Delivery!');
@@ -425,11 +578,19 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
       }
     }
   }
-//TODO: make function for successfull delivery
-  Future<String?> showCameraDialog(BuildContext context) async {
-    final ImagePicker picker = ImagePicker();
 
-    return await showModalBottomSheet<String>(
+  Future<void> showCameraDialogAndUpload(
+    BuildContext context,
+    String productId,
+    String customerId,
+    String orderId,
+  ) async {
+    final ImagePicker picker = ImagePicker();
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+
+    final rootContext = context;
+
+    await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       builder: (context) => BottomSheet(
@@ -443,41 +604,88 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                 leading: const Icon(Icons.camera),
                 title: const Text('Take a photo'),
                 onTap: () async {
+                  Navigator.pop(context);
                   try {
                     final pickedFile =
                         await picker.pickImage(source: ImageSource.camera);
-                    if (pickedFile == null) {
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                      } // No image picked, just close
-                      return;
-                    }
+                    if (pickedFile == null) return;
 
                     final croppedFile = await ImageCropper().cropImage(
                       sourcePath: pickedFile.path,
                       aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
                     );
 
-                    if (croppedFile != null) {
-                      if (context.mounted) {
-                        debugging(croppedFile.path);
-                          setState(() {
-                              localImagePath = croppedFile.path;
-                            });
-                        Navigator.pop(context, croppedFile.path); // Return path
+                    if (croppedFile == null) return;
+
+                    if (rootContext.mounted) {
+                      showDialog(
+                        context: rootContext,
+                        barrierDismissible: false,
+                        builder: (_) =>
+                            const Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final cloudinaryUrl =
+                        await CloudinaryService.uploadImageToCloudinary(
+                      File(croppedFile.path),
+                    );
+
+                    if (cloudinaryUrl == null) {
+                      if (rootContext.mounted) {
+                        Navigator.pop(rootContext);
+                        errorSnackbar(rootContext, "Failed to upload image.");
                       }
-                    } else {
-                      if (context.mounted) {
-                        Navigator.pop(context); // Cropping cancelled
-                      }
+                      return;
+                    }
+
+                    final productOrderRef = FirebaseFirestore.instance
+                        .collection('products')
+                        .doc(productId)
+                        .collection('orders')
+                        .doc(orderId);
+
+                    final customerOrderRef = FirebaseFirestore.instance
+                        .collection('customers')
+                        .doc(customerId)
+                        .collection('orders')
+                        .doc(orderId);
+
+                    final riderDeliveryRef = FirebaseFirestore.instance
+                        .collection('riders')
+                        .doc(userId)
+                        .collection('deliveries')
+                        .doc(orderId);
+
+                    final now = Timestamp.now();
+
+                    await Future.wait([
+                      productOrderRef.update({
+                        'deliveryProof': cloudinaryUrl,
+                        'deliveryTimestamp': now,
+                        'status': 'delivered',
+                      }),
+                      customerOrderRef.update({
+                        'deliveryProof': cloudinaryUrl,
+                        'deliveryTimestamp': now,
+                        'status': 'delivered',
+                      }),
+                      riderDeliveryRef.update({
+                        'deliveryProof': cloudinaryUrl,
+                        'deliveryTimestamp': now,
+                        'isDelivered': true
+                      })
+                    ]);
+
+                    if (rootContext.mounted) {
+                      Navigator.pop(rootContext);
+                      successSnackbar(rootContext,
+                          "Image uploaded and order marked as delivered.");
                     }
                   } catch (e) {
-                    if (context.mounted) {
-                      Navigator.pop(context); // Safely close the sheet first
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Failed to capture image')),
-                      );
+                    if (rootContext.mounted) {
+                      Navigator.pop(rootContext);
+                      errorSnackbar(rootContext, "Something went wrong: $e");
                     }
                   }
                 },
@@ -515,8 +723,8 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
 
     try {
       await Future.wait([
-        serviceBookingRef.update({'hasRider': false}),
-        customerBookingRef.update({'hasRider': false}),
+        serviceBookingRef.update({'hasRider': false,'status':'ordered'}),
+        customerBookingRef.update({'hasRider': false,'status':'ordered'}),
         riderDeliveryRef.delete()
       ]);
       if (context.mounted) {
@@ -535,4 +743,3 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
     }
   }
 }
-

@@ -123,6 +123,7 @@ Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
         'sellerName': sellerName,
         'sellerContact': sellerContact,
         'pickupLocation': productData['pickupLocation'],
+        'isDelivered': false
       });
     }
 
