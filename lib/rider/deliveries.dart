@@ -33,37 +33,123 @@ class _RiderDeliveriesState extends State<RiderDeliveries>
     _loadOrders();
   }
 
-  Future<void> _loadOrders() async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+Future<void> _loadOrders() async {
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (userId == null) {
-      setState(() {
-        isLoading = false;
-      });
-      return;
+  if (userId == null) {
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
+
+  final productDeliveries = await fetchDeliveries(userId, false);
+  final productDelivered = await fetchDeliveries(userId, true);
+
+  if (!mounted) return;
+  setState(() {
+    _deliveries = productDeliveries;
+    _delivered = productDelivered;
+    isLoading = false;
+  });
+}
+
+Future<List<Map<String, dynamic>>> fetchDeliveries(
+    String riderId, bool isDelivered) async {
+  final statusToMatch = isDelivered ? 'delivered' : 'shipped';
+
+  final snapshot = await FirebaseFirestore.instance
+      .collection('orders')
+      .where('riderId', isEqualTo: riderId)
+      .where('status', isEqualTo: statusToMatch)
+      .get();
+
+  List<Map<String, dynamic>> deliveries = [];
+
+  for (var doc in snapshot.docs) {
+    final data = doc.data();
+    final productId = data['productId'];
+    final customerId = data['customerId'];
+    final orderId = data['orderId'];
+
+    if (productId == null || customerId == null) continue;
+
+    // product data fetching
+    final productDoc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
+        .get();
+    final productData = productDoc.data();
+
+    if (productData == null) continue;
+
+    //getting seller data
+    final sellerId = productData['sellerId'];
+    String sellerName = 'Unknown Seller';
+    String sellerContact = 'No Contact No.';
+
+    if (sellerId != null) {
+      final sellerDoc = await FirebaseFirestore.instance
+          .collection('sellers')
+          .doc(sellerId)
+          .get();
+      final sellerData = sellerDoc.data();
+      if (sellerData != null) {
+        sellerName =
+            '${sellerData['firstName'] ?? ''} ${sellerData['lastName'] ?? ''}'.trim();
+        sellerContact = sellerData['contactNumber'] ?? 'No Contact No.';
+      }
     }
 
-    final productDeliveries = await fetchDeliveries(userId, false);
-    final productDelivered = await fetchDeliveries(userId, true);
-    if (!mounted) return;
-    setState(() {
-      _deliveries = productDeliveries;
-      _delivered = productDelivered;
-      isLoading = false;
+    // customer data 
+    final customerDoc = await FirebaseFirestore.instance
+        .collection('customers')
+        .doc(customerId)
+        .get();
+    final customerData = customerDoc.data();
+
+    final customerName = customerData != null
+        ? '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'.trim()
+        : 'Unknown Customer';
+
+    final customerAddress = customerData != null &&
+            (customerData['address']?.toString().isNotEmpty ?? false)
+        ? customerData['address']
+        : 'Unknown Address';
+
+    final customerContact = customerData != null &&
+            (customerData['contactNumber']?.toString().isNotEmpty ?? false)
+        ? customerData['contactNumber']
+        : 'No Contact No.';
+
+    // total price
+    final unitPrice = data['price'] ?? 0;
+    final quantity = data['quantity'] ?? 1;
+    final totalPrice = unitPrice * quantity;
+
+    
+    deliveries.add({
+      'orderId': orderId,
+      'productId': productId,
+      'productName': productData['productName'],
+      'price': totalPrice,
+      'quantity': quantity,
+      'imageUrl': productData['imageUrl'],
+      'customerAddress': customerAddress,
+      'customerId': customerId,
+      'customerName': customerName,
+      'dateOrdered': data['dateOrdered'],
+      'customerContact': customerContact,
+      'sellerName': sellerName,
+      'sellerContact': sellerContact,
+      'pickupLocation': productData['pickupLocation'],
+      'isDelivered': isDelivered,
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchDeliveries(
-      String riderId, bool isDelivered) async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('riders')
-        .doc(riderId)
-        .collection('deliveries')
-        .where('isDelivered', isEqualTo: isDelivered)
-        .get();
+  return deliveries;
+}
 
-    return snapshot.docs.map((doc) => doc.data()..['id'] = doc.id).toList();
-  }
 
   Widget buildDeliveryList(List<Map<String, dynamic>> deliveries) {
     return deliveries.isEmpty

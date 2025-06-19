@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
@@ -44,47 +45,50 @@ class _CustomerWishlistState extends State<CustomerWishlist> {
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('wishlist')
+Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('wishlists')
+      .where('customerId', isEqualTo: userId)
+      .get();
+
+  if (querySnapshot.docs.isEmpty) {
+    debugPrint('No wishlist items found for user: $userId');
+    return [];
+  }
+
+  List<Map<String, dynamic>> wishlistItems = [];
+
+  for (var doc in querySnapshot.docs) {
+    final productId = doc['productId']; 
+
+    final productDoc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
         .get();
 
-    if (querySnapshot.docs.isEmpty) {
-      return [];
+    if (productDoc.exists) {
+      final productData = productDoc.data()!;
+      wishlistItems.add({
+        'productId': productId,
+        'productName': productData['productName'],
+        'price': productData['price'],
+        'pickupLocation': productData['pickupLocation'],
+        'imageUrl': productData['imageUrl'],
+        'sellerId': productData['sellerId'], 
+      });
+    } else {
+      debugPrint('⚠️ Product not found: $productId');
     }
-
-    List<Map<String, dynamic>> wishlistItems = [];
-    for (var doc in querySnapshot.docs) {
-      final productId = doc.id;
-      final productDoc = await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .get();
-
-      if (productDoc.exists) {
-        final productData = productDoc.data()!;
-        wishlistItems.add({
-          'productId': productId,
-          'productName': productData['productName'],
-          'price': productData['price'],
-          'pickupLocation': productData['pickupLocation'],
-          'imageUrl': productData['imageUrl'],
-          'sellerId': doc['sellerId'],
-        });
-      }
-    }
-    return wishlistItems;
   }
+
+  return wishlistItems;
+}
+
 
   Future<void> removeFromWishlist(String userId, String productId) async {
     final wishlistRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('wishlist')
-        .doc(productId);
-
+        .collection('wishlists')
+        .doc('${userId}_$productId');
     await wishlistRef.delete();
     setState(() {
       _wishlistItems.removeWhere((item) => item['productId'] == productId);

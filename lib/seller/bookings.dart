@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import '../chat/messages.dart';
 import '../components/auto_size_text.dart';
@@ -30,139 +31,99 @@ class _SellerBookingsState extends State<SellerBookings>
     _loadBookings();
   }
 
-  Future<void> _loadBookings() async {
-    final sellerId =
-        Provider.of<UserProvider>(context, listen: false).user?.uid;
+ Future<void> _loadBookings() async {
+  final sellerId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (sellerId == null) {
-      setState(() {
-        isLoading = false;
-      });
-      return;
-    }
-
-    final services = await _fetchSellerServices(sellerId);
-
-    final List<Map<String, dynamic>> pending = [];
-    final List<Map<String, dynamic>> approved = [];
-
-    for (var service in services) {
-      final serviceId = service['serviceId'];
-      final imageUrl = service['imageUrl'];
-      final price = service['price'];
-      final bookings = await _fetchServiceBookings(serviceId);
-
-      for (var booking in bookings) {
-        final customerId = booking['customerId'];
-        final customerDoc = await FirebaseFirestore.instance
-            .collection('customers')
-            .doc(customerId)
-            .get();
-
-        final customerName = customerDoc.exists
-            ? '${customerDoc['firstName']} ${customerDoc['lastName']}'
-            : 'Unknown Customer';
-        final customerProfilePic = customerDoc.exists &&
-                customerDoc.data()!.containsKey('profilePicture')
-            ? customerDoc['profilePicture'] ?? ''
-            : '';
-
-        final customerContact = customerDoc.exists &&
-                customerDoc.data()!.containsKey('contactNumber')
-            ? customerDoc['contactNumber']
-            : 'N/A';
-
-      
-
-        final orderData = {
-          'serviceId': serviceId,
-          'serviceName': service['serviceName'],
-          'dateBooked': booking['dateBooked'],
-          'customerId': customerId,
-          'customerName': customerName,
-          'dateOrdered': booking['dateOrdered'],
-          'status': booking['status'],
-          'customerProfilePic': customerProfilePic,
-          'imageUrl': imageUrl,
-          'customerContact': customerContact,
-          'amount': price,
-        };
-
-        if (booking['status'] == 'pending') {
-          pending.add(orderData);
-        } else {
-          approved.add(orderData);
-        }
-      }
-    }
-    if (!mounted) return;
+  if (sellerId == null) {
     setState(() {
-      _pendingBookings = pending;
-      _approvedBookings = approved;
       isLoading = false;
     });
+    return;
   }
 
-  Future<List<Map<String, dynamic>>> _fetchSellerServices(
-      String sellerId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('services')
-        .where('sellerId', isEqualTo: sellerId)
-        .get();
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('bookings')
+      .where('sellerId', isEqualTo: sellerId)
+      .get();
 
-    return querySnapshot.docs
-        .map((doc) => {'serviceId': doc.id, ...doc.data()})
-        .toList();
-  }
+  final List<Map<String, dynamic>> pending = [];
+  final List<Map<String, dynamic>> approved = [];
 
-  Future<List<Map<String, dynamic>>> _fetchServiceBookings(
-      String serviceId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('services')
-        .doc(serviceId)
-        .collection('bookings')
-        .get();
+  for (var doc in querySnapshot.docs) {
+    final booking = doc.data();
+    final serviceId = booking['serviceId'];
+    final customerId = booking['customerId'];
 
-    return querySnapshot.docs
-        .map((doc) => {
-              'customerId': doc.id,
-              ...doc.data(),
-            })
-        .toList();
-  }
-
-  Future<void> markAsApproved(
-      String serviceId, String userId) async {
-    final serviceBookingRef = FirebaseFirestore.instance
+    // Get service details
+    final serviceDoc = await FirebaseFirestore.instance
         .collection('services')
         .doc(serviceId)
-        .collection('bookings')
-        .doc(userId);
+        .get();
 
-    final customerBookingRef = FirebaseFirestore.instance
+    final serviceData = serviceDoc.exists ? serviceDoc.data()! : {};
+    final serviceName = serviceData['serviceName'] ?? 'Unknown';
+    final imageUrl = serviceData['imageUrl'] ?? '';
+    final price = (serviceData['price'] ?? 0) as num;
+
+    // Get customer details
+    final customerDoc = await FirebaseFirestore.instance
         .collection('customers')
-        .doc(userId)
-        .collection('bookings')
-        .doc(serviceId);
+        .doc(customerId)
+        .get();
 
+    final customerData = customerDoc.exists ? customerDoc.data()! : {};
+    final customerName =
+        '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'.trim();
+    final customerProfilePic = customerData['profilePicture'] ?? '';
+    final customerContact = customerData['contactNumber'] ?? 'N/A';
 
-    try {
-   
+    final bookingData = {
+        'bookingId': doc.id, 
+      'serviceId': serviceId,
+      'serviceName': serviceName,
+      'dateBooked': booking['dateBooked'],
+      'dateOrdered': booking['dateOrdered'],
+      'customerId': customerId,
+      'customerName': customerName,
+      'status': booking['status'],
+      'customerProfilePic': customerProfilePic,
+      'imageUrl': imageUrl,
+      'customerContact': customerContact,
+      'amount': price,
+    };
 
-      await Future.wait([
-        serviceBookingRef.update({'status': 'approved'}),
-        customerBookingRef.update({'status': 'approved'}),
-      ]);
-
-      if (!mounted) return;
-      successSnackbar(context, "Booking marked as approved.");
-      await _loadBookings();
-    } catch (e) {
-      if (!mounted) return;
-
-      errorSnackbar(context, "Failed to mark as approved: $e");
+    if (booking['status'] == 'pending') {
+      pending.add(bookingData);
+    } else {
+      approved.add(bookingData);
     }
   }
+
+  if (!mounted) return;
+  setState(() {
+    _pendingBookings = pending;
+    _approvedBookings = approved;
+    isLoading = false;
+  });
+}
+
+
+Future<void> markAsApproved(String bookingId) async {
+  final bookingRef =
+      FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+
+  try {
+    await bookingRef.update({'status': 'approved'});
+
+    if (!mounted) return;
+    successSnackbar(context, "Booking marked as approved.");
+    await _loadBookings(); // Refresh the list
+  } catch (e) {
+    if (!mounted) return;
+    debugging(e.toString());
+    errorSnackbar(context, "Failed to mark as approved: $e");
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -322,8 +283,7 @@ class _SellerBookingsState extends State<SellerBookings>
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () => markAsApproved(
-                                  booking['serviceId'],
-                                  booking['customerId'],
+                                 booking['bookingId'].toString()
                                                                ),
                                 child: const CustomText(
                                   textLabel: "Mark as Approved",

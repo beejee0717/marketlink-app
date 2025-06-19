@@ -71,6 +71,7 @@ Future<List<dynamic>> searchQuery(String query) async {
   }
 }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,8 +117,15 @@ Future<List<dynamic>> searchQuery(String query) async {
                   ),
                 );
               }
-          
-              final products = snapshot.data!;
+          final products = snapshot.data!;
+
+// ✅ Filter out products with no productName (hide them completely)
+final filteredProducts = products.where((product) {
+  final data = product.data() as Map<String, dynamic>;
+  final name = data['productName'];
+  return name != null && name.toString().trim().isNotEmpty;
+}).toList();
+
               return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -127,12 +135,15 @@ Future<List<dynamic>> searchQuery(String query) async {
                   crossAxisSpacing: 10,
                   childAspectRatio: 3 / 4,
                 ),
-                itemCount: products.length,
+                itemCount: filteredProducts.length,
                 itemBuilder: (context, index) {
-                  final product = products[index];
-                  final productName = product['productName'] ?? "Unnamed";
-                  final price = "₱${product['price']?.toStringAsFixed(2) ?? 'N/A'}";
-                  final imageUrl = product['imageUrl'];
+                  final product = filteredProducts[index];
+               final data = product.data() as Map<String, dynamic>;
+
+final productName = data['productName'] ?? "Unnamed";
+final price = "₱${(data['price'] as num?)?.toStringAsFixed(2) ?? 'N/A'}";
+final imageUrl = data['imageUrl'];
+
           
                   return Stack(
                     children: [
@@ -153,6 +164,7 @@ Future<List<dynamic>> searchQuery(String query) async {
                         onTap: () {
                           storeProductClick(widget.userId, product.id);
                           navPush(context, CustomerProduct(productId: product.id));
+                          debugging(product.id);
                         },
                         child: Container(
                           decoration: BoxDecoration(

@@ -353,28 +353,7 @@ class _CustomerServiceState extends State<CustomerService> {
   ),
 ),
 
-                          // IconButton(
-                          //   onPressed: () {
-                          //     addToWishlist(widget.serviceId, sellerId);
-                          //   },
-                          //   icon: Icon(
-                          //     isInWishlist
-                          //         ? Icons.favorite
-                          //         : Icons.favorite_border,
-                          //     color: Colors.red,
-                          //     size: 28,
-                          //   ),
-                          // ),
-                          // IconButton(
-                          //   onPressed: () {
-                          //     showAddToCartDialog(widget.serviceId, sellerId);
-                          //   },
-                          //   icon: const Icon(
-                          //     Icons.shopping_cart_outlined,
-                          //     color: Colors.black,
-                          //     size: 28,
-                          //   ),
-                          // ),
+                      
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -1142,73 +1121,65 @@ void showBookDialog(String serviceId, String title, String sellerId, double pric
 }
 
 
-  Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) async {
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (userId == null) {
-      errorSnackbar(context, "You must be logged in to book.");
+  if (userId == null) {
+    errorSnackbar(context, "You must be logged in to book.");
+    return;
+  }
+
+  final now = Timestamp.now();
+
+  try {
+    final serviceRef = FirebaseFirestore.instance.collection('services').doc(serviceId);
+    final serviceSnapshot = await serviceRef.get();
+
+    if (!serviceSnapshot.exists) {
+      if (!mounted) return;
+      errorSnackbar(context, "Service not found.");
       return;
     }
 
-    final now = Timestamp.now();
+    final serviceData = serviceSnapshot.data()!;
+    final double price = (serviceData['price'] as num).toDouble();
+    final String serviceName = serviceData['serviceName'];
+    final String serviceDescription = serviceData['description'];
+    final String category = serviceData['category'] ?? "Uncategorized";
 
-    try {
-      final serviceRef =
-          FirebaseFirestore.instance.collection('services').doc(serviceId);
-      final serviceSnapshot = await serviceRef.get();
+    final bookingId = FirebaseFirestore.instance.collection('bookings').doc().id;
+    final bookingRef = FirebaseFirestore.instance.collection('bookings').doc(bookingId);
 
-      if (!serviceSnapshot.exists) {
-        if (!mounted) return;
-        errorSnackbar(context, "Service not found.");
-        return;
-      }
+    await bookingRef.set({
+      'bookingId': bookingId,
+      'customerId': userId,
+      'serviceId': serviceId,
+      'sellerId': sellerId,
+      'dateBooked': dateBooked,
+      'dateOrdered': now,
+      'status': 'pending',
+    });
 
-      final serviceData = serviceSnapshot.data()!;
-      final double price = (serviceData['price'] as num).toDouble();
-      final String serviceName = serviceData['serviceName'];
-      final String serviceDescription = serviceData['description'];
-      final String category = serviceData['category'] ?? "Uncategorized";
+    final historyRef = FirebaseFirestore.instance
+        .collection('bookingHistory');
 
-      final serviceOrdersRef = serviceRef.collection('bookings').doc(userId);
-      await serviceOrdersRef.set({
-        'dateBooked': dateBooked,
-        'dateOrdered': now,
-        'status': 'pending',
-      });
+    await historyRef.add({
+      'serviceId': serviceId,
+      'serviceName': serviceName,
+      'description': serviceDescription,
+      'category': category,
+      'price': price,
+      'dateBooked': dateBooked,
+      'timestamp': now,
+    });
 
-      final customerOrdersRef = FirebaseFirestore.instance
-          .collection('customers')
-          .doc(userId)
-          .collection('bookings')
-          .doc(serviceId);
-
-      await customerOrdersRef.set({
-        'dateBooked': dateBooked,
-        'dateOrdered': now,
-        'status': 'pending',
-      });
-
-      final purchaseHistoryRef = FirebaseFirestore.instance
-          .collection('customers')
-          .doc(userId)
-          .collection('bookingHistory');
-
-      await purchaseHistoryRef.add({
-        'serviceId': serviceId,
-        'serviceName': serviceName,
-        'description': serviceDescription,
-        'category': category,
-        'price': price,
-        'dateBooked': dateBooked,
-        'timestamp': now,
-      });
-    if(!mounted) return;
-       successSnackbar(context, "Booked Successfully!");
-    } catch (error) {
-      if (!mounted) return;
-      errorSnackbar(context, "Failed to book: $error");
-    }
+    if (!mounted) return;
+    successSnackbar(context, "Booked Successfully!");
+  } catch (error) {
+    if (!mounted) return;
+    errorSnackbar(context, "Failed to book: $error");
   }
+}
 
   void navigateToMessageSeller(
       String sellerId, String sellerFirstName, String sellerProfilePic) {

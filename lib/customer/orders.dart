@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
 import '../components/snackbar.dart';
@@ -57,59 +56,65 @@ class _CustomerOrdersState extends State<CustomerOrders>
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('bookings')
+Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('bookings')
+      .where('customerId', isEqualTo: userId)
+      .get();
+
+  if (querySnapshot.docs.isEmpty) {
+    return [];
+  }
+
+  List<Map<String, dynamic>> bookings = [];
+
+  for (var doc in querySnapshot.docs) {
+    final bookingData = doc.data();
+    final serviceId = bookingData['serviceId'];
+    final sellerId = bookingData['sellerId'];
+
+    // Fetch service data
+    final serviceDoc = await FirebaseFirestore.instance
+        .collection('services')
+        .doc(serviceId)
         .get();
 
-    if (querySnapshot.docs.isEmpty) {
-      return [];
-    }
+    if (!serviceDoc.exists) continue;
 
-    List<Map<String, dynamic>> bookings = [];
-    for (var doc in querySnapshot.docs) {
-      final serviceId = doc.id;
-      final serviceDoc = await FirebaseFirestore.instance
-          .collection('services')
-          .doc(serviceId)
-          .get();
+    final serviceData = serviceDoc.data()!;
 
-      if (serviceDoc.exists) {
-        final serviceData = serviceDoc.data()!;
-        final sellerId = serviceData['sellerId'];
+    // Fetch seller data
+    final sellerDoc = await FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .get();
 
-        final sellerDoc = await FirebaseFirestore.instance
-            .collection('sellers')
-            .doc(sellerId)
-            .get();
+    final sellerName = sellerDoc.exists
+        ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+        : 'Unknown Seller';
 
-        final sellerName = sellerDoc.exists
-            ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
-            : 'Unknown Seller';
+    final sellerContact = sellerDoc.exists &&
+            sellerDoc.data()!.containsKey('contactNumber') &&
+            (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
+        ? sellerDoc['contactNumber']
+        : 'No Contact No.';
 
-        final sellerContact = sellerDoc.exists &&
-                sellerDoc.data()!.containsKey('contactNumber') &&
-                (sellerDoc['contactNumber']?.isNotEmpty ?? false)
-            ? sellerDoc['contactNumber']
-            : 'No Contact No.';
-
-        bookings.add({
-          'serviceId': serviceId,
-          'serviceName': serviceData['serviceName'],
-          'price': serviceData['price'],
-          'serviceLocation': serviceData['serviceLocation'],
-          'dateBooked': doc['dateBooked'],
-          'status': doc['status'],
-          'imageUrl': serviceData['imageUrl'],
-          'sellerName': sellerName,
-          'sellerContact': sellerContact
-        });
-      }
-    }
-    return bookings;
+    
+    bookings.add({
+      'serviceId': serviceId,
+      'serviceName': serviceData['serviceName'],
+      'price': serviceData['price'],
+      'serviceLocation': serviceData['serviceLocation'],
+      'dateBooked': bookingData['dateBooked'],
+      'status': bookingData['status'],
+      'imageUrl': serviceData['imageUrl'],
+      'sellerName': sellerName,
+      'sellerContact': sellerContact,
+    });
   }
+
+  return bookings;
+}
 
   Future<void> _loadOrders() async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
@@ -133,61 +138,64 @@ class _CustomerOrdersState extends State<CustomerOrders>
     });
   }
 
-  Future<List<Map<String, dynamic>>> fetchOrders(String userId,
-      {required String status}) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('orders')
-        .where('status', isEqualTo: status)
+Future<List<Map<String, dynamic>>> fetchOrders(String userId,
+    {required String status}) async {
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('orders')
+      .where('customerId', isEqualTo: userId)
+      .where('status', isEqualTo: status)
+      .get();
+
+  if (querySnapshot.docs.isEmpty) {
+    return [];
+  }
+
+  List<Map<String, dynamic>> orders = [];
+
+  for (var doc in querySnapshot.docs) {
+    final orderData = doc.data();
+    final productId = orderData['productId'];
+    final sellerId = orderData['sellerId'];
+
+    final productDoc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
         .get();
 
-    if (querySnapshot.docs.isEmpty) {
-      return [];
-    }
+    if (!productDoc.exists) continue;
 
-    List<Map<String, dynamic>> orders = [];
-    for (var doc in querySnapshot.docs) {
-      final productId = doc['productId'];
-      final productDoc = await FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .get();
+    final productData = productDoc.data()!;
 
-      if (productDoc.exists) {
-        final productData = productDoc.data()!;
-        final sellerId = productData['sellerId'];
+    final sellerDoc = await FirebaseFirestore.instance
+        .collection('sellers')
+        .doc(sellerId)
+        .get();
 
-        final sellerDoc = await FirebaseFirestore.instance
-            .collection('sellers')
-            .doc(sellerId)
-            .get();
+    final sellerName = sellerDoc.exists
+        ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+        : 'Unknown Seller';
 
-        final sellerName = sellerDoc.exists
-            ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
-            : 'Unknown Seller';
+    final sellerContact = sellerDoc.exists &&
+            sellerDoc.data()!.containsKey('contactNumber') &&
+            (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
+        ? sellerDoc['contactNumber']
+        : 'No Contact No.';
 
-        final sellerContact = sellerDoc.exists &&
-                sellerDoc.data()!.containsKey('contactNumber') &&
-                (sellerDoc['contactNumber']?.isNotEmpty ?? false)
-            ? sellerDoc['contactNumber']
-            : 'No Contact No.';
-
-        orders.add({
-          'productId': productId,
-          'orderId': doc['orderId'],
-          'productName': productData['productName'],
-          'price': productData['price'],
-          'pickupLocation': productData['pickupLocation'],
-          'quantity': doc['quantity'],
-          'imageUrl': productData['imageUrl'],
-          'sellerName': sellerName,
-          'sellerContact': sellerContact
-        });
-      }
-    }
-    return orders;
+    orders.add({
+      'productId': productId,
+      'orderId': orderData['orderId'],
+      'productName': productData['productName'],
+      'price': productData['price'],
+      'pickupLocation': productData['pickupLocation'],
+      'quantity': orderData['quantity'],
+      'imageUrl': productData['imageUrl'],
+      'sellerName': sellerName,
+      'sellerContact': sellerContact
+    });
   }
+
+  return orders;
+}
 
   Future<void> cancelOrder(
       String userId, String productId, String orderId) async {
@@ -281,7 +289,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                     children: [
                       CustomText(
                         textLabel:
-                            '₱${totalPrice.toStringAsFixed(2)} (x${order['quantity']})',
+                            '₱${totalPrice.toStringAsFixed(2)}',
                         fontSize: 16,
                         textColor: AppColors.purple,
                       ),
@@ -303,7 +311,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                             maxLines: 1,
                           ),
                         ],
-                      ),
+                      ),  
                       const SizedBox(height: 5),
                       CustomText(
                         textLabel: order['sellerContact'] ?? 'No Contact No.',
@@ -319,91 +327,73 @@ class _CustomerOrdersState extends State<CustomerOrders>
                     ],
                   ),
                   trailing: type == 'delivered'
-                      ? IconButton(
-                          icon: const Icon(Icons.image,
-                              color: AppColors.goldenYellow),
-                          onPressed: () async {
-                            final orderId = order['orderId'];
-                            final userId = Provider.of<UserProvider>(context,
-                                    listen: false)
-                                .user
-                                ?.uid;
-                            DocumentSnapshot<Map<String, dynamic>> snapshot =
-                                await FirebaseFirestore.instance
-                                    .collection('customers')
-                                    .doc(userId)
-                                    .collection('orders')
-                                    .doc(orderId)
-                                    .get();
+                      ?IconButton(
+  icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+  onPressed: () async {
+    final orderId = order['orderId'];
 
-                            final deliveryData = snapshot.data();
-                            if (context.mounted) {
-                              showDialog(
-                                context: context,
-                                builder: (_) => AlertDialog(
-                                  title: const Text('Delivery Proof'),
-                                  content: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      if (deliveryData?['deliveryProof'] !=
-                                          null)
-                                        Image.network(
-                                          deliveryData!['deliveryProof'],
-                                          loadingBuilder: (context, child,
-                                                  progress) =>
-                                              progress == null
-                                                  ? child
-                                                  : const Padding(
-                                                      padding:
-                                                          EdgeInsets.all(16.0),
-                                                      child:
-                                                          CircularProgressIndicator(),
-                                                    ),
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  const Text(
-                                                      'Failed to load image'),
-                                        )
-                                      else
-                                        const Text(
-                                            'No delivery proof available'),
-                                      const SizedBox(height: 16),
-                                      if (deliveryData?['deliveryTimestamp'] !=
-                                          null)
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            const Text(
-                                              'Delivery Date & Time:',
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            Text(
-                                              DateFormat(
-                                                      'MMMM d, y – h:mm:ss a')
-                                                  .format(
-                                                (deliveryData![
-                                                            'deliveryTimestamp']
-                                                        as Timestamp)
-                                                    .toDate(),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                    ],
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(context),
-                                      child: const Text('Close'),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }
-                          })
-                      : IconButton(
+    // Fetch from the new centralized 'orders' collection
+    DocumentSnapshot<Map<String, dynamic>> snapshot =
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(orderId)
+            .get();
+
+    final deliveryData = snapshot.data();
+
+    if (context.mounted) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Delivery Proof'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (deliveryData?['deliveryProof'] != null)
+                Image.network(
+                  deliveryData!['deliveryProof'],
+                  loadingBuilder: (context, child, progress) =>
+                      progress == null
+                          ? child
+                          : const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                  errorBuilder: (context, error, stackTrace) =>
+                      const Text('Failed to load image'),
+                )
+              else
+                const Text('No delivery proof available'),
+              const SizedBox(height: 16),
+              if (deliveryData?['deliveryTimestamp'] != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Delivery Date & Time:',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      DateFormat('MMMM d, y – h:mm:ss a').format(
+                        (deliveryData!['deliveryTimestamp'] as Timestamp)
+                            .toDate(),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      );
+    }
+  },
+): IconButton(
                           icon: const Icon(Icons.cancel, color: Colors.red),
                           onPressed: () {
                             customDialog(

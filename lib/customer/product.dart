@@ -33,10 +33,8 @@ class _CustomerProductState extends State<CustomerProduct> {
     if (userId == null) return;
 
     final wishlistRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('wishlist')
-        .doc(widget.productId);
+        .collection('wishlists')
+        .doc('${userId}_${widget.productId}');
 
     final wishlistDoc = await wishlistRef.get();
     setState(() {
@@ -944,10 +942,8 @@ class _CustomerProductState extends State<CustomerProduct> {
     }
 
     final wishlistRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('wishlist')
-        .doc(productId);
+        .collection('wishlists')
+        .doc('${userId}_$productId');
 
     final wishlistDoc = await wishlistRef.get();
 
@@ -955,7 +951,7 @@ class _CustomerProductState extends State<CustomerProduct> {
       if (!mounted) return;
       errorSnackbar(context, "Product is already in your wishlist.");
     } else {
-      await wishlistRef.set({'sellerId': sellerId});
+      await wishlistRef.set({'customerId': userId, 'productId':productId, 'timestamp': FieldValue.serverTimestamp()});
       setState(() {
         isInWishlist = true;
       });
@@ -1124,67 +1120,42 @@ class _CustomerProductState extends State<CustomerProduct> {
       return;
     }
 
-    final now = Timestamp.now();
+ 
+  try {
+  final productRef =
+      FirebaseFirestore.instance.collection('products').doc(productId);
+  final productSnapshot = await productRef.get();
 
-    try {
-      final productRef =
-          FirebaseFirestore.instance.collection('products').doc(productId);
-      final productSnapshot = await productRef.get();
+  if (!productSnapshot.exists) {
+    if (!mounted) return;
+    errorSnackbar(context, "Product not found.");
+    return;
+  }
 
-      if (!productSnapshot.exists) {
-        if (!mounted) return;
-        errorSnackbar(context, "Product not found.");
-        return;
-      }
+  final productData = productSnapshot.data()!;
+  final double price = (productData['price'] as num).toDouble();
+  final String sellerId = productData['sellerId']; 
 
-      final productData = productSnapshot.data()!;
-      final double price = (productData['price'] as num).toDouble();
-      final String productName = productData['productName'];
-      final String productDescription = productData['description'];
-      final String category = productData['category'] ?? "Uncategorized";
+  final now = DateTime.now();
+  final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
 
-      final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
+  final ordersRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
 
-      // Add to product's orders
-      final productOrdersRef = productRef.collection('orders').doc(orderId);
-      await productOrdersRef.set({
-        'orderId': orderId,
-        'userId': userId,
-        'quantity': quantity,
-        'dateOrdered': now,
-        'status': 'ordered',
-        'hasRider': false,
-      });
+  await ordersRef.set({
+    'orderId': orderId,
+    'customerId': userId,
+    'productId': productId,
+    'price': price,          
+    'sellerId': sellerId,
+    'quantity': quantity,
+    'dateOrdered': now,
+    'status': 'ordered',
+    'hasRider': false,
+  });
 
-      // Add to customer's orders
-      final customerOrdersRef = FirebaseFirestore.instance
-          .collection('customers')
-          .doc(userId)
-          .collection('orders')
-          .doc(orderId);
-      await customerOrdersRef.set({
-        'orderId': orderId,
-        'productId': productId,
-        'quantity': quantity,
-        'dateOrdered': now,
-        'status': 'ordered',
-        'hasRider': false,
-      });
-
-      final purchaseHistoryRef = FirebaseFirestore.instance
-          .collection('customers')
-          .doc(userId)
-          .collection('purchaseHistory');
-      await purchaseHistoryRef.add({
-        'productId': productId,
-        'productName': productName,
-        'description': productDescription,
-        'category': category,
-        'price': price,
-        'quantity': quantity,
-        'timestamp': now,
-      });
-    } catch (error) {
+ 
+}
+ catch (error) {
       if (!mounted) return;
       errorSnackbar(context, "Failed to place order: $error");
     }

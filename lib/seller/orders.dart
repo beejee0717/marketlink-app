@@ -31,156 +31,130 @@ class _SellerOrdersState extends State<SellerOrders>
     _loadOrders();
   }
 
-  Future<void> _loadOrders() async {
-    final sellerId =
-        Provider.of<UserProvider>(context, listen: false).user?.uid;
+ Future<void> _loadOrders() async {
+  final sellerId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (sellerId == null) {
-      setState(() {
-        isLoading = false;
-      });
+  if (sellerId == null) {
+    setState(() {
+      isLoading = false;
+    });
+    return;
+  }
+
+  final querySnapshot = await FirebaseFirestore.instance
+      .collection('orders')
+      .where('sellerId', isEqualTo: sellerId)
+      .get();
+
+  final List<Map<String, dynamic>> ongoing = [];
+  final List<Map<String, dynamic>> shipped = [];
+  final List<Map<String, dynamic>> finished = [];
+
+  for (var doc in querySnapshot.docs) {
+    final order = doc.data();
+    final productId = order['productId'];
+    final customerId = order['customerId'];
+    final quantity = order['quantity'] ?? 0;
+
+    // Get product details
+    final productDoc = await FirebaseFirestore.instance
+        .collection('products')
+        .doc(productId)
+        .get();
+
+    final productData = productDoc.exists ? productDoc.data()! : {};
+    final productName = productData['productName'] ?? 'Unknown';
+    final price = (productData['price'] ?? 0) as num;
+    final imageUrl = productData['imageUrl'] ?? '';
+
+    // Get customer details
+    final customerDoc = await FirebaseFirestore.instance
+        .collection('customers')
+        .doc(customerId)
+        .get();
+
+    final customerData = customerDoc.exists ? customerDoc.data()! : {};
+    final customerName = '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'.trim();
+    final customerContact = customerData['contactNumber'] ?? 'N/A';
+    final customerProfilePic = customerData['profilePicture'] ?? '';
+
+    final amount = price * quantity;
+
+    final orderData = {
+      'orderId':doc.id,
+      'productId': productId,
+      'productName': productName,
+      'quantity': quantity,
+      'customerId': customerId,
+      'customerName': customerName,
+      'dateOrdered': order['dateOrdered'],
+      'status': order['status'],
+      'customerProfilePic': customerProfilePic,
+      'imageUrl': imageUrl,
+      'customerContact': customerContact,
+      'amount': amount,
+    };
+
+    if (order['status'] == 'ordered') {
+      ongoing.add(orderData);
+    } else if (order['status'] == 'shipped') {
+      shipped.add(orderData);
+    } else {
+      finished.add(orderData);
+    }
+  }
+
+  if (!mounted) return;
+  setState(() {
+    _ongoingOrders = ongoing;
+    _shippedOrders = shipped;
+    _finishedOrders = finished;
+    isLoading = false;
+  });
+}
+
+
+ Future<void> markedAsShipped(String orderId) async {
+  final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
+
+  try {
+    final orderSnapshot = await orderRef.get();
+
+    if (!orderSnapshot.exists) {
+       if (!mounted) return; 
+      errorSnackbar(context, "Order not found.");
       return;
     }
 
-    final products = await _fetchSellerProducts(sellerId);
-
-    final List<Map<String, dynamic>> ongoing = [];
-    final List<Map<String, dynamic>> finished = [];
-     final List<Map<String, dynamic>> shipped = [];
-
-    for (var product in products) {
-      final productId = product['productId'];
-      final imageUrl = product['imageUrl'];
-      final price = product['price'];
-      final orders = await _fetchProductOrders(productId);
-
-      for (var order in orders) {
-        final customerId = order['customerId'];
-        final customerDoc = await FirebaseFirestore.instance
-            .collection('customers')
-            .doc(customerId)
-            .get();
-
-        final customerName = customerDoc.exists
-            ? '${customerDoc['firstName']} ${customerDoc['lastName']}'
-            : 'Unknown Customer';
-        final customerProfilePic = customerDoc.exists &&
-                customerDoc.data()!.containsKey('profilePicture')
-            ? customerDoc['profilePicture'] ?? ''
-            : '';
-
-        final customerContact = customerDoc.exists &&
-                customerDoc.data()!.containsKey('contactNumber')
-            ? customerDoc['contactNumber']
-            : 'N/A';
-
-        final quantity = order['quantity'] ?? 0;
-        final amount = (price ?? 0) * quantity;
-
-        final orderData = {
-          'productId': productId,
-          'productName': product['productName'],
-          'quantity': quantity,
-          'customerId': customerId,
-          'customerName': customerName,
-          'dateOrdered': order['dateOrdered'],
-          'status': order['status'],
-          'customerProfilePic': customerProfilePic,
-          'imageUrl': imageUrl,
-          'customerContact': customerContact,
-          'amount': amount,
-        };
-
-        if (order['status'] == 'ordered') {
-          ongoing.add(orderData);
-        } else if(order['status'] == 'shipped') {
-          shipped.add(orderData);
-        } else {
-          finished.add(orderData);
-        }
-      }
-    }
-    if (!mounted) return;
-    setState(() {
-      _ongoingOrders = ongoing;
-      _finishedOrders = finished;
-      _shippedOrders = shipped;
-      isLoading = false;
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchSellerProducts(
-      String sellerId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .where('sellerId', isEqualTo: sellerId)
-        .get();
-
-    return querySnapshot.docs
-        .map((doc) => {'productId': doc.id, ...doc.data()})
-        .toList();
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchProductOrders(
-      String productId) async {
-    final querySnapshot = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
-        .get();
-
-    return querySnapshot.docs
-        .map((doc) => {
-              'customerId': doc.id,
-              ...doc.data(),
-            })
-        .toList();
-  }
-
-  Future<void> markedAsShipped(
-      String productId, String userId, int quantityOrdered) async {
-    final productOrderRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
-        .doc(userId);
-
-    final customerOrderRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('orders')
-        .doc(productId);
+    final orderData = orderSnapshot.data()!;
+    final productId = orderData['productId'];
+    final quantityOrdered = orderData['quantity'];
 
     final productRef =
         FirebaseFirestore.instance.collection('products').doc(productId);
+    final productSnapshot = await productRef.get();
 
-    try {
-      final productSnapshot = await productRef.get();
-      if (productSnapshot.exists) {
-        final productData = productSnapshot.data()!;
-        final currentStock = productData['stock'] ?? 0;
+    if (productSnapshot.exists) {
+      final productData = productSnapshot.data()!;
+      final currentStock = productData['stock'] ?? 0;
 
-        final newStock = (currentStock - quantityOrdered) > 0
-            ? currentStock - quantityOrdered
-            : 0;
+      final newStock = (currentStock - quantityOrdered) > 0
+          ? currentStock - quantityOrdered
+          : 0;
 
-        await productRef.update({'stock': newStock});
-      }
-
-      await Future.wait([
-        productOrderRef.update({'status': 'shipped'}),
-        customerOrderRef.update({'status': 'shipped'}),
-      ]);
-
-      if (!mounted) return;
-      successSnackbar(context, "Order marked as shipped and stock updated.");
-      await _loadOrders();
-    } catch (e) {
-      if (!mounted) return;
-
-      errorSnackbar(context, "Failed to mark as shipped: $e");
+      await productRef.update({'stock': newStock});
     }
+
+    await orderRef.update({'status': 'shipped'});
+
+    if (!mounted) return;
+    successSnackbar(context, "Order marked as shipped and stock updated.");
+    await _loadOrders();
+  } catch (e) {
+    if (!mounted) return;
+    errorSnackbar(context, "Failed to mark as shipped: $e");
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -345,9 +319,8 @@ class _SellerOrdersState extends State<SellerOrders>
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () => markedAsShipped(
-                                  order['productId'],
-                                  order['customerId'],
-                                  order['quantity'],
+                                  order['orderId'].toString(),
+                                  
                                 ),
                                 child: const CustomText(
                                   textLabel: "Mark as Shipped",

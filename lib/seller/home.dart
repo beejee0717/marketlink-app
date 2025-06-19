@@ -38,13 +38,32 @@ class _SellerHomeState extends State<SellerHome> {
   bool isFetchingOngoingOrders = true;
   bool isFetchingBookings = true;
 
-  @override
-  void initState() {
-    super.initState();
-    fetchTotalProducts();
-    fetchTotalServices();
-    fetchOngoingOrders();
-  }
+ @override
+void initState() {
+  super.initState();
+
+  isFetchingProducts = true;
+  isFetchingServices = true;
+  isFetchingOngoingOrders = true;
+  isFetchingBookings = true;
+
+  fetchTotalProducts().listen((_) {
+    if (mounted) setState(() => isFetchingProducts = false);
+  });
+
+  fetchTotalServices().listen((_) {
+    if (mounted) setState(() => isFetchingServices = false);
+  });
+
+  fetchOngoingOrders().listen((_) {
+    if (mounted) setState(() => isFetchingOngoingOrders = false);
+  });
+
+  fetchBookings().listen((_) {
+    if (mounted) setState(() => isFetchingBookings = false);
+  });
+}
+
 
   @override
   void didChangeDependencies() {
@@ -110,72 +129,25 @@ class _SellerHomeState extends State<SellerHome> {
     }
   }
 
-  Stream<int> fetchOngoingOrders() {
-    final userInfo = Provider.of<UserProvider>(context, listen: false).user;
-    final sellerId = userInfo?.uid ?? "";
+Stream<int> fetchOngoingOrders() {
+  final sellerId = Provider.of<UserProvider>(context, listen: false).user?.uid ?? "";
 
-    return FirebaseFirestore.instance
-        .collection('products')
-        .where('sellerId', isEqualTo: sellerId)
-        .snapshots()
-        .asyncMap((productsSnapshot) async {
-      int count = 0;
-      try {
-        for (var productDoc in productsSnapshot.docs) {
-          final productId = productDoc.id;
+  return FirebaseFirestore.instance
+      .collection('orders')
+      .where('sellerId', isEqualTo: sellerId)
+      .where('status', isEqualTo: 'ordered')
+      .snapshots()
+      .map((snapshot) => snapshot.docs.length);
+}
+Stream<int> fetchBookings() {
+  final sellerId = Provider.of<UserProvider>(context, listen: false).user?.uid ?? "";
 
-          final ordersSnapshot = await FirebaseFirestore.instance
-              .collection('products')
-              .doc(productId)
-              .collection('orders')
-              .where('status', isEqualTo: 'ordered')
-              .snapshots()
-              .first;
-
-          count += ordersSnapshot.docs.length;
-        }
-      } finally {
-        setState(() {
-          isFetchingOngoingOrders = false;
-        });
-      }
-
-      return count;
-    });
-  }
-
-  Stream<int> fetchBookings() {
-    final userInfo = Provider.of<UserProvider>(context, listen: false).user;
-    final sellerId = userInfo?.uid ?? "";
-
-    return FirebaseFirestore.instance
-        .collection('services')
-        .where('sellerId', isEqualTo: sellerId)
-        .snapshots()
-        .asyncMap((productsSnapshot) async {
-      int count = 0;
-      try {
-        for (var productDoc in productsSnapshot.docs) {
-          final productId = productDoc.id;
-
-          final ordersSnapshot = await FirebaseFirestore.instance
-              .collection('services')
-              .doc(productId)
-              .collection('orders')
-              .snapshots()
-              .first;
-
-          count += ordersSnapshot.docs.length;
-        }
-      } finally {
-        setState(() {
-          isFetchingBookings = false;
-        });
-      }
-
-      return count;
-    });
-  }
+  return FirebaseFirestore.instance
+      .collection('bookings')
+      .where('sellerId', isEqualTo: sellerId)
+      .snapshots()
+      .map((snapshot) => snapshot.docs.length);
+}
 
   Stream<List<QueryDocumentSnapshot>> fetchRecentProducts(String sellerId) {
     return FirebaseFirestore.instance

@@ -257,33 +257,27 @@ class _CustomerHomeState extends State<CustomerHome>
 }
 
 Future<void> storeProductClick(String userId, String productId) async {
-  final productRef =
-      FirebaseFirestore.instance.collection('products').doc(productId);
-  final productSnapshot = await productRef.get();
-
-  if (!productSnapshot.exists) {
-    return;
-  }
-
-  final productData = productSnapshot.data()!;
-  final String productName = productData['productName'];
-  final String category = productData['category'] ?? 'Uncategorized';
-  final String description = productData['description'] ?? '';
-
   final docRef = FirebaseFirestore.instance
-      .collection('customers')
-      .doc(userId)
       .collection('productClicks')
-      .doc(productId);
+      .doc('${userId}_$productId'); 
 
-  await docRef.set({
-    'timestamp': FieldValue.serverTimestamp(),
-    'count': FieldValue.increment(1),
-    'productName': productName,
-    'category': category,
-    'description': description,
-  }, SetOptions(merge: true));
+  final docSnapshot = await docRef.get();
+
+  if (docSnapshot.exists) {
+    await docRef.update({
+      'timestamp': FieldValue.serverTimestamp(),
+      'count': FieldValue.increment(1),
+    });
+  } else {
+    await docRef.set({
+      'userId': userId,
+      'productId': productId,
+      'timestamp': FieldValue.serverTimestamp(),
+      'count': 1,
+    });
+  }
 }
+
 
 Future<void> fetchSearchHistory(String userId) async {
   final querySnapshot = await FirebaseFirestore.instance

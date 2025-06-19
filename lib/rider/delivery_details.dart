@@ -29,22 +29,21 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
   bool _isLoading = false;
   String? localImagePath;
 
-  Stream<DocumentSnapshot<Map<String, dynamic>>> deliveryStream(
-    String? riderId,
-    String orderId,
-  ) {
-    return FirebaseFirestore.instance
-        .collection('riders')
-        .doc(riderId)
-        .collection('deliveries')
-        .doc(orderId)
-        .snapshots();
-  }
+Stream<DocumentSnapshot<Map<String, dynamic>>> deliveryStream(
+  String? riderId,
+  String orderId,
+) {
+  return FirebaseFirestore.instance
+      .collection('orders')
+      .doc(orderId)
+      .snapshots();
+}
+
 
   @override
   Widget build(BuildContext context) {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-    debugging('recieved data: ${widget.data}');
+    // debugging('recieved data: ${widget.data}');
 
     return Scaffold(
         backgroundColor: AppColors.white,
@@ -114,235 +113,190 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
                           ),
                         )
                       : StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-                          stream:
-                              deliveryStream(userId, widget.data['orderId']),
-                          builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
-                              return const SizedBox();
-                            }
+  stream: FirebaseFirestore.instance
+      .collection('orders')
+      .doc(widget.data['orderId'])
+      .snapshots(),
+  builder: (context, snapshot) {
+    if (!snapshot.hasData || snapshot.data?.data() == null) {
+      return const SizedBox();
+    }
 
-                            final deliveryData = snapshot.data?.data();
-                            final isMarkedAsDelivery = deliveryData != null;
-                            final isDelivered =
-                                deliveryData?['isDelivered'] == true;
+    final deliveryData = snapshot.data!.data()!;
+    final isAssignedToCurrentRider = deliveryData['riderId'] == userId;
+    final isDelivered = deliveryData['status'] == 'delivered';
 
-                            return Column(
-                              children: [
-                                if (!isMarkedAsDelivery && !isDelivered)
-                                  // Case 1: Not claimed by a rider
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      _markAsDelivery(
-                                        context,
-                                        widget.data['productId'],
-                                        widget.data['customerId'],
-                                        widget.data['orderId'],
-                                        widget.data,
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 40, vertical: 15),
-                                      backgroundColor: AppColors.purple,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                    ),
-                                    child: const CustomText(
-                                      textLabel: 'Deliver Product',
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      textColor: Colors.white,
-                                    ),
-                                  )
-                                else if (isMarkedAsDelivery && !isDelivered)
-                                  // Case 2: Claimed but not yet delivered
-                                  Column(
-                                    children: [
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          showCameraDialogAndUpload(
-                                            context,
-                                            widget.data['productId'],
-                                            widget.data['customerId'],
-                                            widget.data['orderId'],
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 40, vertical: 15),
-                                          backgroundColor: Colors.orange,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                          ),
-                                        ),
-                                        child: const CustomText(
-                                          textLabel: 'Mark As Delivered',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          textColor: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          _cancelDelivery(
-                                            context,
-                                            widget.data['productId'],
-                                            widget.data['customerId'],
-                                            widget.data['orderId'],
-                                            widget.data,
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 40, vertical: 15),
-                                          backgroundColor: Colors.red,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                          ),
-                                        ),
-                                        child: const CustomText(
-                                          textLabel: 'Cancel Delivery',
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          textColor: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                else if (isDelivered)
-                                  // Case 3: Delivered
-                                  Column(
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: const [
-                                          Icon(Icons.check_circle,
-                                              color: Colors.green),
-                                          SizedBox(width: 8),
-                                          CustomText(
-                                            textLabel: 'Product Delivered',
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            textColor: Colors.green,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 10),
-                                      ElevatedButton(
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (_) => AlertDialog(
-                                              title:
-                                                  const Text('Delivery Proof'),
-                                              content: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  // Loading image with progress indicator
-                                                  deliveryData?[
-                                                              'deliveryProof'] !=
-                                                          null
-                                                      ? Image.network(
-                                                          deliveryData![
-                                                              'deliveryProof'],
-                                                          loadingBuilder: (context,
-                                                              child,
-                                                              loadingProgress) {
-                                                            if (loadingProgress ==
-                                                                null) {
-                                                              return child;
-                                                            }
-                                                            return const Center(
-                                                              child: Padding(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(
-                                                                            16.0),
-                                                                child:
-                                                                    CircularProgressIndicator(),
-                                                              ),
-                                                            );
-                                                          },
-                                                          errorBuilder:
-                                                              (context, error,
-                                                                  stackTrace) {
-                                                            return const Text(
-                                                                'Failed to load image');
-                                                          },
-                                                        )
-                                                      : const Text(
-                                                          'No delivery proof available'),
-
-                                                  const SizedBox(height: 16),
-
-                                                  // Delivery Date & Time
-                                                  if (deliveryData?[
-                                                          'deliveryTimestamp'] !=
-                                                      null)
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        const Text(
-                                                          'Delivery Date & Time:',
-                                                          style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold),
-                                                        ),
-                                                        Text(
-                                                          DateFormat(
-                                                                  'MMMM d, y – h:mm:ss a')
-                                                              .format(
-                                                            (deliveryData![
-                                                                        'deliveryTimestamp']
-                                                                    as Timestamp)
-                                                                .toDate(),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                ],
-                                              ),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: const Text('Close'),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 30, vertical: 15),
-                                          backgroundColor: Colors.blue,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                          ),
-                                        ),
-                                        child: const CustomText(
-                                          textLabel: 'Show Delivery Proof',
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          textColor: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                              ],
-                            );
-                          },
-                        ),
+    return Column(
+      children: [
+        if (!isAssignedToCurrentRider && !isDelivered)
+          // Case 1: Not claimed by a rider
+          ElevatedButton(
+            onPressed: () {
+              _markAsDelivery(
+                context,
+                widget.data['orderId'],
+                widget.data,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+              backgroundColor: AppColors.purple,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            child: const CustomText(
+              textLabel: 'Deliver Product',
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              textColor: Colors.white,
+            ),
+          )
+        else if (isAssignedToCurrentRider && !isDelivered)
+          // Case 2: Claimed but not yet delivered
+          Column(
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  showCameraDialogAndUpload(
+                    context,
+                    widget.data['orderId'],
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
+                child: const CustomText(
+                  textLabel: 'Mark As Delivered',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  textColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  _cancelDelivery(
+                    context,
+                    widget.data['orderId'],
+                    widget.data,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+                  backgroundColor: Colors.red,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const CustomText(
+                  textLabel: 'Cancel Delivery',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  textColor: Colors.white,
+                ),
+              ),
+            ],
+          )
+        else if (isDelivered)
+          // Case 3: Delivered
+          Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 8),
+                  CustomText(
+                    textLabel: 'Product Delivered',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    textColor: Colors.green,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text('Delivery Proof'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          deliveryData['deliveryProof'] != null
+                              ? Image.network(
+                                  deliveryData['deliveryProof'],
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return const Text('Failed to load image');
+                                  },
+                                )
+                              : const Text('No delivery proof available'),
+
+                          const SizedBox(height: 16),
+
+                          if (deliveryData['deliveryTimestamp'] != null)
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Delivery Date & Time:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  DateFormat('MMMM d, y – h:mm:ss a').format(
+                                    (deliveryData['deliveryTimestamp']
+                                            as Timestamp)
+                                        .toDate(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const CustomText(
+                  textLabel: 'Show Delivery Proof',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  textColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  },
+)
+  ),
 
                 const SizedBox(height: 20),
 
@@ -505,241 +459,201 @@ class _DeliveryDetailsState extends State<DeliveryDetails> {
           ),
         ));
   }
-
+  
+  
+  
+  
   Future<void> _addToDeliveries(BuildContext context, Map<String, dynamic> data) async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (userId == null) {
-      errorSnackbar(context, 'You must be logged in to place an order.');
-      return;
+  if (userId == null) {
+    errorSnackbar(context, 'You must be logged in to place an order.');
+    return;
+  }
+
+  try {
+    final orderRef = FirebaseFirestore.instance.collection('orders').doc(data['orderId']);
+
+    await orderRef.update({
+      'riderId': userId,
+      'status': 'shipped',
+      'hasRider': true,
+    });
+
+    if (context.mounted) {
+      successSnackbar(context, 'Order marked as delivery!');
     }
-    try {
-      final ridersRef = FirebaseFirestore.instance
-          .collection('riders')
-          .doc(userId)
-          .collection('deliveries')
-          .doc(data['orderId']);
-      await ridersRef.set({
-        'orderId': data['orderId'],
-        'productId': data['productId'],
-        'productName': data['productName'],
-        'price': data['price'],
-        'quantity': data['quantity'],
-        'imageUrl': data['imageUrl'],
-        'customerId': data['customerId'],
-        'customerName': data['customerName'],
-        'customerContact': data['customerContact'],
-        'deliveryAddress': data['customerAddress'],
-        'sellerName': data['sellerName'],
-        'sellerContact': data['sellerContact'],
-        'pickupLocation': data['pickupLocation'],
-        'isDelivered': false
-      });
-    } catch (error) {
-      if (!context.mounted) return;
+  } catch (error) {
+    if (context.mounted) {
       errorSnackbar(context, 'Failed to mark as deliver: $error');
     }
   }
+}
+Future<void> _markAsDelivery(
+  BuildContext context,
+  String orderId,
+  Map<String, dynamic> data,
+) async {
+  setState(() => _isLoading = true);
 
-  Future<void> _markAsDelivery(BuildContext context, String productId,
-      String customerId, String orderId, Map<String, dynamic> data) async {
-    setState(() => _isLoading = true);
+  final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
 
-    final productsRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
-        .doc(orderId);
+  try {
+    await _addToDeliveries(context, data);
 
-    final customerBookingRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(customerId)
-        .collection('orders')
-        .doc(orderId);
+    await orderRef.update({
+      'status': 'shipped',
+      'hasRider': true,
+    });
 
-    try {
-      await _addToDeliveries(context, data);
-      await Future.wait([
-        productsRef.update({'hasRider': true, 'status':'shipped'}),
-        customerBookingRef.update({'hasRider': true,'status':'shipped'}),
-      ]);
-      if (context.mounted) {
-        successSnackbar(context, 'Order Marked as Delivery!');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        errorSnackbar(context, 'Failed to mark as Delivery: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    if (context.mounted) {
+      successSnackbar(context, 'Order marked as Delivery!');
     }
-  }
-
-  Future<void> showCameraDialogAndUpload(
-    BuildContext context,
-    String productId,
-    String customerId,
-    String orderId,
-  ) async {
-    final ImagePicker picker = ImagePicker();
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-
-    final rootContext = context;
-
-    await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => BottomSheet(
-        onClosing: () {},
-        builder: (context) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.camera),
-                title: const Text('Take a photo'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  try {
-                    final pickedFile =
-                        await picker.pickImage(source: ImageSource.camera);
-                    if (pickedFile == null) return;
-
-                    final croppedFile = await ImageCropper().cropImage(
-                      sourcePath: pickedFile.path,
-                      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-                    );
-
-                    if (croppedFile == null) return;
-
-                    if (rootContext.mounted) {
-                      showDialog(
-                        context: rootContext,
-                        barrierDismissible: false,
-                        builder: (_) =>
-                            const Center(child: CircularProgressIndicator()),
-                      );
-                    }
-
-                    final cloudinaryUrl =
-                        await CloudinaryService.uploadImageToCloudinary(
-                      File(croppedFile.path),
-                    );
-
-                    if (cloudinaryUrl == null) {
-                      if (rootContext.mounted) {
-                        Navigator.pop(rootContext);
-                        errorSnackbar(rootContext, "Failed to upload image.");
-                      }
-                      return;
-                    }
-
-                    final productOrderRef = FirebaseFirestore.instance
-                        .collection('products')
-                        .doc(productId)
-                        .collection('orders')
-                        .doc(orderId);
-
-                    final customerOrderRef = FirebaseFirestore.instance
-                        .collection('customers')
-                        .doc(customerId)
-                        .collection('orders')
-                        .doc(orderId);
-
-                    final riderDeliveryRef = FirebaseFirestore.instance
-                        .collection('riders')
-                        .doc(userId)
-                        .collection('deliveries')
-                        .doc(orderId);
-
-                    final now = Timestamp.now();
-
-                    await Future.wait([
-                      productOrderRef.update({
-                        'deliveryProof': cloudinaryUrl,
-                        'deliveryTimestamp': now,
-                        'status': 'delivered',
-                      }),
-                      customerOrderRef.update({
-                        'deliveryProof': cloudinaryUrl,
-                        'deliveryTimestamp': now,
-                        'status': 'delivered',
-                      }),
-                      riderDeliveryRef.update({
-                        'deliveryProof': cloudinaryUrl,
-                        'deliveryTimestamp': now,
-                        'isDelivered': true
-                      })
-                    ]);
-
-                    if (rootContext.mounted) {
-                      Navigator.pop(rootContext);
-                      successSnackbar(rootContext,
-                          "Image uploaded and order marked as delivered.");
-                    }
-                  } catch (e) {
-                    if (rootContext.mounted) {
-                      Navigator.pop(rootContext);
-                      errorSnackbar(rootContext, "Something went wrong: $e");
-                    }
-                  }
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _cancelDelivery(BuildContext context, String productId,
-      String customerId, String orderId, Map<String, dynamic> data) async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-
-    setState(() => _isLoading = true);
-
-    final serviceBookingRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .collection('orders')
-        .doc(orderId);
-
-    final customerBookingRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(customerId)
-        .collection('orders')
-        .doc(orderId);
-
-    final riderDeliveryRef = FirebaseFirestore.instance
-        .collection('riders')
-        .doc(userId)
-        .collection('deliveries')
-        .doc(data['orderId']);
-
-    try {
-      await Future.wait([
-        serviceBookingRef.update({'hasRider': false,'status':'ordered'}),
-        customerBookingRef.update({'hasRider': false,'status':'ordered'}),
-        riderDeliveryRef.delete()
-      ]);
-      if (context.mounted) {
-        successSnackbar(context, 'Order Delivery Cancelled!');
-      }
-    } catch (e) {
-      if (context.mounted) {
-        errorSnackbar(context, 'Failed to Cancel Delivery: $e');
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+  } catch (e) {
+    if (context.mounted) {
+      errorSnackbar(context, 'Failed to mark as Delivery: $e');
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 }
+
+
+ Future<void> showCameraDialogAndUpload(
+  BuildContext context,
+  String orderId,
+) async {
+  final ImagePicker picker = ImagePicker();
+  final rootContext = context;
+
+  await showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    builder: (context) => BottomSheet(
+      onClosing: () {},
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera),
+              title: const Text('Take a photo'),
+              onTap: () async {
+                Navigator.pop(context);
+                try {
+                  final pickedFile = await picker.pickImage(source: ImageSource.camera);
+                  if (pickedFile == null) return;
+
+                  final croppedFile = await ImageCropper().cropImage(
+                    sourcePath: pickedFile.path,
+                    aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+                  );
+
+                  if (croppedFile == null) return;
+
+                  if (rootContext.mounted) {
+                    showDialog(
+                      context: rootContext,
+                      barrierDismissible: false,
+                      builder: (_) => const Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
+                    File(croppedFile.path),
+                  );
+
+                  if (cloudinaryUrl == null) {
+                    if (rootContext.mounted) {
+                      Navigator.pop(rootContext);
+                      errorSnackbar(rootContext, "Failed to upload image.");
+                    }
+                    return;
+                  }
+
+                  final now = Timestamp.now();
+
+                  final orderRef = FirebaseFirestore.instance
+                      .collection('orders')
+                      .doc(orderId);
+
+                  await orderRef.update({
+                    'deliveryProof': cloudinaryUrl,
+                    'deliveryTimestamp': now,
+                    'status': 'delivered',
+                  });
+
+                  if (rootContext.mounted) {
+                    Navigator.pop(rootContext);
+                    successSnackbar(
+                      rootContext,
+                      "Image uploaded and order marked as delivered.",
+                    );
+                  }
+                } catch (e) {
+                  if (rootContext.mounted) {
+                    Navigator.pop(rootContext);
+                    errorSnackbar(rootContext, "Something went wrong: $e");
+                  }
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+Future<void> _cancelDelivery(
+  BuildContext context,
+  String orderId,
+  Map<String, dynamic> data,
+) async {
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  if (userId == null) {
+    errorSnackbar(context, 'User not logged in.');
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
+  final riderDeliveryRef = FirebaseFirestore.instance
+      .collection('riders')
+      .doc(userId)
+      .collection('deliveries')
+      .doc(orderId);
+
+  try {
+    await Future.wait([
+      // Update the central order document
+      orderRef.update({
+        'hasRider': false,
+        'riderId': null,
+        'status': 'ordered',
+      }),
+
+      // Remove the rider's delivery entry
+      riderDeliveryRef.delete(),
+    ]);
+
+    if (context.mounted) {
+      successSnackbar(context, 'Order Delivery Cancelled!');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      errorSnackbar(context, 'Failed to cancel delivery: $e');
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+}}
