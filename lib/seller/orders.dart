@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 import '../chat/messages.dart';
 import '../components/auto_size_text.dart';
@@ -88,14 +90,14 @@ class _SellerOrdersState extends State<SellerOrders>
       'customerId': customerId,
       'customerName': customerName,
       'dateOrdered': order['dateOrdered'],
-      'status': order['status'],
       'customerProfilePic': customerProfilePic,
       'imageUrl': imageUrl,
       'customerContact': customerContact,
       'amount': amount,
+   'status': order['status'],
     };
 
-    if (order['status'] == 'ordered') {
+    if (order['status'] == 'ordered' || order['status'] == 'packed') {
       ongoing.add(orderData);
     } else if (order['status'] == 'shipped') {
       shipped.add(orderData);
@@ -114,7 +116,7 @@ class _SellerOrdersState extends State<SellerOrders>
 }
 
 
- Future<void> markedAsShipped(String orderId) async {
+ Future<void> markedAsPacked(String orderId) async {
   final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
 
   try {
@@ -145,10 +147,31 @@ class _SellerOrdersState extends State<SellerOrders>
       await productRef.update({'stock': newStock});
     }
 
-    await orderRef.update({'status': 'shipped'});
+    await orderRef.update({'status': 'packed'});
 
     if (!mounted) return;
-    successSnackbar(context, "Order marked as shipped and stock updated.");
+    successSnackbar(context, "Order marked as packed and stock updated.");
+    await _loadOrders();
+  } catch (e) {
+    if (!mounted) return;
+    errorSnackbar(context, "Failed to mark as shipped: $e");
+  }
+}
+ Future<void> unmarkAsPacked(String orderId) async {
+  final orderRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
+
+  try {
+    final orderSnapshot = await orderRef.get();
+
+    if (!orderSnapshot.exists) {
+       if (!mounted) return; 
+      errorSnackbar(context, "Order not found.");
+      return;
+    }
+    await orderRef.update({'status': 'ordered'});
+
+    if (!mounted) return;
+    successSnackbar(context, "Order unmarked as packed.");
     await _loadOrders();
   } catch (e) {
     if (!mounted) return;
@@ -235,6 +258,8 @@ class _SellerOrdersState extends State<SellerOrders>
       itemCount: orders.length,
       itemBuilder: (context, index) {
         final order = orders[index];
+
+        debugging(order.toString());
         final formattedDate = DateFormat('MM/dd/yyyy hh:mm a')
             .format(order['dateOrdered'].toDate());
 
@@ -317,30 +342,112 @@ class _SellerOrdersState extends State<SellerOrders>
                           if (tab == 'ordered')
                             Align(
                               alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () => markedAsShipped(
+                              child: order['status'] == 'ordered' ? TextButton(
+                                onPressed: () => markedAsPacked(
                                   order['orderId'].toString(),
                                   
                                 ),
                                 child: const CustomText(
-                                  textLabel: "Mark as Shipped",
+                                  textLabel: "Mark as Packed",
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   textColor: Colors.green,
                                 ),
-                              ),
+                              ) : TextButton(
+                                onPressed: () => unmarkAsPacked(
+                                  order['orderId'].toString(),
+                                  
+                                ),
+                                child: const CustomText(
+                                  textLabel: "Unmark as Packed",
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  textColor: Colors.yellow,
+                                )),
                             ),
-                          IconButton(
-                            icon:
-                                const Icon(Icons.message, color: Colors.green),
-                            onPressed: () {
-                              navigateToMessages(
-                                order['customerId'],
-                                order['customerName'],
-                                order['customerProfilePic'],
-                              );
-                            },
+                            Row(
+                              children: [
+                              if(order['status'] == 'delivered')   IconButton(
+            icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+            onPressed: () async {
+              final orderId = order['orderId'];
+
+              DocumentSnapshot<Map<String, dynamic>> snapshot =
+                  await FirebaseFirestore.instance
+                      .collection('orders')
+                      .doc(orderId)
+                      .get();
+
+              final deliveryData = snapshot.data();
+
+              if (context.mounted) {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Delivery Proof'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (deliveryData?['deliveryProof'] != null)
+                          Image.network(
+                            deliveryData!['deliveryProof'],
+                            loadingBuilder: (context, child, progress) =>
+                                progress == null
+                                    ? child
+                                    : const Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Text('Failed to load image'),
+                          )
+                        else
+                          const Text('No delivery proof available'),
+                        const SizedBox(height: 16),
+                        if (deliveryData?['deliveryTimestamp'] != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Delivery Date & Time:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                DateFormat('MMMM d, y – h:mm:ss a').format(
+                                  (deliveryData!['deliveryTimestamp']
+                                          as Timestamp)
+                                      .toDate(),
+                                ),
+                              ),
+                            ],
                           ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          )
+      ,
+                                IconButton(
+                                icon:
+                                    const Icon(Icons.message, color: Colors.green),
+                                onPressed: () {
+                                  navigateToMessages(
+                                    order['customerId'],
+                                    order['customerName'],
+                                    order['customerProfilePic'],
+                                  );
+                                },
+                                                          ),
+                              ],
+                            ),
                         ],
                       ),
                     ],

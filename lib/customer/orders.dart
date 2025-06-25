@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
+import 'package:marketlinkapp/customer/order_summary.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
 import '../components/snackbar.dart';
@@ -19,8 +20,7 @@ class CustomerOrders extends StatefulWidget {
 
 class _CustomerOrdersState extends State<CustomerOrders>
     with TickerProviderStateMixin {
-  List<Map<String, dynamic>> _packedOrders = [];
-  List<Map<String, dynamic>> _shippedOrders = [];
+  List<Map<String, dynamic>> _activeOrders = [];
   List<Map<String, dynamic>> _deliveredOrders = [];
   List<Map<String, dynamic>> _bookedServices = [];
   bool ordersLoading = true;
@@ -31,7 +31,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _categoryController = TabController(length: 2, vsync: this);
     _loadOrders();
     _loadBookings();
@@ -56,65 +56,64 @@ class _CustomerOrdersState extends State<CustomerOrders>
     });
   }
 
-Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
-  final querySnapshot = await FirebaseFirestore.instance
-      .collection('bookings')
-      .where('customerId', isEqualTo: userId)
-      .get();
-
-  if (querySnapshot.docs.isEmpty) {
-    return [];
-  }
-
-  List<Map<String, dynamic>> bookings = [];
-
-  for (var doc in querySnapshot.docs) {
-    final bookingData = doc.data();
-    final serviceId = bookingData['serviceId'];
-    final sellerId = bookingData['sellerId'];
-
-    // Fetch service data
-    final serviceDoc = await FirebaseFirestore.instance
-        .collection('services')
-        .doc(serviceId)
+  Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('bookings')
+        .where('customerId', isEqualTo: userId)
         .get();
 
-    if (!serviceDoc.exists) continue;
+    if (querySnapshot.docs.isEmpty) {
+      return [];
+    }
 
-    final serviceData = serviceDoc.data()!;
+    List<Map<String, dynamic>> bookings = [];
 
-    // Fetch seller data
-    final sellerDoc = await FirebaseFirestore.instance
-        .collection('sellers')
-        .doc(sellerId)
-        .get();
+    for (var doc in querySnapshot.docs) {
+      final bookingData = doc.data();
+      final serviceId = bookingData['serviceId'];
+      final sellerId = bookingData['sellerId'];
 
-    final sellerName = sellerDoc.exists
-        ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
-        : 'Unknown Seller';
+      // Fetch service data
+      final serviceDoc = await FirebaseFirestore.instance
+          .collection('services')
+          .doc(serviceId)
+          .get();
 
-    final sellerContact = sellerDoc.exists &&
-            sellerDoc.data()!.containsKey('contactNumber') &&
-            (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
-        ? sellerDoc['contactNumber']
-        : 'No Contact No.';
+      if (!serviceDoc.exists) continue;
 
-    
-    bookings.add({
-      'serviceId': serviceId,
-      'serviceName': serviceData['serviceName'],
-      'price': serviceData['price'],
-      'serviceLocation': serviceData['serviceLocation'],
-      'dateBooked': bookingData['dateBooked'],
-      'status': bookingData['status'],
-      'imageUrl': serviceData['imageUrl'],
-      'sellerName': sellerName,
-      'sellerContact': sellerContact,
-    });
+      final serviceData = serviceDoc.data()!;
+
+      // Fetch seller data
+      final sellerDoc = await FirebaseFirestore.instance
+          .collection('sellers')
+          .doc(sellerId)
+          .get();
+
+      final sellerName = sellerDoc.exists
+          ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+          : 'Unknown Seller';
+
+      final sellerContact = sellerDoc.exists &&
+              sellerDoc.data()!.containsKey('contactNumber') &&
+              (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
+          ? sellerDoc['contactNumber']
+          : 'No Contact No.';
+
+      bookings.add({
+        'serviceId': serviceId,
+        'serviceName': serviceData['serviceName'],
+        'price': serviceData['price'],
+        'serviceLocation': serviceData['serviceLocation'],
+        'dateBooked': bookingData['dateBooked'],
+        'status': bookingData['status'],
+        'imageUrl': serviceData['imageUrl'],
+        'sellerName': sellerName,
+        'sellerContact': sellerContact,
+      });
+    }
+
+    return bookings;
   }
-
-  return bookings;
-}
 
   Future<void> _loadOrders() async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
@@ -126,76 +125,133 @@ Future<List<Map<String, dynamic>>> fetchBooking(String userId) async {
       return;
     }
 
-    final packedOrders = await fetchOrders(userId, status: 'ordered');
-    final shippedOrders = await fetchOrders(userId, status: 'shipped');
-    final deliveredOrders = await fetchOrders(userId, status: 'delivered');
+    final activeOrders = await fetchActiveOrders(userId);
+    final deliveredOrders = await fetchDeliveredOrders(userId);
+
     if (!mounted) return;
     setState(() {
-      _packedOrders = packedOrders;
-      _shippedOrders = shippedOrders;
+      _activeOrders = activeOrders;
       _deliveredOrders = deliveredOrders;
       ordersLoading = false;
     });
   }
 
-Future<List<Map<String, dynamic>>> fetchOrders(String userId,
-    {required String status}) async {
-  final querySnapshot = await FirebaseFirestore.instance
-      .collection('orders')
-      .where('customerId', isEqualTo: userId)
-      .where('status', isEqualTo: status)
-      .get();
-
-  if (querySnapshot.docs.isEmpty) {
-    return [];
-  }
-
-  List<Map<String, dynamic>> orders = [];
-
-  for (var doc in querySnapshot.docs) {
-    final orderData = doc.data();
-    final productId = orderData['productId'];
-    final sellerId = orderData['sellerId'];
-
-    final productDoc = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
+  Future<List<Map<String, dynamic>>> fetchDeliveredOrders(String userId) async {
+    final querySnapshot = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('customerId', isEqualTo: userId)
+        .where('status', isEqualTo: 'delivered')
         .get();
 
-    if (!productDoc.exists) continue;
+    if (querySnapshot.docs.isEmpty) {
+      return [];
+    }
 
-    final productData = productDoc.data()!;
+    List<Map<String, dynamic>> orders = [];
 
-    final sellerDoc = await FirebaseFirestore.instance
-        .collection('sellers')
-        .doc(sellerId)
-        .get();
+    for (var doc in querySnapshot.docs) {
+      final orderData = doc.data();
+      final productId = orderData['productId'];
+      final sellerId = orderData['sellerId'];
 
-    final sellerName = sellerDoc.exists
-        ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
-        : 'Unknown Seller';
+      final productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .get();
 
-    final sellerContact = sellerDoc.exists &&
-            sellerDoc.data()!.containsKey('contactNumber') &&
-            (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
-        ? sellerDoc['contactNumber']
-        : 'No Contact No.';
+      if (!productDoc.exists) continue;
 
-    orders.add({
-      'productId': productId,
-      'orderId': orderData['orderId'],
-      'productName': productData['productName'],
-      'price': productData['price'],
-      'pickupLocation': productData['pickupLocation'],
-      'quantity': orderData['quantity'],
-      'imageUrl': productData['imageUrl'],
-      'sellerName': sellerName,
-      'sellerContact': sellerContact
-    });
+      final productData = productDoc.data()!;
+
+      final sellerDoc = await FirebaseFirestore.instance
+          .collection('sellers')
+          .doc(sellerId)
+          .get();
+
+      final sellerName = sellerDoc.exists
+          ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+          : 'Unknown Seller';
+
+      final sellerContact = sellerDoc.exists &&
+              sellerDoc.data()!.containsKey('contactNumber') &&
+              (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
+          ? sellerDoc['contactNumber']
+          : 'No Contact No.';
+
+      orders.add({
+        'productId': productId,
+        'orderId': orderData['orderId'],
+        'productName': productData['productName'],
+        'price': productData['price'],
+        'pickupLocation': productData['pickupLocation'],
+        'quantity': orderData['quantity'],
+        'imageUrl': productData['imageUrl'],
+        'status': orderData['status'],
+        'sellerName': sellerName,
+        'sellerContact': sellerContact
+      });
+    }
+
+    return orders;
   }
 
-  return orders;
-}
+  Future<List<Map<String, dynamic>>> fetchActiveOrders(String userId) async {
+    final allUserOrders = await FirebaseFirestore.instance
+        .collection('orders')
+        .where('customerId', isEqualTo: userId)
+        .get();
+
+    final activeOrdersRaw = allUserOrders.docs.where((doc) {
+      final status = doc['status']?.toString().toLowerCase() ?? '';
+      return status != 'delivered';
+    }).toList();
+
+    List<Map<String, dynamic>> orders = [];
+
+    for (var doc in activeOrdersRaw) {
+      final orderData = doc.data();
+      final productId = orderData['productId'];
+      final sellerId = orderData['sellerId'];
+
+      final productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
+          .get();
+
+      if (!productDoc.exists) continue;
+      final productData = productDoc.data()!;
+
+      final sellerDoc = await FirebaseFirestore.instance
+          .collection('sellers')
+          .doc(sellerId)
+          .get();
+
+      final sellerName = sellerDoc.exists
+          ? '${sellerDoc['firstName']} ${sellerDoc['lastName']}'
+          : 'Unknown Seller';
+
+      final sellerContact = sellerDoc.exists &&
+              sellerDoc.data()!.containsKey('contactNumber') &&
+              (sellerDoc['contactNumber']?.toString().isNotEmpty ?? false)
+          ? sellerDoc['contactNumber']
+          : 'No Contact No.';
+
+      orders.add({
+        'productId': productId,
+        'orderId': orderData['orderId'],
+        'productName': productData['productName'],
+        'price': productData['price'],
+        'pickupLocation': productData['pickupLocation'],
+        'quantity': orderData['quantity'],
+        'imageUrl': productData['imageUrl'],
+        'sellerName': sellerName,
+        'sellerContact': sellerContact,
+        'status': orderData['status'],
+      });
+    }
+
+    return orders;
+  }
 
   Future<void> cancelOrder(
       String userId, String productId, String orderId) async {
@@ -214,7 +270,7 @@ Future<List<Map<String, dynamic>>> fetchOrders(String userId,
     await Future.wait([productOrderRef.delete(), customerOrderRef.delete()]);
 
     setState(() {
-      _packedOrders.removeWhere((order) => order['productId'] == productId);
+      _activeOrders.removeWhere((order) => order['productId'] == productId);
     });
     if (!mounted) return;
     successSnackbar(context, "Order canceled successfully.");
@@ -267,152 +323,148 @@ Future<List<Map<String, dynamic>>> fetchOrders(String userId,
                   (order['price'] ?? 0) * (order['quantity'] ?? 1);
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                child: ListTile(
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      order['imageUrl'] ?? '',
-                      width: 80,
-                      height: 80,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.image, size: 40),
+                child: GestureDetector(
+                  onTap: (){
+                   navPush(context, OrderSummary(orderId: order['orderId']));
+                  },
+                  child: ListTile(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        order['imageUrl'] ?? '',
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.image, size: 40),
+                      ),
                     ),
-                  ),
-                  title: CustomText(
-                    textLabel: order['productName'] ?? 'Unnamed Product',
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CustomText(
-                        textLabel:
-                            '₱${totalPrice.toStringAsFixed(2)}',
-                        fontSize: 16,
-                        textColor: AppColors.purple,
-                      ),
-                      const SizedBox(height: 5),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText(
-                            textLabel: 'Seller: ',
-                            fontSize: 14,
-                            textColor: Colors.grey,
+                    title: CustomText(
+                      textLabel: order['productName'] ?? 'Unnamed Product',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CustomText(
+                          textLabel: '₱${totalPrice.toStringAsFixed(2)}',
+                          fontSize: 16,
+                          textColor: AppColors.purple,
+                        ),
+                        const SizedBox(height: 5),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText(
+                              textLabel: 'Status: ',
+                              fontSize: 14,
+                              textColor: Colors.grey,
+                            ),
+                            SizedBox(width: 5),
+                            CustomText(
+                              textLabel:
+                                  '${order['status'][0].toUpperCase()}${order['status'].substring(1)}',
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                              textColor: AppColors.appGreen,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 5),
+                      ],
+                    ),
+                  trailing: order['status'] == 'shipped'
+    ? null
+    : type == 'delivered'
+        ? IconButton(
+            icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+            onPressed: () async {
+              final orderId = order['orderId'];
+
+              DocumentSnapshot<Map<String, dynamic>> snapshot =
+                  await FirebaseFirestore.instance
+                      .collection('orders')
+                      .doc(orderId)
+                      .get();
+
+              final deliveryData = snapshot.data();
+
+              if (context.mounted) {
+                showDialog(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: const Text('Delivery Proof'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (deliveryData?['deliveryProof'] != null)
+                          Image.network(
+                            deliveryData!['deliveryProof'],
+                            loadingBuilder: (context, child, progress) =>
+                                progress == null
+                                    ? child
+                                    : const Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: CircularProgressIndicator(),
+                                      ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Text('Failed to load image'),
+                          )
+                        else
+                          const Text('No delivery proof available'),
+                        const SizedBox(height: 16),
+                        if (deliveryData?['deliveryTimestamp'] != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Delivery Date & Time:',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                DateFormat('MMMM d, y – h:mm:ss a').format(
+                                  (deliveryData!['deliveryTimestamp']
+                                          as Timestamp)
+                                      .toDate(),
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(width: 5),
-                          CustomText(
-                            textLabel: order['sellerName'],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                          ),
-                        ],
-                      ),  
-                      const SizedBox(height: 5),
-                      CustomText(
-                        textLabel: order['sellerContact'] ?? 'No Contact No.',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      const SizedBox(height: 5),
-                      CustomText(
-                        textLabel: order['pickupLocation'] ?? 'No Address.',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
                       ),
                     ],
                   ),
-                  trailing: type == 'delivered'
-                      ?IconButton(
-  icon: const Icon(Icons.image, color: AppColors.goldenYellow),
-  onPressed: () async {
-    final orderId = order['orderId'];
-
-    // Fetch from the new centralized 'orders' collection
-    DocumentSnapshot<Map<String, dynamic>> snapshot =
-        await FirebaseFirestore.instance
-            .collection('orders')
-            .doc(orderId)
-            .get();
-
-    final deliveryData = snapshot.data();
-
-    if (context.mounted) {
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Delivery Proof'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (deliveryData?['deliveryProof'] != null)
-                Image.network(
-                  deliveryData!['deliveryProof'],
-                  loadingBuilder: (context, child, progress) =>
-                      progress == null
-                          ? child
-                          : const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: CircularProgressIndicator(),
-                            ),
-                  errorBuilder: (context, error, stackTrace) =>
-                      const Text('Failed to load image'),
-                )
-              else
-                const Text('No delivery proof available'),
-              const SizedBox(height: 16),
-              if (deliveryData?['deliveryTimestamp'] != null)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Delivery Date & Time:',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      DateFormat('MMMM d, y – h:mm:ss a').format(
-                        (deliveryData!['deliveryTimestamp'] as Timestamp)
-                            .toDate(),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
+                );
+              }
+            },
+          )
+        : IconButton(
+            icon: const Icon(Icons.cancel, color: Colors.red),
+            onPressed: () {
+              customDialog(
+                  context,
+                  order['productName'] ?? 'Unnamed Product',
+                  'Cancel this order?', () {
+                cancelOrder(
+                  Provider.of<UserProvider>(context, listen: false).user!.uid,
+                  order['productId'],
+                  order['orderId'],
+                );
+                if (Navigator.canPop(context)) {
+                  navPop(context);
+                }
+              });
+            },
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-  },
-): IconButton(
-                          icon: const Icon(Icons.cancel, color: Colors.red),
-                          onPressed: () {
-                            customDialog(
-                                context,
-                                order['productName'] ?? 'Unnamed Product',
-                                'Cancel this order?', () {
-                              cancelOrder(
-                                  Provider.of<UserProvider>(context,
-                                          listen: false)
-                                      .user!
-                                      .uid,
-                                  order['productId'],
-                                  order['orderId']);
-                              if (Navigator.canPop(context)) {
-                                navPop(context);
-                              }
-                            });
-                          },
-                        ),
+  ),
                 ),
               );
             },
@@ -641,8 +693,7 @@ Future<List<Map<String, dynamic>>> fetchOrders(String userId,
                 labelColor: AppColors.purple,
                 unselectedLabelColor: Colors.grey,
                 tabs: const [
-                  Tab(text: 'Packed'),
-                  Tab(text: 'Shipped'),
+                  Tab(text: 'Active Orders'),
                   Tab(text: 'Delivered'),
                 ],
               ),
@@ -657,8 +708,7 @@ Future<List<Map<String, dynamic>>> fetchOrders(String userId,
                     : TabBarView(
                         controller: _tabController,
                         children: [
-                          _buildOrderList(_packedOrders, 'packed'),
-                          _buildOrderList(_shippedOrders, 'shipped'),
+                          _buildOrderList(_activeOrders, 'packed'),
                           _buildOrderList(_deliveredOrders, 'delivered'),
                         ],
                       ),

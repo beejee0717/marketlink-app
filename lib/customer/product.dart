@@ -3,8 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/customer/order_details.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:provider/provider.dart';
 
 import '../chat/messages.dart';
@@ -109,7 +111,6 @@ class _CustomerProductState extends State<CustomerProduct> {
           final imageUrl = product['imageUrl'] ?? '';
           final title = product['productName'] ?? 'Unnamed Product';
           final price = product['price']?.toStringAsFixed(2) ?? 'N/A';
-          final priceInDouble = product['price'];
           final description =
               product['description'] ?? 'No description available.';
           final materials = (product['materials']?.isEmpty ?? true)
@@ -291,8 +292,9 @@ class _CustomerProductState extends State<CustomerProduct> {
                         children: [
                           ElevatedButton(
                             onPressed: () {
-                              showBuyNowDialog(
-                                  widget.productId, sellerId, priceInDouble);
+                              // showBuyNowDialog(widget.productId, sellerId, priceInDouble);
+                              navPush(context,
+                                  OrderDetails(productId: widget.productId));
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.purple,
@@ -457,47 +459,62 @@ class _CustomerProductState extends State<CustomerProduct> {
                                       padding: const EdgeInsets.all(2.0),
                                       child: Column(
                                         children: [
-                                     FutureBuilder<QuerySnapshot>(
-  future: FirebaseFirestore.instance
-      .collection('products')
-      .doc(widget.productId)
-      .collection('orders')
-      .where('userId', isEqualTo: currentUser) 
-      .where('status', isEqualTo: 'delivered')
-      .get(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const SizedBox(); 
-    }
+                                          FutureBuilder<QuerySnapshot>(
+                                            future: FirebaseFirestore.instance
+                                                .collection('orders')
+                                                .where('customerId',
+                                                    isEqualTo: currentUser)
+                                                .where('productId',
+                                                    isEqualTo: widget.productId)
+                                                .where('status',
+                                                    isEqualTo: 'delivered')
+                                                .get(),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return const SizedBox();
+                                              }
 
-    final hasPurchased = snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+                                              final hasPurchased =
+                                                  snapshot.hasData &&
+                                                      snapshot.data!.docs
+                                                          .isNotEmpty;
+                                              debugging(
+                                                  hasPurchased.toString());
+                                              if (!hasPurchased) {
+                                                return const SizedBox();
+                                              }
 
-    if (!hasPurchased) {
-      return const SizedBox(); 
-    }
-
-    return Center(
-      child: ElevatedButton(
-        onPressed: () => showLeaveReviewDialog(),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.purple,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 5.0),
-          child: CustomText(
-            textLabel: 'Leave a Review',
-            fontSize: 15,
-            textColor: Colors.white,
-          ),
-        ),
-      ),
-    );
-  },
-),
-
+                                              return Center(
+                                                child: ElevatedButton(
+                                                  onPressed: () =>
+                                                      showLeaveReviewDialog(),
+                                                  style:
+                                                      ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        AppColors.purple,
+                                                    shape:
+                                                        RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                    ),
+                                                  ),
+                                                  child: const Padding(
+                                                    padding:
+                                                        EdgeInsets.symmetric(
+                                                            vertical: 5.0),
+                                                    child: CustomText(
+                                                      textLabel:
+                                                          'Leave a Review',
+                                                      fontSize: 15,
+                                                      textColor: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                           const SizedBox(height: 10),
                                           StreamBuilder<QuerySnapshot>(
                                             stream: FirebaseFirestore.instance
@@ -516,8 +533,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                               if (!snapshot.hasData ||
                                                   snapshot.data!.docs.isEmpty) {
                                                 return const CustomText(
-                                                  textLabel:
-                                                      'No reviews yet.',
+                                                  textLabel: 'No reviews yet.',
                                                   fontSize: 16,
                                                   textColor: Colors.grey,
                                                 );
@@ -951,7 +967,11 @@ class _CustomerProductState extends State<CustomerProduct> {
       if (!mounted) return;
       errorSnackbar(context, "Product is already in your wishlist.");
     } else {
-      await wishlistRef.set({'customerId': userId, 'productId':productId, 'timestamp': FieldValue.serverTimestamp()});
+      await wishlistRef.set({
+        'customerId': userId,
+        'productId': productId,
+        'timestamp': FieldValue.serverTimestamp()
+      });
       setState(() {
         isInWishlist = true;
       });
@@ -1120,42 +1140,39 @@ class _CustomerProductState extends State<CustomerProduct> {
       return;
     }
 
- 
-  try {
-  final productRef =
-      FirebaseFirestore.instance.collection('products').doc(productId);
-  final productSnapshot = await productRef.get();
+    try {
+      final productRef =
+          FirebaseFirestore.instance.collection('products').doc(productId);
+      final productSnapshot = await productRef.get();
 
-  if (!productSnapshot.exists) {
-    if (!mounted) return;
-    errorSnackbar(context, "Product not found.");
-    return;
-  }
+      if (!productSnapshot.exists) {
+        if (!mounted) return;
+        errorSnackbar(context, "Product not found.");
+        return;
+      }
 
-  final productData = productSnapshot.data()!;
-  final double price = (productData['price'] as num).toDouble();
-  final String sellerId = productData['sellerId']; 
+      final productData = productSnapshot.data()!;
+      final double price = (productData['price'] as num).toDouble();
+      final String sellerId = productData['sellerId'];
 
-  final now = DateTime.now();
-  final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
+      final now = DateTime.now();
+      final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
 
-  final ordersRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
+      final ordersRef =
+          FirebaseFirestore.instance.collection('orders').doc(orderId);
 
-  await ordersRef.set({
-    'orderId': orderId,
-    'customerId': userId,
-    'productId': productId,
-    'price': price,          
-    'sellerId': sellerId,
-    'quantity': quantity,
-    'dateOrdered': now,
-    'status': 'ordered',
-    'hasRider': false,
-  });
-
- 
-}
- catch (error) {
+      await ordersRef.set({
+        'orderId': orderId,
+        'customerId': userId,
+        'productId': productId,
+        'price': price,
+        'sellerId': sellerId,
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+        'hasRider': false,
+      });
+    } catch (error) {
       if (!mounted) return;
       errorSnackbar(context, "Failed to place order: $error");
     }

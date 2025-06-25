@@ -5,7 +5,6 @@ import 'package:marketlinkapp/components/appbar.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:marketlinkapp/rider/delivery_details.dart';
 import 'package:marketlinkapp/rider/profile.dart';
@@ -22,132 +21,111 @@ class _RiderDeliveriesState extends State<RiderDeliveries>
     with TickerProviderStateMixin {
   late Stream<List<Map<String, dynamic>>> productsStream;
   late TabController _tabController;
-  bool isLoading = true;
-  List<Map<String, dynamic>> _deliveries = [];
-  List<Map<String, dynamic>> _delivered = [];
+ @override
+void initState() {
+  super.initState();
+  _tabController = TabController(length: 2, vsync: this);
+}
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadOrders();
-  }
 
-Future<void> _loadOrders() async {
+
+Stream<List<Map<String, dynamic>>> streamDeliveries(bool isDelivered) {
   final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
   if (userId == null) {
-    setState(() {
-      isLoading = false;
-    });
-    return;
+    return const Stream.empty();
   }
 
-  final productDeliveries = await fetchDeliveries(userId, false);
-  final productDelivered = await fetchDeliveries(userId, true);
-
-  if (!mounted) return;
-  setState(() {
-    _deliveries = productDeliveries;
-    _delivered = productDelivered;
-    isLoading = false;
-  });
-}
-
-Future<List<Map<String, dynamic>>> fetchDeliveries(
-    String riderId, bool isDelivered) async {
   final statusToMatch = isDelivered ? 'delivered' : 'shipped';
 
-  final snapshot = await FirebaseFirestore.instance
+  return FirebaseFirestore.instance
       .collection('orders')
-      .where('riderId', isEqualTo: riderId)
+      .where('riderId', isEqualTo: userId)
       .where('status', isEqualTo: statusToMatch)
-      .get();
+      .snapshots()
+      .asyncMap((snapshot) async {
+    List<Map<String, dynamic>> deliveries = [];
 
-  List<Map<String, dynamic>> deliveries = [];
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final productId = data['productId'];
+      final customerId = data['customerId'];
+      final orderId = data['orderId'];
 
-  for (var doc in snapshot.docs) {
-    final data = doc.data();
-    final productId = data['productId'];
-    final customerId = data['customerId'];
-    final orderId = data['orderId'];
+      if (productId == null || customerId == null) continue;
 
-    if (productId == null || customerId == null) continue;
-
-    // product data fetching
-    final productDoc = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .get();
-    final productData = productDoc.data();
-
-    if (productData == null) continue;
-
-    //getting seller data
-    final sellerId = productData['sellerId'];
-    String sellerName = 'Unknown Seller';
-    String sellerContact = 'No Contact No.';
-
-    if (sellerId != null) {
-      final sellerDoc = await FirebaseFirestore.instance
-          .collection('sellers')
-          .doc(sellerId)
+      final productDoc = await FirebaseFirestore.instance
+          .collection('products')
+          .doc(productId)
           .get();
-      final sellerData = sellerDoc.data();
-      if (sellerData != null) {
-        sellerName =
-            '${sellerData['firstName'] ?? ''} ${sellerData['lastName'] ?? ''}'.trim();
-        sellerContact = sellerData['contactNumber'] ?? 'No Contact No.';
+      final productData = productDoc.data();
+
+      if (productData == null) continue;
+
+      final sellerId = productData['sellerId'];
+      String sellerName = 'Unknown Seller';
+      String sellerContact = 'No Contact No.';
+
+      if (sellerId != null) {
+        final sellerDoc = await FirebaseFirestore.instance
+            .collection('sellers')
+            .doc(sellerId)
+            .get();
+        final sellerData = sellerDoc.data();
+        if (sellerData != null) {
+          sellerName =
+              '${sellerData['firstName'] ?? ''} ${sellerData['lastName'] ?? ''}'
+                  .trim();
+          sellerContact = sellerData['contactNumber'] ?? 'No Contact No.';
+        }
       }
+
+      final customerDoc = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(customerId)
+          .get();
+      final customerData = customerDoc.data();
+
+      final customerName = customerData != null
+          ? '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'
+              .trim()
+          : 'Unknown Customer';
+
+      final customerAddress = customerData != null &&
+              (customerData['address']?.toString().isNotEmpty ?? false)
+          ? customerData['address']
+          : 'Unknown Address';
+
+      final customerContact = customerData != null &&
+              (customerData['contactNumber']?.toString().isNotEmpty ?? false)
+          ? customerData['contactNumber']
+          : 'No Contact No.';
+
+      final unitPrice = data['price'] ?? 0;
+      final quantity = data['quantity'] ?? 1;
+      final totalPrice = unitPrice * quantity;
+
+      deliveries.add({
+        'orderId': orderId,
+        'productId': productId,
+        'productName': productData['productName'],
+        'price': totalPrice,
+        'quantity': quantity,
+        'imageUrl': productData['imageUrl'],
+        'customerAddress': customerAddress,
+        'customerId': customerId,
+        'customerName': customerName,
+        'dateOrdered': data['dateOrdered'],
+        'customerContact': customerContact,
+        'sellerName': sellerName,
+        'sellerContact': sellerContact,
+        'pickupLocation': productData['pickupLocation'],
+        'isDelivered': isDelivered,
+      });
     }
 
-    // customer data 
-    final customerDoc = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(customerId)
-        .get();
-    final customerData = customerDoc.data();
-
-    final customerName = customerData != null
-        ? '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'.trim()
-        : 'Unknown Customer';
-
-    final customerAddress = customerData != null &&
-            (customerData['address']?.toString().isNotEmpty ?? false)
-        ? customerData['address']
-        : 'Unknown Address';
-
-    final customerContact = customerData != null &&
-            (customerData['contactNumber']?.toString().isNotEmpty ?? false)
-        ? customerData['contactNumber']
-        : 'No Contact No.';
-
-    // total price
-    final unitPrice = data['price'] ?? 0;
-    final quantity = data['quantity'] ?? 1;
-    final totalPrice = unitPrice * quantity;
-
-    
-    deliveries.add({
-      'orderId': orderId,
-      'productId': productId,
-      'productName': productData['productName'],
-      'price': totalPrice,
-      'quantity': quantity,
-      'imageUrl': productData['imageUrl'],
-      'customerAddress': customerAddress,
-      'customerId': customerId,
-      'customerName': customerName,
-      'dateOrdered': data['dateOrdered'],
-      'customerContact': customerContact,
-      'sellerName': sellerName,
-      'sellerContact': sellerContact,
-      'pickupLocation': productData['pickupLocation'],
-      'isDelivered': isDelivered,
-    });
-  }
-
-  return deliveries;
+    return deliveries;
+  });
 }
 
 
@@ -281,7 +259,7 @@ Future<List<Map<String, dynamic>>> fetchDeliveries(
 
   @override
   Widget build(BuildContext context) {
-    debugging(_deliveries.toString());
+    // debugging(_deliveries.toString());
     return Scaffold(
         backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         appBar: appbar(context, destination: RiderProfile()),
@@ -298,20 +276,52 @@ Future<List<Map<String, dynamic>>> fetchDeliveries(
               ],
             ),
             Expanded(
-              child: isLoading
-                  ? const Center(
-                      child: SpinKitFadingCircle(
-                        size: 80,
-                        color: AppColors.purple,
-                      ),
-                    )
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        buildDeliveryList(_deliveries),
-                        buildDeliveryList(_delivered)
-                      ],
-                    ),
+              child: TabBarView(
+  controller: _tabController,
+  children: [
+    StreamBuilder<List<Map<String, dynamic>>>(
+      stream: streamDeliveries(false),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: SpinKitFadingCircle(
+              size: 80,
+              color: AppColors.purple,
+            ),
+          );
+        } else if (snapshot.hasError) {
+          return const Center(
+            child: Text("Error loading deliveries."),
+          );
+        } else {
+          final deliveries = snapshot.data ?? [];
+          return buildDeliveryList(deliveries);
+        }
+      },
+    ),
+    StreamBuilder<List<Map<String, dynamic>>>(
+      stream: streamDeliveries(true),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: SpinKitFadingCircle(
+              size: 80,
+              color: AppColors.purple,
+            ),
+          );
+        } else if (snapshot.hasError) {
+          return const Center(
+            child: Text("Error loading deliveries."),
+          );
+        } else {
+          final deliveries = snapshot.data ?? [];
+          return buildDeliveryList(deliveries);
+        }
+      },
+    ),
+  ],
+),
+
             ),
           ],
         ));

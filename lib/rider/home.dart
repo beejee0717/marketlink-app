@@ -4,7 +4,6 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/appbar.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/rider/delivery_details.dart';
 import 'package:marketlinkapp/rider/profile.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +47,7 @@ class _RiderHomeState extends State<RiderHome> {
     return FirebaseFirestore.instance
         .collection('orders')
         .where('hasRider', isEqualTo: false)
+        .where('status', isEqualTo: 'packed')
         .orderBy('dateOrdered', descending: true)
         .snapshots()
         .asyncMap((querySnapshot) async {
@@ -136,7 +136,7 @@ class _RiderHomeState extends State<RiderHome> {
     });
   }
 
-// this is the rider home, my idea as of now is show available products that can be delivered
+
 
   @override
   Widget build(BuildContext context) {

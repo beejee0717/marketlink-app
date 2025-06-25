@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/cloudinary.dart';
 import 'package:marketlinkapp/components/colors.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
@@ -631,14 +630,12 @@ Future<void> _cancelDelivery(
 
   try {
     await Future.wait([
-      // Update the central order document
       orderRef.update({
         'hasRider': false,
         'riderId': null,
         'status': 'ordered',
       }),
 
-      // Remove the rider's delivery entry
       riderDeliveryRef.delete(),
     ]);
 
