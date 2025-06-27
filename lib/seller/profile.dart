@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:marketlinkapp/components/editable_textfield.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 
@@ -27,12 +28,48 @@ class SellerProfile extends StatefulWidget {
 
 class _SellerProfileState extends State<SellerProfile> {
   bool isLoading = false;
+  bool isEditingFirstName = false;
+  bool isEditingLastName = false;
+  bool isEditingContact = false;
+
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController contactController = TextEditingController();
   List<String> addresses = [];
   @override
   void initState() {
     super.initState();
     _fetchSellerData();
+     final user = Provider.of<UserProvider>(context, listen: false).user!;
+    firstNameController.text = user.firstName;
+    lastNameController.text = user.lastName;
+    contactController.text = user.contactNumber;
   }
+ void saveField(String field, String value) async {
+    setState(() => isLoading = true);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    if (uid != null) {
+      await FirebaseFirestore.instance.collection('sellers').doc(uid).update({
+        field: value,
+      });
+
+      if (!mounted) return;
+
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final updatedUser = userProvider.user!.copyWith(
+        firstName: field == 'firstName' ? value : userProvider.user!.firstName,
+        lastName: field == 'lastName' ? value : userProvider.user!.lastName,
+        contactNumber:
+            field == 'contactNumber' ? value : userProvider.user!.contactNumber,
+      );
+      userProvider.setUser(updatedUser);
+    }
+    successSnackbar(context, 'Updated Successfully!');
+
+    if (mounted) setState(() => isLoading = false);
+  }
+
 
   Future<void> _fetchSellerData() async {
     setState(() {
@@ -99,6 +136,7 @@ class _SellerProfileState extends State<SellerProfile> {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
+            
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   setState(() {
@@ -145,6 +183,8 @@ class _SellerProfileState extends State<SellerProfile> {
   Widget build(BuildContext context) {
     String? imageUrl;
     final userInfo = Provider.of<UserProvider>(context, listen: false).user;
+    String? userId =
+        Provider.of<UserProvider>(context, listen: false).user?.uid;
 
     return ModalProgressHUD(
       inAsyncCall: isLoading,
@@ -215,125 +255,91 @@ class _SellerProfileState extends State<SellerProfile> {
                           const SizedBox(
                             height: 30,
                           ),
-                          Center(
+                        Align(
+                              alignment: Alignment.topLeft,
                               child: Column(
-                            children: [
-                              CustomText(
-                                textLabel:
-                                    '${userInfo!.firstName} ${userInfo.lastName}',
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              SizedBox(
-                                height: 5,
-                              ),
-                              CustomText(
-                                textLabel: userInfo.email,
-                                fontSize: 18,
-                                fontStyle: FontStyle.italic,
-                              ),
-                            ],
-                          )),
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      CustomText(
+                                        textLabel:
+                                            '${userInfo!.firstName} ${userInfo.lastName}',
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      Row(
+                                        children: [
+                                          const CustomText(
+                                            textLabel: 'Successful Orders: ',
+                                            fontSize: 15,
+                                          ),
+                                          StreamBuilder<int>(
+                                            stream: successfulOrders(userId),
+                                            builder: (context, snapshot) {
+                                              if (snapshot.connectionState ==
+                                                  ConnectionState.waiting) {
+                                                return const CustomText(
+                                                  textLabel: '...',
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                );
+                                              }
+
+                                              if (snapshot.hasError) {
+                                                return const CustomText(
+                                                  textLabel: 'Error',
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                );
+                                              }
+
+                                              final count = snapshot.data ?? 0;
+
+                                              return CustomText(
+                                                textLabel: '$count',
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 5,
+                                  ),
+                                  CustomText(
+                                    textLabel: userInfo.email,
+                                    fontSize: 18,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                ],
+                              )),
                           const SizedBox(
                             height: 20,
                           ),
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: CustomText(
-                              textLabel: 'First Name',
-                              fontSize: 16,
-                              textColor: Colors.grey.shade700,
-                              letterSpacing: 2,
-                            ),
+                        editableTextField(
+                            label: 'First Name',
+                            controller: firstNameController,
+                            isEditing: isEditingFirstName,
+                            onToggle: () => setState(
+                                () => isEditingFirstName = !isEditingFirstName),
+                            onSave: () => saveField(
+                                'firstName', firstNameController.text),
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            initialValue: userInfo.firstName,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              suffixIcon: IconButton(
-                                  onPressed: () {
-                                    editFieldDialog(context, 'Edit First Name',
-                                        userInfo.firstName, (newValue) {
-                                      updateField(
-                                          context, 'firstName', newValue);
-                                    });
-                                  },
-                                  icon: const Icon(Icons.edit)),
-                              fillColor: Colors.white,
-                              filled: true,
-                              labelStyle: const TextStyle(fontSize: 16),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                      color: Colors.black, width: 1.5)),
-                              enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.orange)),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 10,
-                              ),
-                            ),
+                         editableTextField(
+                            label: 'Last Name',
+                            controller: lastNameController,
+                            isEditing: isEditingLastName,
+                            onToggle: () => setState(
+                                () => isEditingLastName = !isEditingLastName),
+                            onSave: () =>
+                                saveField('lastName', lastNameController.text),
                           ),
-                          const SizedBox(height: 15),
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: CustomText(
-                              textLabel: 'Last Name',
-                              fontSize: 16,
-                              textColor: Colors.grey.shade700,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            initialValue: userInfo.lastName,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              suffixIcon: IconButton(
-                                  onPressed: () {
-                                    editFieldDialog(context, 'Edit Last Name',
-                                        userInfo.lastName, (newValue) {
-                                      updateField(context, 'name', newValue);
-                                    });
-                                  },
-                                  icon: const Icon(Icons.edit)),
-                              fillColor: Colors.white,
-                              filled: true,
-                              labelStyle: const TextStyle(fontSize: 16),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                      color: Colors.black, width: 1.5)),
-                              enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.orange)),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 15),
                           Align(
                             alignment: Alignment.topLeft,
                             child: Column(
@@ -381,59 +387,19 @@ class _SellerProfileState extends State<SellerProfile> {
                             ),
                           ),
                           const SizedBox(height: 15),
-                          Align(
-                            alignment: Alignment.topLeft,
-                            child: CustomText(
-                              textLabel: 'Contact Number',
-                              fontSize: 16,
-                              textColor: Colors.grey.shade700,
-                              letterSpacing: 2,
-                            ),
+                            editableTextField(
+                            label: 'Contact Number',
+                            controller: contactController,
+                            isEditing: isEditingContact,
+                            hintText: 'Please Add Your Contact Number',
+                            hinstyle: contactController.text.isEmpty
+                                ? const TextStyle(color: Colors.red)
+                                : null,
+                            onToggle: () => setState(
+                                () => isEditingContact = !isEditingContact),
+                            onSave: () => saveField(
+                                'contactNumber', contactController.text),
                           ),
-                          const SizedBox(height: 10),
-                          TextFormField(
-                            initialValue: userInfo.contactNumber,
-                            readOnly: true,
-                            decoration: InputDecoration(
-                              suffixIcon: IconButton(
-                                  onPressed: () {
-                                    editFieldDialog(
-                                      context,
-                                      'Edit Contact Number',
-                                      userInfo.contactNumber,
-                                      (newValue) {
-                                        updateField(
-                                            context, 'contactNumber', newValue);
-                                      },
-                                    );
-                                  },
-                                  icon: const Icon(Icons.edit)),
-                              fillColor: Colors.white,
-                              filled: true,
-                              labelStyle: const TextStyle(fontSize: 16),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: const BorderSide(
-                                      color: Colors.black, width: 1.5)),
-                              enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.black)),
-                              errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide:
-                                      const BorderSide(color: Colors.orange)),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 10,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 15),
                           Align(
                             alignment: Alignment.topLeft,
                             child: CustomText(
@@ -537,132 +503,13 @@ class _SellerProfileState extends State<SellerProfile> {
     );
   }
 
-  void editFieldDialog(BuildContext context, String title, String initialValue,
-      Function(String) onSave) {
-    final formKey = GlobalKey<FormState>();
-    final TextEditingController controller =
-        TextEditingController(text: initialValue);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CustomText(
-                    textLabel: title,
-                    fontSize: 20,
-                    letterSpacing: 1,
-                    fontWeight: FontWeight.bold,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                  ),
-                  const SizedBox(
-                    height: 30,
-                  ),
-                  TextFormField(
-                    controller: controller,
-                    maxLength: 50,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Cannot be empty';
-                      }
-                      return null;
-                    },
-                    decoration: InputDecoration(
-                      fillColor: Colors.white,
-                      filled: true,
-                      counterText: '',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.black),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide:
-                            const BorderSide(color: Colors.black, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15, vertical: 10),
-                    ),
-                  ),
-                  const SizedBox(
-                    height: 30,
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          navPop(context);
-                        },
-                        child: const CustomText(
-                          textLabel: 'Cancel',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          if (formKey.currentState!.validate()) {
-                            final newValue = controller.text.trim();
-                            if (newValue.isNotEmpty) {
-                              onSave(newValue);
-                            }
-                          }
-                        },
-                        child: const CustomText(
-                          textLabel: 'Update',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> updateField(
-      BuildContext context, String field, String newValue) async {
-    navPop(context);
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-
-      if (user != null) {
-        await FirebaseFirestore.instance
-            .collection('sellers')
-            .doc(user.uid)
-            .update({field: newValue});
-
-        if (!context.mounted) return;
-
-        await fetchAndSetUserData(user.uid, context);
-        if (!context.mounted) return;
-        successSnackbar(context, 'Updated successfully!');
-        navPushReplacement(context, const SellerProfile());
-      }
-    } catch (e) {
-      errorSnackbar(context, 'Failed to update. Please try again.');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+  Stream<int> successfulOrders(String? sellerId) {
+    return FirebaseFirestore.instance
+        .collection('orders')
+        .where('sellerId', isEqualTo: sellerId)
+        .where('status', isEqualTo: 'delivered')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
   }
 
   Future<void> sendPasswordResetEmail(
