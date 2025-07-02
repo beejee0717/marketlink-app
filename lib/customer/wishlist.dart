@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/notif.dart';
 import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
@@ -306,6 +307,16 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                         fontSize: 18,
                         textColor: Colors.grey,
                       ),
+                      ElevatedButton(
+  onPressed: () {
+    NotificationService.showNotification(
+      title: 'Hello!',
+      body: 'This is your first notification 🎉',
+    );
+  },
+  child: Text('Show Notification'),
+)
+
                     ],
                   ),
                 )

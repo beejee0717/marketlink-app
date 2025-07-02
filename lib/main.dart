@@ -1,7 +1,9 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:marketlinkapp/api/embedding_generator.dart';
+import 'package:marketlinkapp/notif.dart';
 import 'package:marketlinkapp/onboarding/onboarding.dart';
 import 'package:marketlinkapp/provider/chat_provider.dart';
 import 'package:provider/provider.dart';
@@ -23,6 +25,9 @@ await EmbeddingGenerator().loadModel();
       projectId: 'marketlink-app',
     ),
   );
+  await FirebaseMessaging.instance.requestPermission();
+
+  await NotificationService.init();
   runApp(const MarketLink());
 }
 

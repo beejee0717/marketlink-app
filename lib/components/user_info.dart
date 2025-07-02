@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -93,6 +94,15 @@ Future<UserInformation?> fetchAndSetUserData(
 
   if (userDocument.exists) {
     UserInformation fetchedUser = UserInformation.fromFirestore(userDocument);
+
+    String? token = await FirebaseMessaging.instance.getToken();
+    if (token != null) {
+      await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(uid)
+          .update({'fcmToken': token});
+    }
+
     if (!context.mounted) return null;
 
     Provider.of<UserProvider>(context, listen: false).setUser(fetchedUser);
