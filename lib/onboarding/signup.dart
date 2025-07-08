@@ -9,8 +9,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:http/http.dart' as http;
+import 'package:marketlinkapp/debugging.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import '../components/cloudinary.dart';
 import '../components/navigator.dart';
@@ -36,7 +38,11 @@ class _SignUpState extends State<SignUp> {
   bool _isAccepted = false;
   bool isLoading = false;
   bool isSigning = false;
-  String? localImagePath;
+  String? idPhoto;
+  String? selfiePhoto;
+
+
+  
 
   String _verificationCode = "";
 
@@ -125,8 +131,16 @@ class _SignUpState extends State<SignUp> {
         return;
       }
       if (widget.role == 'seller' &&
-          (localImagePath == null || localImagePath!.isEmpty)) {
+          (idPhoto == null || idPhoto!.isEmpty)) {
         errorSnackbar(context, 'Please upload your identification image.');
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+       if (widget.role == 'seller' &&
+          (selfiePhoto == null || selfiePhoto!.isEmpty)) {
+        errorSnackbar(context, 'Please upload your selfie image.');
         setState(() {
           isLoading = false;
         });
@@ -229,16 +243,26 @@ class _SignUpState extends State<SignUp> {
           };
 
           if (widget.role == 'seller' || widget.role == 'rider') {
-            final cloudinaryUrl =
+            final idUrl =
                 await CloudinaryService.uploadImageToCloudinary(
-                    File(localImagePath!));
+                    File(idPhoto!));
 
-            if (cloudinaryUrl == null) {
+            if (idUrl == null) {
               if (!mounted) return;
               errorSnackbar(context, 'Failed to upload identification image.');
               return;
             }
-            userData['imageID'] = cloudinaryUrl;
+             final selfieUrl =
+                await CloudinaryService.uploadImageToCloudinary(
+                    File(selfiePhoto!));
+
+            if (selfieUrl == null) {
+              if (!mounted) return;
+              errorSnackbar(context, 'Failed to upload selfie image.');
+              return;
+            }
+            userData['imageID'] = idUrl;
+            userData['imageSelfie'] = selfieUrl;
             userData['approved'] = false;
           }
 
@@ -464,19 +488,29 @@ class _SignUpState extends State<SignUp> {
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 15),
-                        child: SellerIdentification(
-                          imageUrl: localImagePath,
-                          onFileChanged: (imagePath) {
-                            setState(() {
-                              localImagePath = imagePath;
-                            });
-                          },
-                          onLoadingChanged: (loading) {
-                            setState(() {
-                              isSigning = loading;
-                            });
-                          },
-                        ),
+                        child: IdUpload(
+  idImage: idPhoto,
+  selfieImage: selfiePhoto,
+  onIdChanged: (idPath) {
+    debugging(idPath.toString());
+    setState(() {
+      idPhoto = idPath;
+    });
+  },
+  onSelfieChanged: (selfiePath) {
+    debugging(selfiePath.toString());
+    setState(() {
+      selfiePhoto = selfiePath;
+      
+    });
+  },
+  onLoadingChanged: (loading) {
+    setState(() {
+      isSigning = loading;
+    });
+  },
+),
+
                       ),
                     ),
                   ],
@@ -491,77 +525,7 @@ class _SignUpState extends State<SignUp> {
                               ? setState(() {
                                   _isAccepted = false;
                                 })
-                              : showDialog(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      scrollable: true,
-                                      title: Text('Terms and Conditions'),
-                                      content: SingleChildScrollView(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            _sectionTitle('General'),
-                                            _sectionText(
-                                                'By using this app, you agree to comply with all applicable laws and regulations. '
-                                                'We reserve the right to modify the platform at any time without prior notice. '
-                                                'Users must not engage in fraudulent, abusive, or illegal activity on the platform.'),
-                                            SizedBox(height: 10),
-                                            _sectionTitle('For Customers'),
-                                            _sectionText(
-                                                '• Customers are responsible for ensuring that their delivery details are correct.\n'
-                                                '• Payment should be made through approved payment methods only.\n'
-                                                '• Any dispute with an order should be reported within 48 hours after delivery.\n'
-                                                '• Customers should treat sellers and riders with respect at all times.'),
-                                            SizedBox(height: 10),
-                                            _sectionTitle('For Sellers'),
-                                            _sectionText(
-                                                '• Sellers must ensure that all product listings are accurate and up-to-date.\n'
-                                                '• Orders must be fulfilled within the time agreed upon during listing.\n'
-                                                '• Sellers must handle returns and complaints in accordance with our platform policy.\n'
-                                                '• Any misuse or misrepresentation may lead to suspension or removal.'),
-                                            SizedBox(height: 10),
-                                            _sectionTitle(
-                                                'For Delivery Riders'),
-                                            _sectionText(
-                                                '• Riders must ensure timely and safe delivery of orders.\n'
-                                                '• Only verified riders are allowed to accept delivery tasks.\n'
-                                                '• Riders are expected to maintain professional conduct when interacting with customers and sellers.\n'
-                                                '• Failure to complete deliveries or repeated complaints may result in account suspension.'),
-                                            SizedBox(height: 20),
-                                            _sectionText(
-                                                'By continuing to use this platform, you confirm that you have read, understood, and agreed to these Terms and Conditions.'),
-                                            SizedBox(height: 30),
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.end,
-                                              children: [
-                                                TextButton(
-                                                  onPressed: () =>
-                                                      Navigator.pop(context),
-                                                  child: Text('Cancel'),
-                                                ),
-                                                SizedBox(width: 8),
-                                                TextButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-
-                                                    setState(() {
-                                                      _isAccepted = true;
-                                                    });
-                                                  },
-                                                  child: Text('Accept'),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                        },
+                              : _termsAndConditions(context); },
                         side: BorderSide(
                           color: Colors.white,
                           width: 2,
@@ -579,7 +543,7 @@ class _SignUpState extends State<SignUp> {
                             SizedBox(width: 4),
                             TextButton(
                               onPressed: () {
-                                // we can Show the terms directly from here too
+                                // pwede sab diri ang terms and conditions
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,
@@ -651,147 +615,343 @@ class _SignUpState extends State<SignUp> {
       ),
     );
   }
-}
 
-class SellerIdentification extends StatefulWidget {
-  final Function(String? imagePath) onFileChanged;
-  final String? imageUrl;
-  final Function(bool isLoading) onLoadingChanged;
-
-  const SellerIdentification({
-    required this.onFileChanged,
-    this.imageUrl,
-    required this.onLoadingChanged,
-    super.key,
-  });
-
-  @override
-  State<SellerIdentification> createState() => _SellerIdentificationState();
-}
-
-class _SellerIdentificationState extends State<SellerIdentification> {
-  final ImagePicker _picker = ImagePicker();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.white, width: 2),
-          ),
-          child: widget.imageUrl == null || widget.imageUrl!.isEmpty
-              ? const Icon(
-                  Icons.assignment_ind_rounded,
-                  color: Colors.white,
-                  size: 50,
-                )
-              : Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  child: widget.imageUrl!.startsWith('http')
-                      ? Image.network(
-                          widget.imageUrl!,
-                          fit: BoxFit.cover,
-                          width: 120,
-                          height: 120,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.camera_alt,
-                              color: Colors.grey,
-                              size: 50,
-                            );
-                          },
-                        )
-                      : Image.file(
-                          File(widget.imageUrl!),
-                          fit: BoxFit.cover,
-                          width: 120,
-                          height: 120,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.camera_alt,
-                              color: Colors.grey,
-                              size: 50,
-                            );
-                          },
-                        ),
-                ),
-        ),
-        TextButton(
-            onPressed: selectPhoto,
-            child: CustomText(
-              textLabel: 'Select ID',
-              fontSize: 20,
-              textColor: Colors.white,
-              fontWeight: FontWeight.bold,
-            ))
-      ],
-    );
-  }
-
-  Future<void> selectPhoto() async {
-    await showModalBottomSheet(
-      context: context,
-      builder: (context) => BottomSheet(
-        builder: (context) => Padding(
-          padding: const EdgeInsets.all(20),
+ void _termsAndConditions(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        scrollable: true,
+        title: Text('Terms and Conditions'),
+        content: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ListTile(
-                leading: const Icon(Icons.camera),
-                title: const Text('Take a photo'),
-                onTap: () {
-                  Navigator.pop(context);
-                  pickImage(ImageSource.camera);
-                },
+              _sectionTitle('General'),
+              _sectionText(
+                  'By using this app, you agree to comply with all applicable laws and regulations. '
+                  'We reserve the right to modify the platform at any time without prior notice. '
+                  'Users must not engage in fraudulent, abusive, or illegal activity on the platform.'),
+              SizedBox(height: 10),
+              _sectionTitle('For Customers'),
+              _sectionText(
+                  '• Customers are responsible for ensuring that their delivery details are correct.\n'
+                  '• Payment should be made through approved payment methods only.\n'
+                  '• Any dispute with an order should be reported within 48 hours after delivery.\n'
+                  '• Customers should treat sellers and riders with respect at all times.'),
+              SizedBox(height: 10),
+              _sectionTitle('For Sellers'),
+              _sectionText(
+                  '• Sellers must ensure that all product listings are accurate and up-to-date.\n'
+                  '• Orders must be fulfilled within the time agreed upon during listing.\n'
+                  '• Sellers must handle returns and complaints in accordance with our platform policy.\n'
+                  '• Any misuse or misrepresentation may lead to suspension or removal.'),
+              SizedBox(height: 5),
+              Text.rich(
+                TextSpan(
+                  text:
+                      'IMPORTANT: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red
+                  ),
+                  children: [
+                    TextSpan(
+                      text:
+                          'There should be a clear memorandum of agreement between MarketLink and the seller. Sellers must also submit a proof of legitimacy in their business. These requirements must be submitted in physical copy to the admin personally within 3–5 days after registration.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              ListTile(
-                leading: const Icon(Icons.photo_library),
-                title: const Text('Choose from gallery'),
-                onTap: () {
-                  Navigator.pop(context);
-                  pickImage(ImageSource.gallery);
-                },
+              SizedBox(height: 10),
+              _sectionTitle('For Delivery Riders'),
+              _sectionText(
+                  '• Riders must ensure timely and safe delivery of orders.\n'
+                  '• Only verified riders are allowed to accept delivery tasks.\n'
+                  '• Riders are expected to maintain professional conduct when interacting with customers and sellers.\n'
+                  '• Failure to complete deliveries or repeated complaints may result in account suspension.'),
+                   SizedBox(height: 5),
+              Text.rich(
+                TextSpan(
+                  text:
+                      'IMPORTANT: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red
+                  ),
+                  children: [
+                    TextSpan(
+                      text:
+                          'There should be a clear memorandum of agreement between MarketLink and the rider. These requirements must be submitted in physical copy to the admin personally within 3–5 days after registration.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              _sectionText(
+                  'By continuing to use this platform, you confirm that you have read, understood, and agreed to these Terms and Conditions.'),
+              SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('Cancel'),
+                  ),
+                  SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      setState(() {
+                        _isAccepted = true;
+                      });
+                    },
+                    child: Text('Accept'),
+                  ),
+                ],
               ),
             ],
           ),
         ),
-        onClosing: () {},
-      ),
-    );
-  }
-
-  Future<void> pickImage(ImageSource source) async {
-    widget.onLoadingChanged(true);
-    try {
-      final pickedFile = await _picker.pickImage(source: source);
-      if (pickedFile == null) {
-        widget.onLoadingChanged(false);
-        return;
-      }
-
-      final croppedFile = await ImageCropper().cropImage(
-        sourcePath: pickedFile.path,
-        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       );
+    },
+  );
+}
 
-      if (croppedFile == null) {
-        widget.onLoadingChanged(false);
-        return;
-      }
+}
 
-      widget.onFileChanged(croppedFile.path);
-    } catch (e) {
-      if (!mounted) return;
-      errorSnackbar(context, "Failed to select image. Please try again.");
-    } finally {
+class IdUpload extends StatefulWidget {
+  final Function(String? idPath) onIdChanged;
+final Function(String? selfiePath) onSelfieChanged;
+  final String? idImage;
+  final String? selfieImage;
+  final Function(bool isLoading) onLoadingChanged;
+
+  const IdUpload({
+  required this.onIdChanged,
+  required this.onSelfieChanged,
+  this.idImage,
+  this.selfieImage,
+  required this.onLoadingChanged,
+  super.key,
+});
+
+  @override
+  State<IdUpload> createState() => _IdUploadState();
+}
+
+class _IdUploadState extends State<IdUpload> {
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  Widget build(BuildContext context) {
+  double width = MediaQuery.of(context).size.width;
+
+  return Column(
+    children: [
+      Row(
+        children: [
+          GestureDetector(
+            onTap: selectPhoto,
+            child: Container(
+              width: width * 0.65,
+              height: 50,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: CustomText(
+                  textLabel: 'Select ID',
+                  fontSize: 20,
+                  textColor: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          if (widget.idImage != null && widget.idImage!.isNotEmpty)
+            const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 28,
+            ),
+        ],
+      ),
+      const SizedBox(height: 12),
+       Row(
+    children: [
+      GestureDetector(
+        onTap: takeSelfie,
+        child: Container(
+          width: width * 0.65,
+          height: 50,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.white, width: 2),
+          ),
+          child: Center(
+            child: CustomText(
+              textLabel: 'Take Selfie',
+              fontSize: 20,
+              textColor: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 10),
+      if (widget.selfieImage != null && widget.selfieImage!.isNotEmpty)
+        const Icon(
+          Icons.check_circle,
+          color: Colors.green,
+          size: 28,
+        ),
+    ],
+  )
+
+    ],
+  );
+}
+
+
+
+
+Future<void> selectPhoto() async {
+  await showModalBottomSheet(
+    context: context,
+    builder: (context) => BottomSheet(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: Text(
+                'Please take a clear photo of the front side of your legal ID.\n'
+                'Make sure it is well-lit, not blurry, and all details are visible.',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold
+
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.camera),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(context);
+             pickImage(ImageSource.camera, onPicked: widget.onIdChanged);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                pickImage(ImageSource.gallery, onPicked: widget.onIdChanged);
+              },
+            ),
+          ],
+        ),
+      ),
+      onClosing: () {},
+    ),
+  );
+}
+
+Future<void> takeSelfie() async {
+  await showModalBottomSheet(
+    context: context,
+    builder: (context) => BottomSheet(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 15),
+              child: Text(
+               'Please take a clear selfie of yourself.\n'
+'Use the front camera. Make sure your face is clearly visible, well-lit, and centered.\n'
+'No hats, masks, or sunglasses. This will be used for identity verification.',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold
+
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.camera),
+              title: const Text('Take a selfie'),
+              onTap: () {
+                Navigator.pop(context);
+               pickImage(ImageSource.camera, useFrontCamera: true, onPicked: widget.onSelfieChanged);
+              },
+            ),
+          ],
+        ),
+      ),
+      onClosing: () {},
+    ),
+  );
+}
+
+
+
+Future<void> pickImage(
+  ImageSource source, {
+  bool useFrontCamera = false,
+  required Function(String) onPicked, 
+}) async {
+  widget.onLoadingChanged(true);
+  try {
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      preferredCameraDevice: useFrontCamera ? CameraDevice.front : CameraDevice.rear,
+    );
+
+    if (pickedFile == null) {
       widget.onLoadingChanged(false);
+      return;
     }
+
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: pickedFile.path,
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+    );
+
+    if (croppedFile == null) {
+      widget.onLoadingChanged(false);
+      return;
+    }
+
+    onPicked(croppedFile.path); 
+  } catch (e) {
+    if (!mounted) return;
+    errorSnackbar(context, "Failed to select image. Please try again.");
+  } finally {
+    widget.onLoadingChanged(false);
   }
+}
+
+  
 }
