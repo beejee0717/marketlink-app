@@ -25,6 +25,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
   List<Map<String, dynamic>> _bookedServices = [];
   bool ordersLoading = true;
   bool bookingsLoading = true;
+  double shippingFee = 25.00;
 
   late TabController _tabController;
   late TabController _categoryController;
@@ -39,6 +40,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
   Future<void> _loadBookings() async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+    
 
     if (userId == null) {
       setState(() {
@@ -188,7 +190,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
         'imageUrl': productData['imageUrl'],
         'status': orderData['status'],
         'sellerName': sellerName,
-        'sellerContact': sellerContact
+        'sellerContact': sellerContact,
+           'totalPayment':orderData['totalPayment'],
       });
     }
 
@@ -246,6 +249,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
         'imageUrl': productData['imageUrl'],
         'sellerName': sellerName,
         'sellerContact': sellerContact,
+        'totalPayment':orderData['totalPayment'],
         'status': orderData['status'],
       });
     }
@@ -320,7 +324,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
               final order = orders[index];
 
               final totalPrice =
-                  (order['price'] ?? 0) * (order['quantity'] ?? 1);
+                  order['totalPayment'] ?? 0 ;
               return Card(
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: GestureDetector(

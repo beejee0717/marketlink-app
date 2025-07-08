@@ -42,6 +42,7 @@ class _OrderDetailsState extends State<OrderDetails> {
   final TextEditingController _addressController = TextEditingController();
   bool isEditingAddress = false;
   bool isAddressValid = true;
+  double shippingFee = 25.00;
   String? userId;
 
   Future<void> fetchAllDetails() async {
@@ -63,7 +64,7 @@ class _OrderDetailsState extends State<OrderDetails> {
       debugging("Product Data: $productData");
 
       final sellerId = productData?['sellerId'];
-      totalPrice = (productData?['price'] ?? 0).toDouble();
+      totalPrice = (productData?['price'] ?? 0).toDouble() + shippingFee;
 
       if (sellerId != null) {
         final sellerSnapshot = await FirebaseFirestore.instance
@@ -97,7 +98,7 @@ class _OrderDetailsState extends State<OrderDetails> {
   void updateTotalPrice() {
     double unitPrice = (productData?['price'] ?? 0).toDouble();
     setState(() {
-      totalPrice = unitPrice * quantity;
+      totalPrice = unitPrice * quantity + shippingFee;
     });
   }
 
@@ -245,6 +246,17 @@ class _OrderDetailsState extends State<OrderDetails> {
                       ),
                     ),
                     SizedBox(height: 10),
+                      Row(
+                      children: [
+                        const CustomText(textLabel: 'Shipping Fee: ', fontSize: 18),
+                        CustomText(
+                          textLabel:
+                              '₱25.00',
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        )
+                      ],
+                    ), SizedBox(height: 10),
                     Divider(
                       color: AppColors.grey,
                       thickness: 2,
@@ -352,6 +364,7 @@ class _OrderDetailsState extends State<OrderDetails> {
     final productData = productSnapshot.data()!;
     final double price = (productData['price'] as num).toDouble();
     final String sellerId = productData['sellerId'];
+    final double totalPayment = price * quantity + shippingFee;
 
     final now = DateTime.now();
     final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
@@ -363,6 +376,7 @@ class _OrderDetailsState extends State<OrderDetails> {
       'customerId': userId,
       'productId': productId,
       'price': price,
+      'totalPayment':totalPayment,
       'sellerId': sellerId,
       'quantity': quantity,
       'dateOrdered': now,

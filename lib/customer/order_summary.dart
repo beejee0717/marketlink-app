@@ -44,6 +44,7 @@ class _OrderSummaryState extends State<OrderSummary> {
 
   bool isEditingAddress = false;
   bool isAddressValid = true;
+  double shippingFee = 25.00;
   String? userId;
 
   Future<void> fetchAllDetails() async {
@@ -68,8 +69,7 @@ class _OrderSummaryState extends State<OrderSummary> {
       final productId = orderData?['productId'];
       final riderId = orderData?['riderId'];
 
-      totalPrice = (orderData?['price'] ?? 0).toDouble() *
-          (orderData?['quantity'] ?? 0).toDouble();
+      totalPrice = orderData?['totalPayment'];
 
 //getting seller data
       if (sellerId != null) {
