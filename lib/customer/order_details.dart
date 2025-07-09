@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:http/http.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
 import '../components/navigator.dart';
@@ -19,6 +21,7 @@ class OrderDetails extends StatefulWidget {
 
 class _OrderDetailsState extends State<OrderDetails> {
   bool _isLoading = true;
+  late AppEvent currentEvent = getCurrentEvent();
 
   Map<String, dynamic>? productData;
   Map<String, dynamic>? sellerData;
@@ -109,6 +112,7 @@ class _OrderDetailsState extends State<OrderDetails> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
+        backgroundColor: backgroundColor(currentEvent),
         leading: IconButton(
           onPressed: () => navPop(context),
           icon: const Icon(Icons.arrow_back),
@@ -120,9 +124,25 @@ class _OrderDetailsState extends State<OrderDetails> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+      body:
+       _isLoading
+          ? Container(decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage(backgroundImage(currentEvent)),
+      fit: BoxFit.cover,
+    ),
+  ),child: const Center(child: CircularProgressIndicator()))
+          : Container(
+
+ decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage(backgroundImage(currentEvent)),
+      fit: BoxFit.cover,
+    ),
+  ),
+            child: 
+          
+          Padding(
               padding: const EdgeInsets.only(
                   left: 16, right: 16, top: 8, bottom: 100),
               child: SingleChildScrollView(
@@ -180,8 +200,8 @@ class _OrderDetailsState extends State<OrderDetails> {
                               style: const TextStyle(fontSize: 16),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.add_circle_outline,
-                                  color: AppColors.purple),
+                              icon:  Icon(Icons.add_circle_outline,
+                                  color: AppColors.primary),
                               onPressed: () {
                                 setState(() {
                                   quantity++;
@@ -222,7 +242,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             isEditingAddress ? Icons.check : Icons.edit,
-                            color: AppColors.purple,
+                            color: AppColors.primary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -271,7 +291,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                       title: const Text("Cash on Delivery"),
                       value: "Cash on Delivery",
                       groupValue: selectedPaymentMethod,
-                      activeColor: AppColors.purple,
+                      activeColor: AppColors.primary,
                       onChanged: (value) {
                         setState(() {
                           selectedPaymentMethod = value!;
@@ -282,13 +302,13 @@ class _OrderDetailsState extends State<OrderDetails> {
                   ],
                 ),
               ),
-            ),
+            ),),
       bottomSheet: _isLoading
           ? null
           : Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration:  BoxDecoration(
+                color:  backgroundColor(currentEvent),
                 border: Border(
                   top: BorderSide(color: Colors.grey, width: 0.3),
                 ),
@@ -304,7 +324,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                         textLabel: 'Total: ₱${totalPrice.toStringAsFixed(2)}',
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        textColor: AppColors.purple,
+                        textColor: AppColors.primary,
                       ),
                       ElevatedButton(
                        onPressed: isAddressValid
@@ -320,7 +340,7 @@ class _OrderDetailsState extends State<OrderDetails> {
 
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              isAddressValid ? AppColors.purple : Colors.grey,
+                              isAddressValid ? AppColors.primary : Colors.grey,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12, horizontal: 24),
                         ),

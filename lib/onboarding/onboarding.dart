@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/onboarding/auth.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 import '../components/navigator.dart';
 
@@ -15,10 +16,16 @@ class _OnboardingState extends State<Onboarding> {
   double _imageOpacity = 0.0;
   double _textOpacity = 0.0;
   double _buttonOpacity = 0.0;
+  late AppEvent currentEvent;
 
   @override
   void initState() {
     super.initState();
+
+    currentEvent = getCurrentEvent();
+    // currentEvent = getCurrentEvent(DateTime(2025, 2, 14)); // <- test for Valentines
+
+
     Future.delayed(const Duration(milliseconds: 500), () {
       setState(() {
         _imageOpacity = 1.0;
@@ -36,14 +43,21 @@ class _OnboardingState extends State<Onboarding> {
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return PopScope(
-        canPop: false,
-        child: Scaffold(
-            backgroundColor: Colors.purple.shade900,
-            body: Center(
-                child: Column(children: [
+@override
+Widget build(BuildContext context) {
+  return PopScope(
+    canPop: false,
+    child: Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(wallpaper(currentEvent)),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            children: [
               AnimatedOpacity(
                 duration: const Duration(seconds: 1),
                 opacity: _imageOpacity,
@@ -69,13 +83,13 @@ class _OnboardingState extends State<Onboarding> {
                     AnimatedOpacity(
                       duration: const Duration(seconds: 1),
                       opacity: _textOpacity,
-                      child: const Padding(
+                      child:  Padding(
                         padding: EdgeInsets.symmetric(horizontal: 30),
                         child: CustomText(
                           textLabel:
                               'A digital marketplace designed to enhance MSME visibility, expand access, and simplify selling!',
                           fontSize: 18,
-                          textColor: Colors.white,
+                          textColor: onboardingTextColor(currentEvent),
                           textAlign: TextAlign.center,
                           maxLines: 3,
                         ),
@@ -91,8 +105,8 @@ class _OnboardingState extends State<Onboarding> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 40, vertical: 15),
-                          backgroundColor: Colors.yellow,
-                          foregroundColor: Colors.purple,
+                          backgroundColor: buttonColor(currentEvent),
+                          foregroundColor: Colors.white,
                           shadowColor: Colors.black45,
                           elevation: 5,
                           shape: RoundedRectangleBorder(
@@ -110,6 +124,15 @@ class _OnboardingState extends State<Onboarding> {
                   ],
                 ),
               ),
-            ]))));
-  }
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+
+
+
 }

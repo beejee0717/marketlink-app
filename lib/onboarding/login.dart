@@ -6,6 +6,7 @@ import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/loading.dart';
 import 'package:marketlinkapp/onboarding/select_role.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -16,7 +17,8 @@ class LogIn extends StatefulWidget {
 
 class _LogInState extends State<LogIn> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _passwordController = TextEditingController(text: 'password');
+  late AppEvent currentEvent;
   bool _isPasswordVisible = false;
   bool isLoading = false;
 
@@ -100,18 +102,31 @@ finally {
   }
 
   @override
+void initState() {
+  super.initState();
+
+    currentEvent = getCurrentEvent();
+}
+
+  @override
   Widget build(BuildContext context) {
     return PopScope(
       canPop: false,
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Scaffold(
-          backgroundColor: Colors.purple.shade900,
-          body: SingleChildScrollView(
-            reverse: true,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+  body: Container(
+    decoration: BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage(wallpaper(currentEvent)),
+        fit: BoxFit.cover,
+      ),
+    ),
+    child: SingleChildScrollView(
+      reverse: true,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 50, top: 120),
                   child: Image.asset(
@@ -193,7 +208,7 @@ finally {
                         child: ElevatedButton(
                           onPressed: _logIn,
                           style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.yellow,
+                              backgroundColor: buttonColor(getCurrentEvent()),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(15)),
                               padding: EdgeInsets.symmetric(vertical: 10)),
@@ -243,6 +258,6 @@ finally {
           ),
         ),
       ),
-    );
+     ) );
   }
 }

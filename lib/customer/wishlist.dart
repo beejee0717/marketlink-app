@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:http/http.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/notif.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
@@ -19,6 +21,7 @@ class CustomerWishlist extends StatefulWidget {
 
 class _CustomerWishlistState extends State<CustomerWishlist> {
   List<Map<String, dynamic>> _wishlistItems = [];
+  late AppEvent currentEvent = getCurrentEvent();
   bool isLoading = true;
 
   @override
@@ -180,8 +183,8 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                                 totalPrice = pricePerUnit * quantity;
                               });
                             },
-                            icon: const Icon(Icons.add_circle_outline,
-                                color: AppColors.purple),
+                            icon: Icon(Icons.add_circle_outline,
+                                color: AppColors.primary),
                           ),
                         ],
                       ),
@@ -191,7 +194,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                             "Total Price: ₱${totalPrice.toStringAsFixed(2)}",
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        textColor: AppColors.purple,
+                        textColor: AppColors.primary,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),
@@ -281,17 +284,24 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const CustomText(textLabel: 'Wishlist', fontSize: 25),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: isLoading
-          ? const Center(
+    return  Scaffold(   appBar: AppBar(
+    title:  CustomText(textLabel: 'Wishlist', fontSize: 25, textColor: headerTitleColor(currentEvent),),
+    backgroundColor: backgroundColor(currentEvent),
+    iconTheme: const IconThemeData(color: Colors.black),
+  ),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(backgroundImage
+            (currentEvent)),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child:isLoading
+          ? Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: AppColors.purple,
+                color: AppColors.primary,
               ),
             )
           : _wishlistItems.isEmpty
@@ -305,7 +315,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                       const CustomText(
                         textLabel: "Your wishlist is empty.",
                         fontSize: 18,
-                        textColor: Colors.grey,
+                        textColor: Colors.black,
                       ),
                       ElevatedButton(
   onPressed: () {
@@ -330,6 +340,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                         navPush(context, CustomerProduct(productId: productId));
                       },
                       child: Card(
+                        color: const Color.fromARGB(208, 255, 255, 255),
                         margin: const EdgeInsets.symmetric(
                             vertical: 8, horizontal: 16),
                         child: ListTile(
@@ -344,7 +355,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                                 return Container(
                                   width: 80,
                                   height: 80,
-                                  color: Colors.grey[300],
+                                  color: const Color.fromARGB(255, 224, 224, 224),
                                   child: const Icon(
                                     Icons.image,
                                     size: 40,
@@ -368,7 +379,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                                 textLabel:
                                     '₱${wishlistItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
                                 fontSize: 16,
-                                textColor: AppColors.purple,
+                                textColor: AppColors.primary,
                               ),
                               const SizedBox(height: 5),
                               ],
@@ -382,7 +393,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                                     wishlistItem['productId'],
                                     wishlistItem['sellerId'],
                                     wishlistItem['price']),
-                                color: AppColors.purple,
+                                color: AppColors.primary,
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete),
@@ -398,7 +409,7 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                       ),
                     );
                   },
-                ),
+                ),)
     );
   }
 }

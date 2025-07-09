@@ -8,12 +8,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/editable_textfield.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
-
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
-
 import '../components/auto_size_text.dart';
 import '../components/cloudinary.dart';
 import '../components/dialog.dart';
@@ -30,6 +28,7 @@ class CustomerProfile extends StatefulWidget {
 
 class _CustomerProfileState extends State<CustomerProfile> {
   bool isLoading = false;
+  late AppEvent currentEvent = getCurrentEvent();
   bool isEditingFirstName = false;
   bool isEditingLastName = false;
   bool isEditingAddress = false;
@@ -97,17 +96,14 @@ class _CustomerProfileState extends State<CustomerProfile> {
       child: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Colors.purple.shade900,
-                Colors.purple.shade600,
-                Colors.purple.shade300
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.topRight,
-            ),
-          ),
+  decoration: BoxDecoration(
+    gradient: LinearGradient(
+      colors: getEventGradient(currentEvent),
+      begin: Alignment.topLeft,
+      end: Alignment.topRight,
+    ),
+  ),
+
           child: Scaffold(
             backgroundColor: Colors.transparent,
             appBar: AppBar(
@@ -143,6 +139,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
                 ),
                 Expanded(
                   child: Container(
+                    
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     color: Colors.white,
@@ -332,7 +329,7 @@ class _CustomerProfileState extends State<CustomerProfile> {
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.purple,
+                                  backgroundColor: AppColors.primary,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
                                   ),
@@ -362,6 +359,35 @@ class _CustomerProfileState extends State<CustomerProfile> {
       ),
     );
   }
+
+List<Color> getEventGradient(AppEvent event) {
+  switch (event) {
+    case AppEvent.valentines:
+      return [
+        const Color(0xFFFFC1E3),
+        const Color(0xFFFF8DAA),
+        const Color(0xFFD81B60),
+      ];
+    case AppEvent.halloween:
+      return [
+        const Color(0xFFFFD180),
+        const Color(0xFFFFAB40),
+        const Color(0xFFEF6C00),
+      ];
+    case AppEvent.christmas:
+      return [
+        const Color(0xFFC8FACC),
+        const Color(0xFF9DF79E),
+        const Color(0xFF49F351),
+      ];
+    default:
+      return [
+        Colors.purple.shade900,
+        Colors.purple.shade600,
+        Colors.purple.shade300,
+      ];
+  }
+}
 
   Stream<int> purchaseCount(String? customerId) {
     return FirebaseFirestore.instance

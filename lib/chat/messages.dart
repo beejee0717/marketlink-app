@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:flutter/material.dart';
+import 'package:http/http.dart';
+import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 
 import '../components/auto_size_text.dart';
@@ -31,6 +34,7 @@ class _UserMessagesState extends State<UserMessages> {
   final ScrollController _scrollController = ScrollController();
   final FocusNode _messageFocus = FocusNode();
   late Stream<QuerySnapshot> _messageStream;
+  late AppEvent currentEvent = getCurrentEvent();
 
   @override
   void initState() {
@@ -86,7 +90,7 @@ class _UserMessagesState extends State<UserMessages> {
                 if (states.contains(WidgetState.pressed)) {
                   return const Color.fromARGB(255, 0, 255, 8);
                 } else {
-                  return Colors.white;
+                  return headerTitleColor(currentEvent);
                 }
               },
             ),
@@ -96,25 +100,33 @@ class _UserMessagesState extends State<UserMessages> {
             size: screenWidth(0.06, context),
           ),
         ),
-        backgroundColor: const Color.fromARGB(255, 68, 28, 96),
+        backgroundColor:backgroundColor(currentEvent),
         title: CustomText(
           textLabel: widget.receiverFirstName,
           fontSize: 22,
-          textColor: Colors.white,
+          textColor:headerTitleColor(currentEvent),
           letterSpacing: 2,
         ),
       ),
-      body: GestureDetector(
-        onTap: () {
-          FocusScope.of(context).unfocus();
-        },
-        child: Column(
-          children: [
-            Expanded(
-              child: buildMessageList(),
-            ),
-            buildMessageInput(),
-          ],
+      body: Container(
+        decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage(backgroundImage(currentEvent)),
+      fit: BoxFit.cover,
+    ),
+  ),
+        child: GestureDetector(
+          onTap: () {
+            FocusScope.of(context).unfocus();
+          },
+          child: Column(
+            children: [
+              Expanded(
+                child: buildMessageList(),
+              ),
+              buildMessageInput(),
+            ],
+          ),
         ),
       ),
     );
@@ -222,34 +234,40 @@ class _UserMessagesState extends State<UserMessages> {
     return Row(
       children: [
         Expanded(
-          child: TextFormField(
-            maxLength: 200,
-            controller: _messageController,
-            focusNode: _messageFocus,
-            decoration: const InputDecoration(
-              counterText: '',
-              contentPadding: EdgeInsets.only(left: 20, bottom: 5),
-              hintText: 'Enter your message...',
+          child: Container(
+            decoration: BoxDecoration(color: backgroundColor(currentEvent)),
+            child: TextFormField(
+              maxLength: 200,
+              controller: _messageController,
+              focusNode: _messageFocus,
+              decoration: const InputDecoration(
+                counterText: '',
+                contentPadding: EdgeInsets.only(left: 20, bottom: 5),
+                hintText: 'Enter your message...',
+              ),
+              maxLines: null,
+              keyboardType: TextInputType.multiline,
+              textInputAction: TextInputAction.newline,
+              onFieldSubmitted: (value) {
+                _messageController.text = '${_messageController.text}\n';
+                _messageController.selection = TextSelection.fromPosition(
+                    TextPosition(offset: _messageController.text.length));
+              },
             ),
-            maxLines: null,
-            keyboardType: TextInputType.multiline,
-            textInputAction: TextInputAction.newline,
-            onFieldSubmitted: (value) {
-              _messageController.text = '${_messageController.text}\n';
-              _messageController.selection = TextSelection.fromPosition(
-                  TextPosition(offset: _messageController.text.length));
-            },
           ),
         ),
-        IconButton(
-          icon: const Icon(
-            Icons.send,
-            color: Color.fromARGB(255, 93, 0, 109),
+        Container(
+          decoration: BoxDecoration(color: backgroundColor(currentEvent)),
+          child: IconButton(
+            icon: const Icon(
+              Icons.send,
+              color: Color.fromARGB(255, 93, 0, 109),
+            ),
+            onPressed: () {
+              sendMessage();
+              _messageController.clear();
+            },
           ),
-          onPressed: () {
-            sendMessage();
-            _messageController.clear();
-          },
         ),
       ],
     );

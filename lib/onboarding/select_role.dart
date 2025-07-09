@@ -3,26 +3,26 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/onboarding/signup.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 class SelectRole extends StatelessWidget {
   const SelectRole({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.purple.shade900,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        leading: IconButton(
-            onPressed: () {
-              navPop(context);
-            },
-            icon: Icon(
-              Icons.arrow_back,
-              color: Colors.white,
-            )),
+ final AppEvent currentEvent = getCurrentEvent(); 
+
+
+     return Scaffold(
+    extendBodyBehindAppBar: true,
+    body: Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage(wallpaper(currentEvent)),
+          fit: BoxFit.cover,
+        ),
       ),
-      body: Column(
+      child: Column(
         children: [
           SizedBox(
             height: 100,
@@ -147,7 +147,7 @@ class SelectRole extends StatelessWidget {
             ],
           )
         ],
-      ),
+      ),)
     );
   }
 }

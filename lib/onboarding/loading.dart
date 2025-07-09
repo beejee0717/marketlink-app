@@ -8,6 +8,7 @@ import 'package:marketlinkapp/customer/customer.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 import 'package:marketlinkapp/rider/rider.dart';
 import 'package:marketlinkapp/seller/seller.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../components/snackbar.dart';
 import '../components/user_info.dart';
@@ -23,10 +24,15 @@ class Loading extends StatefulWidget {
 class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
+  late AppEvent currentEvent;
+
 
   @override
   void initState() {
     super.initState();
+
+    
+    currentEvent = getCurrentEvent();
 
     _fadeController = AnimationController(
       duration: const Duration(seconds: 2),
@@ -128,15 +134,19 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
 );
 
   }
-
   @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _fadeAnimation,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.purple.shade900,
-        body: Stack(
+Widget build(BuildContext context) {
+  return FadeTransition(
+    opacity: _fadeAnimation,
+    child: Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(wallpaper(currentEvent)),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Stack(
           alignment: Alignment.center,
           children: [
             Center(
@@ -154,6 +164,6 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
           ],
         ),
       ),
-    );
-  }
-}
+    ),
+  );
+}}

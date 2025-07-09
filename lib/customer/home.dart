@@ -13,6 +13,7 @@ import 'package:marketlinkapp/customer/components.dart';
 import 'package:marketlinkapp/customer/profile.dart';
 import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 
 class CustomerHome extends StatefulWidget {
@@ -25,6 +26,8 @@ class CustomerHome extends StatefulWidget {
 class _CustomerHomeState extends State<CustomerHome>
     with SingleTickerProviderStateMixin {
   final TextEditingController searchController = TextEditingController();
+  final AppEvent currentEvent = getCurrentEvent();
+
   String? selectedCategory;
   Timer? debounceTimer;
   late TabController _tabController;
@@ -82,6 +85,8 @@ class _CustomerHomeState extends State<CustomerHome>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    
   }
 
   @override
@@ -103,12 +108,12 @@ class _CustomerHomeState extends State<CustomerHome>
         Provider.of<UserProvider>(context, listen: false).user!.uid;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: backgroundColor(currentEvent),
         elevation: 0,
-        title: FadeInLeft(child: CustomText(textLabel: 'Explore What You Need...', fontSize: 18)),
+        title: FadeInLeft(child: CustomText(textLabel: 'Explore What You Need...', fontSize: 18,textColor: headerTitleColor(currentEvent),)),
         actions: [
           IconButton(
-            icon: Icon(Icons.message, color: Colors.black),
+            icon: Icon(Icons.message, color: headerTitleColor(currentEvent)),
             onPressed: () {
               navPush(
                   context,
@@ -119,7 +124,7 @@ class _CustomerHomeState extends State<CustomerHome>
             },
           ),
           IconButton(
-            icon: Icon(Icons.person, color: Colors.black),
+            icon: Icon(Icons.person, color: headerTitleColor(currentEvent)),
             onPressed: () {
               navPush(context, const CustomerProfile());
             },
@@ -127,8 +132,8 @@ class _CustomerHomeState extends State<CustomerHome>
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: AppColors.purple,
-          labelColor: AppColors.purple,
+          indicatorColor: AppColors.primary,
+          labelColor: AppColors.primary,
           unselectedLabelColor: Colors.grey,
           tabs: const [
             Tab(text: 'Products'),
@@ -136,35 +141,26 @@ class _CustomerHomeState extends State<CustomerHome>
           ],
         ),
       ),
-      body: TabBarView(controller: _tabController, children: [
-     homeTab(context, searchController, userId, productCategories, true),
-     homeTab(context, searchController, userId, serviceCategories, false)
-        ]),
+      body: Container(
+  decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage(backgroundImage(currentEvent)),
+      fit: BoxFit.cover,
+    ),
+  ),
+  child: TabBarView(
+    controller: _tabController,
+    children: [
+      homeTab(context, searchController, userId, productCategories, true),
+      homeTab(context, searchController, userId, serviceCategories, false),
+    ],
+  ),
+),
+
     );
   }
 
-  Widget buildCategoryItem(BuildContext context, String title, IconData icon) {
-    return GestureDetector(
-      onTap: () {
-        navPush(context, CustomerCategory(category: title));
-      },
-      child: Container(
-        margin: EdgeInsets.only(right: 10),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 35,
-              backgroundColor: const Color.fromARGB(211, 206, 123, 212),
-              child: Icon(icon, color: AppColors.purple, size: 30),
-            ),
-            const SizedBox(height: 8),
-            CustomText(textLabel: title, fontSize: 14, maxLines: 2,)
-          ],
-        ),
-      ),
-    );
-  }
-
+ 
   Widget homeTab(BuildContext context, TextEditingController searchController,
       String userId, List<Map<String, dynamic>> categories, bool isProduct) {
         
@@ -197,7 +193,7 @@ class _CustomerHomeState extends State<CustomerHome>
                       padding: const EdgeInsets.only(top: 80),
                       child: SpinKitFadingCircle(
                         size: 80,
-                        color: AppColors.purple,
+                        color: AppColors.primary,
                       ),
                     ),
                   );
@@ -254,6 +250,29 @@ class _CustomerHomeState extends State<CustomerHome>
       ),
     );
   }
+
+   Widget buildCategoryItem(BuildContext context, String title, IconData icon) {
+    return GestureDetector(
+      onTap: () {
+        navPush(context, CustomerCategory(category: title));
+      },
+      child: Container(
+        margin: EdgeInsets.only(right: 10),
+        child: Column(
+          children: [
+            CircleAvatar(
+              radius: 35,
+              backgroundColor: AppColors.accent,
+              child: Icon(icon, color: AppColors.primary, size: 30),
+            ),
+            const SizedBox(height: 8),
+            CustomText(textLabel: title, fontSize: 14, maxLines: 2,)
+          ],
+        ),
+      ),
+    );
+  }
+
 }
 
 Future<void> storeProductClick(String userId, String productId) async {

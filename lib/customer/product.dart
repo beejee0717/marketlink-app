@@ -7,6 +7,7 @@ import 'package:marketlinkapp/customer/order_details.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
 import 'package:marketlinkapp/debugging.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 
 import '../chat/messages.dart';
@@ -23,6 +24,7 @@ class CustomerProduct extends StatefulWidget {
 
 class _CustomerProductState extends State<CustomerProduct> {
   bool isInWishlist = false;
+  late AppEvent currentEvent = getCurrentEvent();
 
   @override
   void initState() {
@@ -74,18 +76,25 @@ class _CustomerProductState extends State<CustomerProduct> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(textLabel: 'Details', fontSize: 20),
-        backgroundColor: Colors.white,
+        title:  CustomText(textLabel: 'Details', fontSize: 20, textColor: headerTitleColor(currentEvent),),
+        backgroundColor: backgroundColor(currentEvent),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(backgroundImage(currentEvent)),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child:FutureBuilder<Map<String, dynamic>>(
         future: fetchProductDetails(),
         builder: (context, productSnapshot) {
           if (productSnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: AppColors.purple,
+                color: backgroundColor(currentEvent),
               ),
             );
           } else if (productSnapshot.hasError) {
@@ -128,10 +137,10 @@ class _CustomerProductState extends State<CustomerProduct> {
             future: fetchSellerDetails(sellerId),
             builder: (context, sellerSnapshot) {
               if (sellerSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(
+                return Center(
                   child: SpinKitFadingCircle(
                     size: 80,
-                    color: AppColors.purple,
+                    color: backgroundColor(currentEvent),
                   ),
                 );
               } else if (sellerSnapshot.hasError) {
@@ -193,7 +202,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                       CustomText(
                         textLabel: '₱$price',
                         fontSize: 20,
-                        textColor: AppColors.purple,
+                        textColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<Map<String, dynamic>>(
@@ -254,7 +263,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           children: [
                             Icon(
                               Icons.message,
-                              color: AppColors.purple,
+                              color: backgroundColor(currentEvent),
                             ),
                             SizedBox(
                               width: 5,
@@ -297,18 +306,18 @@ class _CustomerProductState extends State<CustomerProduct> {
                                   OrderDetails(productId: widget.productId));
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.purple,
+                              backgroundColor: AppColors.primary,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
                             ),
-                            child: const Padding(
+                            child:  Padding(
                               padding: EdgeInsets.symmetric(
                                   horizontal: 20.0, vertical: 10.0),
                               child: CustomText(
                                 textLabel: 'Buy Now',
                                 fontSize: 18,
-                                textColor: Colors.white,
+                                textColor: AppColors.white,
                               ),
                             ),
                           ),
@@ -343,11 +352,11 @@ class _CustomerProductState extends State<CustomerProduct> {
                         length: 2,
                         child: Column(
                           children: [
-                            const TabBar(
-                              labelColor: AppColors.purple,
+                            TabBar(
+                              labelColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
                               unselectedLabelColor: Colors.grey,
-                              indicatorColor: AppColors.purple,
-                              tabs: [
+                              indicatorColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
+                              tabs: const [
                                 Tab(text: 'Details'),
                                 Tab(text: 'Reviews'),
                               ],
@@ -492,7 +501,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                   style:
                                                       ElevatedButton.styleFrom(
                                                     backgroundColor:
-                                                        AppColors.purple,
+                                                        backgroundColor(currentEvent),
                                                     shape:
                                                         RoundedRectangleBorder(
                                                       borderRadius:
@@ -778,7 +787,7 @@ class _CustomerProductState extends State<CustomerProduct> {
             },
           );
         },
-      ),
+      ),)
     );
   }
 
@@ -869,8 +878,8 @@ class _CustomerProductState extends State<CustomerProduct> {
                                 quantity++;
                               });
                             },
-                            icon: const Icon(Icons.add_circle_outline,
-                                color: AppColors.purple),
+                            icon: Icon(Icons.add_circle_outline,
+                                color: backgroundColor(currentEvent)),
                           ),
                         ],
                       ),
@@ -1071,8 +1080,8 @@ class _CustomerProductState extends State<CustomerProduct> {
                                 totalPrice = pricePerUnit * quantity;
                               });
                             },
-                            icon: const Icon(Icons.add_circle_outline,
-                                color: AppColors.purple),
+                            icon: Icon(Icons.add_circle_outline,
+                                color: backgroundColor(currentEvent)),
                           ),
                         ],
                       ),
@@ -1082,7 +1091,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                             "Total Price: ₱${totalPrice.toStringAsFixed(2)}",
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        textColor: AppColors.purple,
+                        textColor: backgroundColor(currentEvent),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 30),

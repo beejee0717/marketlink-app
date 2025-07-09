@@ -6,6 +6,7 @@ import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/order_summary.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../components/auto_size_text.dart';
 import '../components/snackbar.dart';
@@ -23,6 +24,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
   List<Map<String, dynamic>> _activeOrders = [];
   List<Map<String, dynamic>> _deliveredOrders = [];
   List<Map<String, dynamic>> _bookedServices = [];
+  late AppEvent currentEvent = getCurrentEvent();
   bool ordersLoading = true;
   bool bookingsLoading = true;
   double shippingFee = 25.00;
@@ -75,7 +77,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
       final serviceId = bookingData['serviceId'];
       final sellerId = bookingData['sellerId'];
 
-      // Fetch service data
       final serviceDoc = await FirebaseFirestore.instance
           .collection('services')
           .doc(serviceId)
@@ -85,7 +86,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
       final serviceData = serviceDoc.data()!;
 
-      // Fetch seller data
       final sellerDoc = await FirebaseFirestore.instance
           .collection('sellers')
           .doc(sellerId)
@@ -326,6 +326,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
               final totalPrice =
                   order['totalPayment'] ?? 0 ;
               return Card(
+                color: const Color.fromARGB(158, 255, 255, 255),
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: GestureDetector(
                   onTap: (){
@@ -354,7 +355,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         CustomText(
                           textLabel: '₱${totalPrice.toStringAsFixed(2)}',
                           fontSize: 16,
-                          textColor: AppColors.purple,
+                          textColor: AppColors.primary,
                         ),
                         const SizedBox(height: 5),
                         Row(
@@ -496,6 +497,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
             itemBuilder: (context, index) {
               final booking = bookings[index];
               return Card(
+                color: const Color.fromARGB(164, 255, 255, 255),
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: Padding(
                   padding: const EdgeInsets.all(8),
@@ -529,7 +531,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                               textLabel:
                                   '₱${booking['price'].toStringAsFixed(2)}',
                               fontSize: 16,
-                              textColor: AppColors.purple,
+                              textColor: AppColors.primary,
                             ),
                             const SizedBox(height: 4),
                             Row(
@@ -548,7 +550,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
                                     fontSize: 14,
                                     textColor: booking['status'] == 'pending'
                                         ? const Color.fromARGB(255, 255, 167, 4)
-                                        : AppColors.purple,
+                                        : AppColors.primary,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -649,64 +651,78 @@ class _CustomerOrdersState extends State<CustomerOrders>
           );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+ @override
+Widget build(BuildContext context) {
+  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-    if (userId == null) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const CustomText(textLabel: 'Orders', fontSize: 25),
-          backgroundColor: Colors.white,
-          iconTheme: const IconThemeData(color: Colors.black),
-        ),
-        body: const Center(
-          child: CustomText(
-            textLabel: 'You must be logged in to view your orders.',
-            fontSize: 16,
-            textColor: Colors.red,
-          ),
-        ),
-      );
-    }
-
+  if (userId == null) {
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(textLabel: 'Orders & Bookings', fontSize: 25),
+        title: const CustomText(textLabel: 'Orders', fontSize: 25),
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
-        bottom: TabBar(
-          controller: _categoryController,
-          indicatorColor: AppColors.purple,
-          labelColor: AppColors.purple,
-          unselectedLabelColor: Colors.grey,
-          tabs: const [
-            Tab(text: 'Orders'),
-            Tab(text: 'Bookings'),
-          ],
+      ),
+      body: const Center(
+        child: CustomText(
+          textLabel: 'You must be logged in to view your orders.',
+          fontSize: 16,
+          textColor: Colors.red,
         ),
       ),
-      body: TabBarView(
+    );
+  }
+
+  return Scaffold(
+    appBar: AppBar(
+      title: CustomText(
+        textLabel: 'Orders & Bookings',
+        fontSize: 25,
+        textColor: headerTitleColor(currentEvent),
+      ),
+      backgroundColor: backgroundColor(currentEvent),
+      iconTheme: const IconThemeData(color: Colors.black),
+      bottom: TabBar(
         controller: _categoryController,
-        children: [
-          Column(
-            children: [
-              TabBar(
+        indicatorColor: AppColors.primary,
+        labelColor: AppColors.primary,
+        unselectedLabelColor: Colors.grey,
+        tabs: const [
+          Tab(text: 'Orders'),
+          Tab(text: 'Bookings'),
+        ],
+      ),
+    ),
+    body: TabBarView(
+      controller: _categoryController,
+      children: [
+        Column(
+          children: [
+            Container(
+              color: backgroundColor(currentEvent), 
+              child: TabBar(
                 controller: _tabController,
-                indicatorColor: AppColors.purple,
-                labelColor: AppColors.purple,
+                indicatorColor: AppColors.primary,
+                labelColor: AppColors.primary,
                 unselectedLabelColor: Colors.grey,
                 tabs: const [
                   Tab(text: 'Active Orders'),
                   Tab(text: 'Delivered'),
                 ],
               ),
-              Expanded(
+            ),
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(backgroundImage(currentEvent)), 
+                    fit: BoxFit.cover,
+                  ),
+                ),
                 child: ordersLoading
-                    ? const Center(
+                    ? Center(
                         child: SpinKitFadingCircle(
                           size: 80,
-                          color: AppColors.purple,
+                          color: AppColors.primary,
                         ),
                       )
                     : TabBarView(
@@ -717,18 +733,27 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         ],
                       ),
               ),
-            ],
-          ),
-          bookingsLoading
-              ? const Center(
-                  child: SpinKitFadingCircle(
-                    size: 80,
-                    color: AppColors.purple,
+            ),
+          ],
+        ),
+        bookingsLoading
+            ? Center(
+                child: SpinKitFadingCircle(
+                  size: 80,
+                  color: AppColors.primary,
+                ),
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(backgroundImage(currentEvent)), 
+                    fit: BoxFit.cover,
                   ),
-                )
-              : _buildBookedList(_bookedServices),
-        ],
-      ),
-    );
-  }
+                ),
+                child: _buildBookedList(_bookedServices),
+              ),
+      ],
+    ),
+  );
 }
+    }

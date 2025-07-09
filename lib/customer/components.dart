@@ -157,7 +157,7 @@ Widget searchContainer(BuildContext context,
           child: Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.purple,
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(

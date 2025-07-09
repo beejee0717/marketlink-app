@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 PreferredSizeWidget  appbar(BuildContext context, {required Widget destination}) {
+  late AppEvent currentEvent = getCurrentEvent();
   return AppBar(
     backgroundColor: Colors.transparent,
     actions: [

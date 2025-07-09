@@ -82,7 +82,7 @@ class _CustomerCategoryState extends State<CustomerCategory> {
                     return Center(
                       child: SpinKitFadingCircle(
                         size: 60,
-                        color: AppColors.purple,
+                        color: AppColors.primary,
                       ),
                     );
                   } else if (snapshot.hasError) {

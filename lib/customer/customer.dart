@@ -6,6 +6,7 @@ import 'package:marketlinkapp/customer/cart.dart';
 import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/orders.dart';
 import 'package:marketlinkapp/customer/wishlist.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 class Customer extends StatefulWidget {
   const Customer({
@@ -15,15 +16,22 @@ class Customer extends StatefulWidget {
   @override
   State<Customer> createState() => _CustomerState();
 }
-
 class _CustomerState extends State<Customer> {
   int _selectedIndex = 0;
+  late AppEvent currentEvent;
+
   final List<Widget> _pages = [
     const CustomerHome(),
     const CustomerWishlist(),
     const CustomerCart(),
     const CustomerOrders()
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    currentEvent = getCurrentEvent();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -32,39 +40,66 @@ class _CustomerState extends State<Customer> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) {
-        customDialog(
-            context, 'Exit Market Link', 'Are you sure you want to leave?', () {
-          SystemNavigator.pop();
-        });
-      },
-      child: Scaffold(
-        body: _pages[_selectedIndex],
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.purple,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
+@override
+Widget build(BuildContext context) {
+  return PopScope(
+    canPop: false,
+    onPopInvoked: (didPop) {
+      customDialog(context, 'Exit Market Link',
+          'Are you sure you want to leave?', () {
+        SystemNavigator.pop();
+      });
+    },
+    child: Scaffold(
+      body: Stack(
+        children: [
+          Positioned.fill(child: _pages[_selectedIndex]),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Stack(
+              children: [
+                Container(
+                  height: 70,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                   color: backgroundColor(currentEvent)
+                  ),
+                ),
+                SizedBox(
+                  height: 70,
+                  child: BottomNavigationBar(
+                    currentIndex: _selectedIndex,
+                    onTap: _onItemTapped,
+                    backgroundColor: Colors.transparent, 
+                    elevation: 0,
+                    selectedItemColor: AppColors.primary,
+                    unselectedItemColor: Colors.grey,
+                    type: BottomNavigationBarType.fixed,
+                    items: const [
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.home),
+                        label: 'Home',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.favorite),
+                        label: 'Wishlist',
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.shopping_cart),
+                        label: 'Cart'),
+                      BottomNavigationBarItem(
+                        icon: Icon(Icons.receipt_long),
+                        label: 'Orders'),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.favorite), label: 'Wishlist'),
-            BottomNavigationBarItem(
-                icon: Icon(Icons.shopping_cart), label: 'Cart'),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Orders',
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 }

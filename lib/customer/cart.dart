@@ -4,11 +4,12 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/customer/product.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import '../provider/user_provider.dart';
-
+//TODO: Finish cart section (button not showing, checkout process)
 class CustomerCart extends StatefulWidget {
   const CustomerCart({super.key});
 
@@ -18,6 +19,7 @@ class CustomerCart extends StatefulWidget {
 
 class _CustomerCartState extends State<CustomerCart> {
   List<Map<String, dynamic>> _cartItems = [];
+  late AppEvent currentEvent = getCurrentEvent();
   bool isLoading = true;
 
   @override
@@ -252,7 +254,7 @@ Future<void> checkout(String userId) async {
                     textLabel: "Total Cost: ₱${totalCost.toStringAsFixed(2)}",
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    textColor: AppColors.purple,
+                    textColor: AppColors.primary,
                   ),
                   const SizedBox(height: 20),
                   Row(
@@ -305,16 +307,23 @@ Future<void> checkout(String userId) async {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const CustomText(textLabel: 'Cart', fontSize: 25),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
+       appBar: AppBar(
+    title:  CustomText(textLabel: 'Cart', fontSize: 25,textColor: headerTitleColor(currentEvent),),
+    backgroundColor: backgroundColor(currentEvent),
+    iconTheme: const IconThemeData(color: Colors.black),
+  ),
+  body: Container(
+    decoration: BoxDecoration(
+      image: DecorationImage(
+        image: AssetImage(backgroundImage(currentEvent)),
+        fit: BoxFit.cover,
       ),
-      body: isLoading
-          ? const Center(
+    ),
+    child: isLoading
+          ?  Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: AppColors.purple,
+                color: AppColors.primary,
               ),
             )
           : _cartItems.isEmpty
@@ -328,7 +337,7 @@ Future<void> checkout(String userId) async {
                       const CustomText(
                         textLabel: "Your cart is empty.",
                         fontSize: 18,
-                        textColor: Colors.grey,
+                        textColor: Colors.black,
                       ),
                     ],
                   ),
@@ -347,6 +356,7 @@ Future<void> checkout(String userId) async {
                                   CustomerProduct(productId: productId));
                             },
                             child: Card(
+                              color: const Color.fromARGB(164, 255, 255, 255),
                               margin: const EdgeInsets.symmetric(
                                   vertical: 8, horizontal: 16),
                               child: Row(
@@ -391,7 +401,7 @@ Future<void> checkout(String userId) async {
                                           textLabel:
                                               '₱${cartItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
                                           fontSize: 16,
-                                          textColor: AppColors.purple,
+                                          textColor: AppColors.primary,
                                         ),
                                        
                                       ],
@@ -407,7 +417,7 @@ Future<void> checkout(String userId) async {
                                         ),
                                         icon: const Icon(
                                             Icons.add_circle_outline),
-                                        color: AppColors.purple,
+                                        color: AppColors.primary,
                                       ),
                                       CustomText(
                                         textLabel:
@@ -441,7 +451,7 @@ Future<void> checkout(String userId) async {
                           showCheckoutDialog(userId);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.purple,
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -456,7 +466,7 @@ Future<void> checkout(String userId) async {
                       ),
                     ),
                   ],
-                ),
+                ),)
     );
   }
 }

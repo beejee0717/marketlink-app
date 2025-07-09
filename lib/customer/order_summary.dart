@@ -346,7 +346,7 @@ class _OrderSummaryState extends State<OrderSummary> {
                             children: [
                               Icon(
                                 Icons.message,
-                                color: AppColors.purple,
+                                color: AppColors.primary,
                               ),
                               SizedBox(
                                 width: 5,
@@ -398,9 +398,9 @@ class _OrderSummaryState extends State<OrderSummary> {
                                   );
                                 },
                                 child: Row(
-                                  children: const [
+                                  children:  [
                                     Icon(Icons.message,
-                                        color: AppColors.purple),
+                                        color: AppColors.primary),
                                     SizedBox(width: 5),
                                   ],
                                 ),
