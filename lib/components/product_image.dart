@@ -35,7 +35,7 @@ class _ProductImageState extends State<ProductImage> {
           height: 120,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.grey.shade300, width: 2),
+            border: Border.all(color: Colors.black, width: 2),
           ),
           child: widget.imageUrl == null || widget.imageUrl!.isEmpty
               ? const Icon(

@@ -59,14 +59,14 @@ Widget build(BuildContext context) {
             child: Stack(
               children: [
                 Container(
-                  height: 70,
+                  height: 60,
                   width: double.infinity,
                   decoration: BoxDecoration(
                    color: backgroundColor(currentEvent)
                   ),
                 ),
                 SizedBox(
-                  height: 70,
+                  height: 60,
                   child: BottomNavigationBar(
                     currentIndex: _selectedIndex,
                     onTap: _onItemTapped,

@@ -4,7 +4,7 @@ import 'package:marketlinkapp/components/colors.dart';
 
 void successSnackbar(BuildContext context, String content) {
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    backgroundColor: AppColors.purple,
+    backgroundColor: AppColors.primary,
     behavior: SnackBarBehavior.floating,
     margin: const EdgeInsets.all(16),
     content: CustomText(

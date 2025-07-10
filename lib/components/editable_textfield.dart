@@ -32,7 +32,7 @@ Widget editableTextField({
           suffixIcon: IconButton(
             icon: Icon(
               isEditing ? Icons.check : Icons.edit,
-              color: isEditing ? AppColors.appGreen : AppColors.purple,
+              color: isEditing ? AppColors.appGreen : AppColors.primary,
             ),
             onPressed: () {
               if (isEditing) onSave();

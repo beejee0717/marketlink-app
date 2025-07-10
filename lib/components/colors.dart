@@ -6,10 +6,24 @@ class AppColors {
   static const Color greenTransparent = Color.fromARGB(100, 76, 175, 79);
   static const Color white = Colors.white;
   static const Color grey = Colors.grey;
-  static const Color goldenYellow = Colors.amber;
   static const Color skyBlue = Colors.lightBlue;
+  static const Color transparentWhite =Color.fromARGB(193, 255, 255, 255);
 
   static final AppEvent _event = getCurrentEvent();
+
+static Color get yellow {
+  switch (_event) {
+    case AppEvent.valentines:
+      return Color(0xFFD81B60); 
+    case AppEvent.halloween:
+      return Color(0xFFEF6C00); 
+  case AppEvent.christmas:
+      return const Color.fromARGB(255, 207, 23, 23);
+    default:
+      return Colors.yellow;
+  }
+}
+
 
 static Color get primary {
   switch (_event) {

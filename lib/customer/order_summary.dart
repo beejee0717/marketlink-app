@@ -179,7 +179,7 @@ class _OrderSummaryState extends State<OrderSummary> {
                             ),
                           ],
                                              ),  if(orderData?['status'] == 'delivered')   IconButton(
-            icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+            icon:  Icon(Icons.image, color: AppColors.yellow),
             onPressed: () async {
               final orderId = orderData?['orderId'];
 

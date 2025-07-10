@@ -304,7 +304,7 @@ class _RiderProfileState extends State<RiderProfile> {
                                   });
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.purple,
+                                  backgroundColor: AppColors.primary,
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 10,
                                   ),

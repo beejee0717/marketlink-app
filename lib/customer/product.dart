@@ -94,7 +94,7 @@ class _CustomerProductState extends State<CustomerProduct> {
             return Center(
               child: SpinKitFadingCircle(
                 size: 80,
-                color: backgroundColor(currentEvent),
+                color: productDetails(currentEvent),
               ),
             );
           } else if (productSnapshot.hasError) {
@@ -202,7 +202,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                       CustomText(
                         textLabel: '₱$price',
                         fontSize: 20,
-                        textColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
+                        textColor: productDetails(currentEvent),
                       ),
                       const SizedBox(height: 8),
                       FutureBuilder<Map<String, dynamic>>(
@@ -263,7 +263,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                           children: [
                             Icon(
                               Icons.message,
-                              color: backgroundColor(currentEvent),
+                              color: productDetails(currentEvent),
                             ),
                             SizedBox(
                               width: 5,
@@ -306,7 +306,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                   OrderDetails(productId: widget.productId));
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: productDetails(currentEvent),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(30),
                               ),
@@ -353,9 +353,9 @@ class _CustomerProductState extends State<CustomerProduct> {
                         child: Column(
                           children: [
                             TabBar(
-                              labelColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
+                              labelColor: productDetails(currentEvent),
                               unselectedLabelColor: Colors.grey,
-                              indicatorColor: currentEvent == AppEvent.valentines ? AppColors.primary: backgroundColor(currentEvent),
+                              indicatorColor: productDetails(currentEvent),
                               tabs: const [
                                 Tab(text: 'Details'),
                                 Tab(text: 'Reviews'),

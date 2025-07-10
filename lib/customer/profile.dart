@@ -360,34 +360,6 @@ class _CustomerProfileState extends State<CustomerProfile> {
     );
   }
 
-List<Color> getEventGradient(AppEvent event) {
-  switch (event) {
-    case AppEvent.valentines:
-      return [
-        const Color(0xFFFFC1E3),
-        const Color(0xFFFF8DAA),
-        const Color(0xFFD81B60),
-      ];
-    case AppEvent.halloween:
-      return [
-        const Color(0xFFFFD180),
-        const Color(0xFFFFAB40),
-        const Color(0xFFEF6C00),
-      ];
-    case AppEvent.christmas:
-      return [
-        const Color(0xFFC8FACC),
-        const Color(0xFF9DF79E),
-        const Color(0xFF49F351),
-      ];
-    default:
-      return [
-        Colors.purple.shade900,
-        Colors.purple.shade600,
-        Colors.purple.shade300,
-      ];
-  }
-}
 
   Stream<int> purchaseCount(String? customerId) {
     return FirebaseFirestore.instance

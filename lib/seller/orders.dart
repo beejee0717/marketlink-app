@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/debugging.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../chat/messages.dart';
 import '../components/auto_size_text.dart';
@@ -23,6 +24,7 @@ class _SellerOrdersState extends State<SellerOrders>
   List<Map<String, dynamic>> _shippedOrders = [];
   List<Map<String, dynamic>> _finishedOrders = [];
   bool isLoading = true;
+  late AppEvent currentEvent = getCurrentEvent();
 
   late TabController _tabController;
 
@@ -182,57 +184,71 @@ class _SellerOrdersState extends State<SellerOrders>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.purple.shade900,
-      appBar: AppBar(
-        backgroundColor: Colors.purple.shade900,
-        title: const CustomText(
+        appBar: AppBar(
+        backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade900: backgroundColor(currentEvent),
+        title:  CustomText(
           textLabel: 'Orders',
           fontSize: 25,
-          textColor: Colors.white,
+          textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
           fontWeight: FontWeight.bold,
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.orange,
-          tabs: const [
+          indicatorColor: AppColors.yellow,
+          tabs:  [
             Tab(
               child: CustomText(
                 textLabel: "Ongoing",
                 fontSize: 16,
-                textColor: Colors.white,
+                textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
              Tab(
               child: CustomText(
                 textLabel: "Shipped",
                 fontSize: 16,
-                textColor: Colors.white,
+                textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
             Tab(
               child: CustomText(
                 textLabel: "Delivered",
                 fontSize: 16,
-                textColor: Colors.white,
+                textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
           ],
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
+          ? Container(  decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(currentEvent == AppEvent.none?wallpaper(currentEvent): backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+
+            child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildOrderList(_ongoingOrders, 'ordered'),
-                _buildOrderList(_shippedOrders, 'shipped'),
-                _buildOrderList(_finishedOrders, 'finished'),
-              ],
-            ),
+          )
+          :  Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(currentEvent == AppEvent.none?wallpaper(currentEvent): backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+
+            child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildOrderList(_ongoingOrders, 'ordered'),
+                  _buildOrderList(_shippedOrders, 'shipped'),
+                  _buildOrderList(_finishedOrders, 'finished'),
+                ],
+              ),
+          ),
     );
   }
 
@@ -265,7 +281,7 @@ class _SellerOrdersState extends State<SellerOrders>
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          color: Colors.white.withOpacity(0.1), 
+          color: AppColors.transparentWhite, 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -302,39 +318,39 @@ class _SellerOrdersState extends State<SellerOrders>
                         fontSize: 16,
                         maxLines: 2,
                         fontWeight: FontWeight.bold,
-                        textColor: Colors.white,
+                        textColor: currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Quantity: ${order['quantity']}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Customer: ${order['customerName']}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel:
                             'Amount: ₱${order['amount'].toStringAsFixed(2)}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel:
                             'Contact: ${order['customerContact'] ?? 'N/A'}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Date Ordered: $formattedDate',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor: currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -368,7 +384,7 @@ class _SellerOrdersState extends State<SellerOrders>
                             Row(
                               children: [
                               if(order['status'] == 'delivered')   IconButton(
-            icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+            icon:  Icon(Icons.image, color: AppColors.yellow),
             onPressed: () async {
               final orderId = order['orderId'];
 

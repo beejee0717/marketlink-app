@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/debugging.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../chat/messages.dart';
 import '../components/auto_size_text.dart';
@@ -20,6 +22,7 @@ class _SellerBookingsState extends State<SellerBookings>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _pendingBookings = [];
   List<Map<String, dynamic>> _approvedBookings = [];
+  late AppEvent currentEvent = getCurrentEvent();
   bool isLoading = true;
 
   late TabController _tabController;
@@ -128,31 +131,30 @@ Future<void> markAsApproved(String bookingId) async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.purple.shade900,
       appBar: AppBar(
-        backgroundColor: Colors.purple.shade900,
-        title: const CustomText(
+        backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade900: backgroundColor(currentEvent),
+        title:  CustomText(
           textLabel: 'Bookings',
           fontSize: 25,
-          textColor: Colors.white,
+          textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
           fontWeight: FontWeight.bold,
         ),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.orange,
-          tabs: const [
+          indicatorColor:AppColors.yellow,
+          tabs:  [
             Tab(
               child: CustomText(
                 textLabel: "Pending",
                 fontSize: 16,
-                textColor: Colors.white,
+                textColor:currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
              Tab(
               child: CustomText(
                 textLabel: "Approved",
                 fontSize: 16,
-                textColor: Colors.white,
+                textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
           
@@ -160,18 +162,33 @@ Future<void> markAsApproved(String bookingId) async {
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
+          ? Container(  decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+
+            child: const Center(
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                ),
               ),
-            )
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                _buildBookingList(_pendingBookings, 'ordered'),
-                _buildBookingList(_approvedBookings, 'approved'),
-              ],
-            ),
+          )
+          : Container(
+            decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+
+            child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildBookingList(_pendingBookings, 'ordered'),
+                  _buildBookingList(_approvedBookings, 'approved'),
+                ],
+              ),
+          ),
     );
   }
 
@@ -204,7 +221,7 @@ Future<void> markAsApproved(String bookingId) async {
           
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          color: Colors.white.withOpacity(0.1), 
+          color: AppColors.transparentWhite, 
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -241,39 +258,39 @@ Future<void> markAsApproved(String bookingId) async {
                         fontSize: 16,
                         maxLines: 2,
                         fontWeight: FontWeight.bold,
-                        textColor: Colors.white,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Chosen Date: $bookedDate',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Customer: ${booking['customerName']}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel:
                             'Amount: ₱${booking['amount'].toStringAsFixed(2)}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel:
                             'Contact: ${booking['customerContact'] ?? 'N/A'}',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       const SizedBox(height: 4),
                       CustomText(
                         textLabel: 'Date Booked: $formattedDate',
                         fontSize: 14,
-                        textColor: Colors.grey.shade300,
+                        textColor:  currentEvent == AppEvent.christmas ? Colors.black : AppColors.primary,
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,

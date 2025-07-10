@@ -95,14 +95,14 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
                       children: [
                         ...List.generate(5, (index) {
                           if (index + 1 <= averageRating) {
-                            return const Icon(Icons.star,
-                                color: AppColors.goldenYellow, size: 20);
+                            return Icon(Icons.star,
+                                color: AppColors.yellow, size: 20);
                           } else if (index + 0.5 <= averageRating) {
-                            return const Icon(Icons.star_half,
-                                color: AppColors.goldenYellow, size: 20);
+                            return Icon(Icons.star_half,
+                                color: AppColors.yellow, size: 20);
                           } else {
-                            return const Icon(Icons.star_border,
-                                color: AppColors.goldenYellow, size: 20);
+                            return Icon(Icons.star_border,
+                                color: AppColors.yellow, size: 20);
                           }
                         }),
                         const SizedBox(width: 5),

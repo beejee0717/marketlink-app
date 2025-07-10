@@ -2,7 +2,9 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/seller/service_details.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 
 import '../components/auto_size_text.dart';
@@ -21,6 +23,7 @@ class SellerAllServices extends StatefulWidget {
 class _SellerAllServicesState extends State<SellerAllServices> {
   final TextEditingController searchController = TextEditingController();
   late Stream<QuerySnapshot> servicesStream;
+  late AppEvent currentEvent = getCurrentEvent();
 
   @override
   void initState() {
@@ -56,26 +59,32 @@ void fetchServices() {
   Widget build(BuildContext context) {
     
     return Scaffold(
-      backgroundColor: Colors.purple.shade900,
+      backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade900 : backgroundColor(currentEvent),
       appBar: AppBar(
         leading: IconButton(
           onPressed: () {
             navPop(context);
           },
-          icon: const Icon(
+          icon:  Icon(
             Icons.arrow_back,
-            color: Colors.white,
+            color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
           ),
         ),
         backgroundColor: Colors.transparent,
-        title: const CustomText(
+        title:  CustomText(
           textLabel: "All Services",
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          textColor: Colors.white,
+          textColor: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
         ),
       ),
-      body: Padding(
+      body:  Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+        child:Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -87,18 +96,18 @@ void fetchServices() {
                 });
               },
               style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  TextStyle(color:currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent), fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 hintText: "Search services...",
-                hintStyle: TextStyle(color: Colors.white),
-                prefixIcon: const Icon(
+                hintStyle: TextStyle(color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent)),
+                prefixIcon: Icon(
                   Icons.search,
-                  color: Colors.white,
+                  color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
                 ),
                 border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white)),
+                    borderSide: BorderSide(color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent))),
                 enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.white, width: 1)),
+                    borderSide: BorderSide(color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent), width: 1)),
                 focusedBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.yellow, width: 2)),
               ),
@@ -147,6 +156,7 @@ void fetchServices() {
 
                       return FadeInLeft(
                         child: Card(
+                          color: AppColors.transparentWhite,
                           elevation: 2,
                           margin: const EdgeInsets.only(bottom: 10),
                           shape: RoundedRectangleBorder(
@@ -231,7 +241,7 @@ void fetchServices() {
             ),
           ],
         ),
-      ),
+      ),),
   floatingActionButton: StreamBuilder<bool>(
   stream: getSellerApprovalStatus(
     Provider.of<UserProvider>(context, listen: false).user!.uid,
@@ -252,7 +262,7 @@ void fetchServices() {
               'This account is not approved yet. Please wait for admin approval before being able to sell items.');
         }
       },
-      backgroundColor: Colors.purple.shade600,
+      backgroundColor: AppColors.primary,
       child: const Icon(Icons.add, color: Colors.white),
     );
   },

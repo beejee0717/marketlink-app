@@ -6,6 +6,7 @@ import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/product_image.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/seller/service_details.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import '../components/cloudinary.dart';
 import '../components/categories.dart';
@@ -23,6 +24,7 @@ class _SellerEditServiceState extends State<SellerEditService> {
   final priceController = TextEditingController();
   final descriptionController = TextEditingController();
   final selectedLocation = TextEditingController();
+  late AppEvent currentEvent = getCurrentEvent();
   List<String> serviceDays = [
     "Monday",
     "Tuesday",
@@ -232,287 +234,293 @@ Future<void> updateService() async {
               onPressed: () {
                 navPop(context);
               },
-              icon: const Icon(
+              icon:  Icon(
                 Icons.arrow_back,
-                color: Colors.white,
+                color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
               ),
             ),
-            backgroundColor: Colors.purple.shade900,
-            title: const CustomText(
+            backgroundColor:  currentEvent == AppEvent.none ? Colors.white : backgroundColor(currentEvent),
+            title:  CustomText(
               textLabel: "Edit Service",
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              textColor: Colors.white,
+              textColor:  currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
             ),
             centerTitle: true,
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      child: ProductImage(
-                        imageUrl: localImagePath ?? existingImagePath,
-                        onFileChanged: (imagePath) {
-                          setState(() {
-                            localImagePath = imagePath;
-                          });
-                        },
-                        onLoadingChanged: (loading) {
-                          setState(() {
-                            isLoading = loading;
-                          });
-                        },
+          body: Container(decoration: BoxDecoration(
+          image: DecorationImage(image: 
+          AssetImage(backgroundImage(currentEvent)),
+          fit: BoxFit.cover)
+        ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        child: ProductImage(
+                          imageUrl: localImagePath ?? existingImagePath,
+                          onFileChanged: (imagePath) {
+                            setState(() {
+                              localImagePath = imagePath;
+                            });
+                          },
+                          onLoadingChanged: (loading) {
+                            setState(() {
+                              isLoading = loading;
+                            });
+                          },
+                        ),
                       ),
                     ),
-                  ),
-                  const CustomText(
-                    textLabel: "Service Name",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: serviceNameController,
-                    maxLength: 50,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter service name",
-                      counterText: '',
+                    const CustomText(
+                      textLabel: "Service Name",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Service name is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Category",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: serviceNameController,
+                      maxLength: 50,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter service name",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Service name is required";
+                        }
+                        return null;
+                      },
                     ),
-                    hint: const CustomText(
-                      textLabel: "Select Category",
-                      fontSize: 14,
-                      textColor: Colors.grey,
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Category",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    items: serviceCategories.map((category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: CustomText(
-                          textLabel: category,
-                          fontSize: 14,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedCategory = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Category is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Price (₱)",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: priceController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter price",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Price is required";
-                      }
-                      if (double.tryParse(value) == null) {
-                        return "Enter a valid number";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Select Service Days",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 10,
-                    children: serviceDays.map((day) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Checkbox(
-                            value: selectedDays.contains(day),
-                            onChanged: (bool? value) {
-                              setState(() {
-                                if (value == true) {
-                                  selectedDays.add(day);
-                                } else {
-                                  selectedDays.remove(day);
-                                }
-                              });
-                            },
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          SizedBox(width: 5),
-                          CustomText(
-                            textLabel: day,
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      hint: const CustomText(
+                        textLabel: "Select Category",
+                        fontSize: 14,
+                        textColor: Colors.grey,
+                      ),
+                      items: serviceCategories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: CustomText(
+                            textLabel: category,
                             fontSize: 14,
                           ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => pickTime(true),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              startTime != null
-                                  ? startTime!.format(context)
-                                  : "Start Time",
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => pickTime(false),
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              endTime != null
-                                  ? endTime!.format(context)
-                                  : "End Time",
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(
-                    height: 10,
-                  ),
-                  const CustomText(
-                    textLabel: "Service Location",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: selectedLocation,
-                    maxLines: 4,
-                    maxLength: 200,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter service description",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Description is required";
-                      }
-
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Description",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: descriptionController,
-                    maxLines: 4,
-                    maxLength: 200,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter service description",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Description is required";
-                      }
-
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        updateService();
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCategory = value;
+                        });
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Category is required";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Price (₱)",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter price",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Price is required";
+                        }
+                        if (double.tryParse(value) == null) {
+                          return "Enter a valid number";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Select Service Days",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 10,
+                      children: serviceDays.map((day) {
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Checkbox(
+                              value: selectedDays.contains(day),
+                              onChanged: (bool? value) {
+                                setState(() {
+                                  if (value == true) {
+                                    selectedDays.add(day);
+                                  } else {
+                                    selectedDays.remove(day);
+                                  }
+                                });
+                              },
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            SizedBox(width: 5),
+                            CustomText(
+                              textLabel: day,
+                              fontSize: 14,
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => pickTime(true),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                startTime != null
+                                    ? startTime!.format(context)
+                                    : "Start Time",
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => pickTime(false),
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                endTime != null
+                                    ? endTime!.format(context)
+                                    : "End Time",
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 10,
+                    ),
+                    const CustomText(
+                      textLabel: "Service Location",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: selectedLocation,
+                      maxLines: 4,
+                      maxLength: 200,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter service description",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Description is required";
+                        }
+            
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Description",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: descriptionController,
+                      maxLines: 4,
+                      maxLength: 200,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter service description",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Description is required";
+                        }
+            
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          updateService();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const CustomText(
+                          textLabel: "Edit Service",
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          textColor: Colors.white,
                         ),
                       ),
-                      child: const CustomText(
-                        textLabel: "Edit Service",
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        textColor: Colors.white,
-                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

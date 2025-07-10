@@ -5,6 +5,7 @@ import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/seller/home.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
 import '../components/cloudinary.dart';
@@ -25,6 +26,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
   final stockController = TextEditingController();
   final descriptionController = TextEditingController();
   final materialsController = TextEditingController();
+  late AppEvent currentEvent = getCurrentEvent();
   String? selectedCategory;
   String? localImagePath;
   String? selectedLocation;
@@ -198,282 +200,290 @@ Future<void> addProduct(String sellerId) async {
               onPressed: () {
                 navPop(context);
               },
-              icon: const Icon(
+              icon:  Icon(
                 Icons.arrow_back,
-                color: Colors.white,
+                color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
               ),
             ),
-            backgroundColor: Colors.purple.shade800,
-            title: const CustomText(
+            backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade800 : backgroundColor(currentEvent),
+            title:  CustomText(
               textLabel: "Add Product",
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              textColor: Colors.white,
+              textColor: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
             ),
             centerTitle: true,
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      child: ProductImage(
-                        imageUrl: localImagePath,
-                        onFileChanged: (imagePath) {
-                          setState(() {
-                            localImagePath = imagePath;
-                          });
-                        },
-                        onLoadingChanged: (loading) {
-                          setState(() {
-                            isLoading = loading;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const CustomText(
-                    textLabel: "Product Name",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: productNameController,
-                    maxLength: 50,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter product name",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Product name is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Category",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedCategory,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    hint: const CustomText(
-                      textLabel: "Select Category",
-                      fontSize: 14,
-                      textColor: Colors.grey,
-                    ),
-                    items: productCategories.map((category) {
-                      return DropdownMenuItem<String>(
-                        value: category,
-                        child: CustomText(
-                          textLabel: category,
-                          fontSize: 14,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedCategory = value;
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Category is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Price (₱)",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: priceController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 10,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter price",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Price is required";
-                      }
-                      if (double.tryParse(value) == null) {
-                        return "Enter a valid number";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Stock Quantity",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: stockController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 7,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter stock quantity",
-                      counterText: '',
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Stock quantity is required";
-                      }
-                      if (int.tryParse(value) == null) {
-                        return "Enter a valid number";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Pickup Location",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  DropdownButtonFormField<String>(
-                    value: selectedLocation,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    hint: const CustomText(
-                      textLabel: "Select Pickup Location",
-                      fontSize: 14,
-                      textColor: Colors.grey,
-                    ),
-                    items: [
-                      ...locations.map(
-                        (location) => DropdownMenuItem<String>(
-                          value: location,
-                          child: CustomText(
-                            textLabel: location,
-                            fontSize: 14,
-                          ),
+          body: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(image: 
+              AssetImage(backgroundImage(currentEvent)),
+              fit: BoxFit.cover
+              )
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Form(
+                key: formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        child: ProductImage(
+                          imageUrl: localImagePath,
+                          onFileChanged: (imagePath) {
+                            setState(() {
+                              localImagePath = imagePath;
+                            });
+                          },
+                          onLoadingChanged: (loading) {
+                            setState(() {
+                              isLoading = loading;
+                            });
+                          },
                         ),
                       ),
-                      if (locations.length < 5)
-                        const DropdownMenuItem<String>(
-                          value: "AddNew",
-                          child: CustomText(
-                            textLabel: "Add New Address",
-                            fontSize: 14,
-                            textColor: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                    ],
-                    onChanged: (value) {
-                      if (value == "AddNew") {
-                        showAddAddressDialog(sellerId);
-                      } else {
-                        setState(() {
-                          selectedLocation = value;
-                        });
-                      }
-                    },
-                    validator: (value) {
-                      if (value == null ||
-                          value.trim().isEmpty ||
-                          value == 'AddNew') {
-                        return "Pickup location is required";
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Materials (Optional)",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: materialsController,
-                    maxLength: 100,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter materials used",
-                      counterText: '',
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const CustomText(
-                    textLabel: "Description",
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 10),
-                  TextFormField(
-                    controller: descriptionController,
-                    maxLines: 4,
-                    maxLength: 200,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      hintText: "Enter product description",
-                      counterText: '',
+                    const CustomText(
+                      textLabel: "Product Name",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
                     ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return "Description is required";
-                      }
-
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 30),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        addProduct(sellerId);
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: productNameController,
+                      maxLength: 50,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter product name",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Product name is required";
+                        }
+                        return null;
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue.shade700,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 40, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Category",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedCategory,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const CustomText(
-                        textLabel: "Add Product manually",
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        textColor: Colors.white,
+                      hint: const CustomText(
+                        textLabel: "Select Category",
+                        fontSize: 14,
+                        textColor: Colors.grey,
+                      ),
+                      items: productCategories.map((category) {
+                        return DropdownMenuItem<String>(
+                          value: category,
+                          child: CustomText(
+                            textLabel: category,
+                            fontSize: 14,
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          selectedCategory = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Category is required";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Price (₱)",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter price",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Price is required";
+                        }
+                        if (double.tryParse(value) == null) {
+                          return "Enter a valid number";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Stock Quantity",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: stockController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 7,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter stock quantity",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Stock quantity is required";
+                        }
+                        if (int.tryParse(value) == null) {
+                          return "Enter a valid number";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Pickup Location",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<String>(
+                      value: selectedLocation,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      hint: const CustomText(
+                        textLabel: "Select Pickup Location",
+                        fontSize: 14,
+                        textColor: Colors.grey,
+                      ),
+                      items: [
+                        ...locations.map(
+                          (location) => DropdownMenuItem<String>(
+                            value: location,
+                            child: CustomText(
+                              textLabel: location,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        if (locations.length < 5)
+                          const DropdownMenuItem<String>(
+                            value: "AddNew",
+                            child: CustomText(
+                              textLabel: "Add New Address",
+                              fontSize: 14,
+                              textColor: Colors.blue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value == "AddNew") {
+                          showAddAddressDialog(sellerId);
+                        } else {
+                          setState(() {
+                            selectedLocation = value;
+                          });
+                        }
+                      },
+                      validator: (value) {
+                        if (value == null ||
+                            value.trim().isEmpty ||
+                            value == 'AddNew') {
+                          return "Pickup location is required";
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Materials (Optional)",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: materialsController,
+                      maxLength: 100,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter materials used",
+                        counterText: '',
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    const CustomText(
+                      textLabel: "Description",
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: descriptionController,
+                      maxLines: 4,
+                      maxLength: 200,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        hintText: "Enter product description",
+                        counterText: '',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return "Description is required";
+                        }
+            
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 30),
+                    Center(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          addProduct(sellerId);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 40, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const CustomText(
+                          textLabel: "Add Product",
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          textColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

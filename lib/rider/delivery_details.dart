@@ -56,7 +56,7 @@ Stream<DocumentSnapshot<Map<String, dynamic>>> deliveryStream(
               color: Colors.white,
             ),
           ),
-          backgroundColor: AppColors.purple,
+          backgroundColor: AppColors.primary,
           elevation: 0,
           title: const CustomText(
             textLabel: 'Product Details',
@@ -139,7 +139,7 @@ Stream<DocumentSnapshot<Map<String, dynamic>>> deliveryStream(
             },
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-              backgroundColor: AppColors.purple,
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
               ),

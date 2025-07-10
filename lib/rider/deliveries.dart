@@ -267,8 +267,8 @@ Stream<List<Map<String, dynamic>>> streamDeliveries(bool isDelivered) {
           children: [
             TabBar(
               controller: _tabController,
-              indicatorColor: AppColors.purple,
-              labelColor: AppColors.purple,
+              indicatorColor: AppColors.primary,
+              labelColor: AppColors.primary,
               unselectedLabelColor: Colors.grey,
               tabs: const [
                 Tab(text: 'Picked Up'),
@@ -283,10 +283,10 @@ Stream<List<Map<String, dynamic>>> streamDeliveries(bool isDelivered) {
       stream: streamDeliveries(false),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: SpinKitFadingCircle(
               size: 80,
-              color: AppColors.purple,
+              color: AppColors.primary,
             ),
           );
         } else if (snapshot.hasError) {
@@ -303,10 +303,10 @@ Stream<List<Map<String, dynamic>>> streamDeliveries(bool isDelivered) {
       stream: streamDeliveries(true),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
+          return Center(
             child: SpinKitFadingCircle(
               size: 80,
-              color: AppColors.purple,
+              color: AppColors.primary,
             ),
           );
         } else if (snapshot.hasError) {

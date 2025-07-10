@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:marketlinkapp/components/editable_textfield.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
@@ -35,6 +36,8 @@ class _SellerProfileState extends State<SellerProfile> {
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController contactController = TextEditingController();
+
+  late AppEvent currentEvent = getCurrentEvent();
   List<String> addresses = [];
   @override
   void initState() {
@@ -202,11 +205,7 @@ class _SellerProfileState extends State<SellerProfile> {
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Colors.purple.shade900,
-                Colors.purple.shade600,
-                Colors.purple.shade300
-              ],
+              colors: getEventGradient(currentEvent),
               begin: Alignment.topLeft,
               end: Alignment.topRight,
             ),

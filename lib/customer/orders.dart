@@ -385,7 +385,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
     ? null
     : type == 'delivered'
         ? IconButton(
-            icon: const Icon(Icons.image, color: AppColors.goldenYellow),
+            icon:  Icon(Icons.image, color: AppColors.yellow),
             onPressed: () async {
               final orderId = order['orderId'];
 

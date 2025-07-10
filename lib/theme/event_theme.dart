@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:marketlinkapp/components/colors.dart';
 
 enum AppEvent {
   none,
@@ -8,9 +9,10 @@ enum AppEvent {
 }
 
 AppEvent getCurrentEvent() {
-  final now = DateTime.now(); //use this as default
-  // final now = DateTime(2025, 12,25);//change this to show the theme during defense (YYYY,MM,DD) 
-  //available dates are Feb 10-20(Valentines), Oct 25-Nov 2(Halloween), Dec 20-31 (Christmas)
+  // final now = DateTime.now(); //use this as default
+  // final now = DateTime(2025, 2,14);//Valentines -- change this to show the theme during defense (YYYY,MM,DD)   
+  // final now = DateTime(2025, 11,1);//halloween
+  final now = DateTime(2025, 12,25);//christmas
   //restart build after changing date for full implementation
   //TODO: also add on the search portion
 
@@ -58,6 +60,37 @@ Color buttonColor(AppEvent currentEvent) {
       return Colors.yellow;
   }
 }
+
+Color sellerAddButton(AppEvent currentEvent) {
+  switch (currentEvent) {
+    case AppEvent.valentines:
+    
+      return const Color.fromARGB(255, 255, 215, 228);
+    case AppEvent.halloween:
+    return const Color.fromARGB(255, 97, 36, 106);
+    case AppEvent.christmas:
+    
+      return Color.fromARGB(255, 73, 243, 81); 
+    default:
+      return AppColors.primary;
+  }
+}
+
+
+Color productDetails(AppEvent currentEvent) {
+  switch (currentEvent) {
+   
+    case AppEvent.valentines:
+      return Color(0xFFD81B60); 
+    case AppEvent.halloween:
+    return const Color.fromARGB(255, 97, 36, 106);
+
+    case AppEvent.christmas:
+      return const Color.fromARGB(255, 207, 23, 23);
+    default:
+      return Color.fromARGB(255, 119, 22, 136);
+  }
+}
 Color onboardingTextColor(AppEvent currentEvent) {
   switch (currentEvent) {
     case AppEvent.valentines:
@@ -82,7 +115,7 @@ String backgroundImage(AppEvent currentEvent) {
     case AppEvent.christmas:
       return 'assets/images/christmas_bg.png';
     default:
-      return 'assets/images/default_wp.png';
+      return 'assets/images/default_bg.png';
   }
 }
 Color backgroundColor(AppEvent currentEvent) {
@@ -99,6 +132,19 @@ Color backgroundColor(AppEvent currentEvent) {
   }
 }
 
+Color sellerHeaderColor(AppEvent currentEvent) {
+  switch (currentEvent) {
+    case AppEvent.valentines:
+      return const Color.fromARGB(255, 255, 215, 228);
+    case AppEvent.halloween:
+    return const Color.fromARGB(255, 97, 36, 106);
+
+    case AppEvent.christmas:
+      return const Color.fromARGB(255, 207, 23, 23);
+    default:
+      return Colors.purple.shade900;
+  }
+}
 Color headerTitleColor (AppEvent currentEvent){
   switch (currentEvent){
 
@@ -110,5 +156,35 @@ case AppEvent.valentines:
       return const Color.fromARGB(255, 255, 255, 255);
     default:
       return const Color.fromARGB(255, 0, 0, 0);
+  }
+}
+
+
+List<Color> getEventGradient(AppEvent event) {
+  switch (event) {
+    case AppEvent.valentines:
+      return [
+        const Color(0xFFFFC1E3),
+        const Color(0xFFFF8DAA),
+        const Color(0xFFD81B60),
+      ];
+    case AppEvent.halloween:
+      return [
+        const Color(0xFFFFD180),
+        const Color(0xFFFFAB40),
+        const Color(0xFFEF6C00),
+      ];
+    case AppEvent.christmas:
+      return [
+        const Color(0xFFC8FACC),
+        const Color(0xFF9DF79E),
+        const Color(0xFF49F351),
+      ];
+    default:
+      return [
+        Colors.purple.shade900,
+        Colors.purple.shade600,
+        Colors.purple.shade300,
+      ];
   }
 }
