@@ -3,9 +3,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/appbar.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
+import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/rider/delivery_details.dart';
 import 'package:marketlinkapp/rider/profile.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
 import '../provider/user_provider.dart';
 
@@ -19,6 +21,7 @@ class RiderHome extends StatefulWidget {
 class _RiderHomeState extends State<RiderHome> {
   late Stream<List<Map<String, dynamic>>> productsStream;
   bool productsStrInitialized = false;
+  late AppEvent currentEvent = getCurrentEvent();
 
   @override
   void initState() {
@@ -142,222 +145,229 @@ class _RiderHomeState extends State<RiderHome> {
   Widget build(BuildContext context) {
     final userInfo = Provider.of<UserProvider>(context, listen: false).user;
     return Scaffold(
-        backgroundColor: const Color.fromARGB(255, 255, 255, 255),
         appBar: appbar(context, destination: RiderProfile()),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-              child: CustomText(
-                textLabel: 'Products Available to Deliver',
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+        body: Container(
+           decoration: BoxDecoration(
+    image: DecorationImage(
+      image: AssetImage(backgroundImage(currentEvent)),
+      fit: BoxFit.cover,
+    ),
+  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                child: CustomText(
+                  textLabel: 'Products Available to Deliver',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Expanded(
-              // This makes the list scrollable and avoids pixel overflow
-              child: StreamBuilder<bool>(
-                stream: getRiderApprovalStatus(userInfo?.uid),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  bool isApproved = snapshot.data ?? false;
-
-                  if (!isApproved) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Image.asset(
-                              'assets/images/logo_no_text.png',
-                              width: 150,
-                              height: 150,
-                              fit: BoxFit.contain,
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              "Rider not approved yet. Please wait for the Admin to approve before you can deliver products.",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.red,
+              Expanded(
+                child: StreamBuilder<bool>(
+                  stream: getRiderApprovalStatus(userInfo?.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+          
+                    bool isApproved = snapshot.data ?? false;
+          
+                    if (!isApproved) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/logo_no_text.png',
+                                width: 150,
+                                height: 150,
+                                fit: BoxFit.contain,
                               ),
-                              textAlign: TextAlign.center,
-                              softWrap: true,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  return StreamBuilder<List<Map<String, dynamic>>>(
-                    stream: productsStream,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: SpinKitDoubleBounce(
-                              size: 50,
-                              color: Colors.yellow,
-                            ),
-                          ),
-                        );
-                      } else if (snapshot.hasError) {
-                        return Center(
-                          child: CustomText(
-                            textLabel: "Error: ${snapshot.error}",
-                            fontSize: 16,
-                            textColor: Colors.red,
-                          ),
-                        );
-                      } else if (snapshot.data == null ||
-                          snapshot.data!.isEmpty) {
-                        return const Center(
-                          child: CustomText(
-                            textLabel: "No Orders Available.",
-                            fontSize: 16,
-                            textColor: Colors.black,
-                          ),
-                        );
-                      } else {
-                        return ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 10),
-                          itemCount: snapshot.data!.length,
-                          itemBuilder: (context, index) {
-                            final product = snapshot.data![index];
-                            return GestureDetector(
-                              onTap: () {
-                                navPush(
-                                  context,
-                                  DeliveryDetails(
-                                      data: product, isDelivery: false),
-                                );
-                              },
-                              child: Card(
-                                elevation: 2,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Rider not approved yet. Please wait for the Admin to approve before you can deliver products.",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.red,
                                 ),
-                                margin: const EdgeInsets.only(bottom: 10),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(10),
-                                  child: Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.center,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
-                                        child: product['imageUrl'] != null
-                                            ? Image.network(
-                                                product['imageUrl'],
-                                                width: 100,
-                                                height: 100,
-                                                fit: BoxFit.cover,
-                                              )
-                                            : const Icon(
-                                                Icons.image,
-                                                size: 100,
-                                                color: Colors.grey,
-                                              ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              product['productName'] ??
-                                                  'No Product Name',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                const Text(
-                                                  "Price: ",
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black87,
-                                                  ),
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+          
+                    return StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: productsStream,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: SpinKitDoubleBounce(
+                                size: 50,
+                                color: Colors.yellow,
+                              ),
+                            ),
+                          );
+                        } else if (snapshot.hasError) {
+                          return Center(
+                            child: CustomText(
+                              textLabel: "Error: ${snapshot.error}",
+                              fontSize: 16,
+                              textColor: Colors.red,
+                            ),
+                          );
+                        } else if (snapshot.data == null ||
+                            snapshot.data!.isEmpty) {
+                          return const Center(
+                            child: CustomText(
+                              textLabel: "No Orders Available.",
+                              fontSize: 16,
+                              textColor: Colors.black,
+                            ),
+                          );
+                        } else {
+                          return ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 10),
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              final product = snapshot.data![index];
+                              return GestureDetector(
+                                onTap: () {
+                                  navPush(
+                                    context,
+                                    DeliveryDetails(
+                                        data: product, isDelivery: false),
+                                  );
+                                },
+                                child: Card(
+                                  color: AppColors.transparentWhite,
+                                  elevation: 2,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  margin: const EdgeInsets.only(bottom: 10),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: product['imageUrl'] != null
+                                              ? Image.network(
+                                                  product['imageUrl'],
+                                                  width: 100,
+                                                  height: 100,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : const Icon(
+                                                  Icons.image,
+                                                  size: 100,
+                                                  color: Colors.grey,
                                                 ),
-                                                Text(
-                                                  '₱${product['price'] ?? '0'}',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Colors.orange,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 6),
-                                            const Text(
-                                              "Pickup Address:",
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                            Text(
-                                              product['pickupLocation'] ??
-                                                  'N/A',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.orange,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              softWrap: true,
-                                            ),
-                                            const SizedBox(height: 4),
-                                            const Text(
-                                              "Delivery Address:",
-                                              style: TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.black87,
-                                              ),
-                                            ),
-                                            Text(
-                                              product['customerAddress'] ??
-                                                  'No Customer Address',
-                                              style: const TextStyle(
-                                                fontSize: 14,
-                                                color: Colors.orange,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                              softWrap: true,
-                                            ),
-                                          ],
                                         ),
-                                      ),
-                                      Icon(
-                                        Icons.chevron_right,
-                                        color: Colors.yellow.shade800,
-                                      ),
-                                    ],
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                product['productName'] ??
+                                                    'No Product Name',
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Row(
+                                                children: [
+                                                  const Text(
+                                                    "Price: ",
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.black87,
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    '₱${product['price'] ?? '0'}',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.orange,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 6),
+                                              const Text(
+                                                "Pickup Address:",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              Text(
+                                                product['pickupLocation'] ??
+                                                    'N/A',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.orange,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                softWrap: true,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              const Text(
+                                                "Delivery Address:",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              Text(
+                                                product['customerAddress'] ??
+                                                    'No Customer Address',
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.orange,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                softWrap: true,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Icon(
+                                          Icons.chevron_right,
+                                          color: Colors.yellow.shade800,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        );
-                      }
-                    },
-                  );
-                },
+                              );
+                            },
+                          );
+                        }
+                      },
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ));
   }
 }

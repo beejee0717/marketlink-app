@@ -160,8 +160,8 @@ case AppEvent.valentines:
 }
 
 
-List<Color> getEventGradient(AppEvent event) {
-  switch (event) {
+List<Color> getEventGradient(AppEvent currentEvent) {
+  switch (currentEvent) {
     case AppEvent.valentines:
       return [
         const Color(0xFFFFC1E3),

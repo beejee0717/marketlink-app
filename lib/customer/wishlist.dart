@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:http/http.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/notif.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
