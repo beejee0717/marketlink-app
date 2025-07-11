@@ -236,11 +236,46 @@ class _CustomerHomeState extends State<CustomerHome>
                     final item = content[index];
                     final itemId = item.id;
                     final itemName = isProduct? item['productName'] ?? 'Unnamed' : item ['serviceName'] ?? 'Unnamed';
-                    final price =
-                        '₱${item['price']?.toStringAsFixed(2) ?? 'N/A'}';
+                   final data = item.data() as Map<String, dynamic>;
+
+final priceDouble = data['price']?.toDouble() ?? 0.0;
+final promo = data['promo'] is Map<String, dynamic> ? data['promo'] : null;
+
+final hasPromo = promo != null && promo['enabled'] == true;
+final promoType = promo?['type'];
+final promoValue = promo?['value'] ?? 0;
+
+double discountedPrice = priceDouble;
+
+if (hasPromo) {
+  if (promoType == 'percentage') {
+    discountedPrice = priceDouble * (1 - (promoValue / 100));
+  } else if (promoType == 'fixed') {
+    discountedPrice = (priceDouble - promoValue).clamp(0, priceDouble);
+  }
+}
+
+final priceText = '₱${priceDouble.toStringAsFixed(2)}';
+final discountedText = '₱${discountedPrice.toStringAsFixed(2)}';
+
+final promoLabel = promoType == 'percentage'
+    ? '$promoValue% OFF'
+   : "₱${(promoValue as num).toStringAsFixed(2)} OFF";
+
                     final imageUrl = item['imageUrl'];
-                    return itemDisplay(context, imageUrl, userId, itemId,
-                        itemName, price, isProduct);
+                return itemDisplay(
+  context,
+  imageUrl,
+  userId,
+  itemId,
+  itemName,
+  priceText,
+  isProduct,
+  hasPromo,
+  discountedText,
+  promoLabel,
+);
+
                   },
                 );
               },

@@ -6,11 +6,11 @@ import 'package:marketlinkapp/theme/event_theme.dart';
 PreferredSizeWidget  appbar(BuildContext context, {required Widget destination}) {
   late AppEvent currentEvent = getCurrentEvent();
   return AppBar(
-    backgroundColor: Colors.transparent,
+    backgroundColor: currentEvent == AppEvent.none? Colors.white : backgroundColor(currentEvent),
     actions: [
       IconButton(
         onPressed: () => navPush(context, destination),
-        icon: const Icon(Icons.person, color: Colors.black),
+        icon:  Icon(Icons.person, color:  currentEvent == AppEvent.none? Colors.black : headerTitleColor(currentEvent)),
       ),
     ],
     title: Row(
@@ -21,12 +21,12 @@ PreferredSizeWidget  appbar(BuildContext context, {required Widget destination})
           height: 35,
         ),
         const SizedBox(width: 10),
-        const CustomText(
+         CustomText(
           textLabel: 'Market Link',
           fontSize: 22,
           fontWeight: FontWeight.bold,
           letterSpacing: 1,
-          textColor: Colors.black,
+          textColor:  currentEvent == AppEvent.none? Colors.black : headerTitleColor(currentEvent),
         ),
       ],
     ),

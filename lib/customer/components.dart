@@ -9,8 +9,20 @@ import 'package:marketlinkapp/customer/product.dart';
 import 'package:marketlinkapp/customer/search.dart';
 import 'package:marketlinkapp/customer/service.dart';
 
-Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
-    String itemId, String itemName, String price, bool isProduct) {
+Widget itemDisplay(
+  BuildContext context,
+  String? imageUrl,
+  String userId,
+  String itemId,
+  String itemName,
+  String price,
+  bool isProduct,
+  bool hasPromo,
+  String discountedPrice,
+  String promoLabel,
+)
+ {
+  
   return FadeInLeft(
     child: Stack(
       children: [
@@ -46,6 +58,27 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
             ),
           ),
         ),
+        if (hasPromo)
+  Positioned(
+    top: 8,
+    right: 8,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.red.shade600,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        promoLabel,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ),
+  ),
+
         Positioned(
           bottom: 10,
           left: 10,
@@ -67,11 +100,35 @@ Widget itemDisplay(BuildContext context, String? imageUrl, String userId,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 5),
-                CustomText(
-                  textLabel: price,
-                  fontSize: 14,
-                  textColor: AppColors.white,
-                ),
+              if (hasPromo)
+  Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      CustomText(
+        textLabel: price,
+        fontSize: 14,
+        textColor: Colors.grey[300]!,
+        fontWeight: FontWeight.normal,
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+        fontStyle: FontStyle.normal,
+        decoration: TextDecoration.lineThrough,
+      ),
+      CustomText(
+        textLabel: discountedPrice,
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.orangeAccent,
+      ),
+    ],
+  )
+else
+  CustomText(
+    textLabel: price,
+    fontSize: 14,
+    textColor: AppColors.white,
+  ),
+
                 FutureBuilder<Map<String, dynamic>>(
                   future: getRating(itemId, isProduct),
                   builder: (context, ratingSnapshot) {

@@ -11,6 +11,7 @@ class CustomText extends StatelessWidget {
   final int maxLines;
   final TextOverflow overflow;
   final FontStyle fontStyle;
+  final TextDecoration decoration;
   const CustomText(
       {super.key,
       required this.textLabel,
@@ -20,6 +21,8 @@ class CustomText extends StatelessWidget {
       this.letterSpacing = 0,
       this.textAlign = TextAlign.start,
       this.maxLines = 1,
+      this.decoration = TextDecoration.none,
+
       this.overflow = TextOverflow.clip,
       this.fontStyle = FontStyle.normal});
 
@@ -35,6 +38,7 @@ class CustomText extends StatelessWidget {
           overflow: overflow,
           color: textColor,
           fontWeight: fontWeight,
+          decoration: decoration,
           letterSpacing: letterSpacing),
     );
   }

@@ -54,6 +54,7 @@ class SellerServiceDetails extends StatelessWidget {
   Widget build(BuildContext context) {
 late AppEvent currentEvent = getCurrentEvent();
     return Scaffold(
+   
       appBar: AppBar(
         leading: IconButton(
           onPressed: () {
@@ -86,10 +87,8 @@ late AppEvent currentEvent = getCurrentEvent();
         ),
       ),
       body: Container(decoration: BoxDecoration(
-          image: DecorationImage(image: 
-          AssetImage(backgroundImage(currentEvent)),
-          fit: BoxFit.cover)
-        ),
+          image: DecorationImage(image: currentEvent == AppEvent.none ? AssetImage(wallpaper(currentEvent)): AssetImage(backgroundImage(currentEvent)),fit: BoxFit.cover)
+         ),
         child: FutureBuilder<Map<String, dynamic>>(
           future: fetchServiceDetails(serviceId),
           builder: (context, snapshot) {
@@ -174,6 +173,11 @@ late AppEvent currentEvent = getCurrentEvent();
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       textColor: AppColors.textColor,
+                    ),   CustomText(
+                      textLabel: serviceId,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      textColor: AppColors.textColor,
                     ),
                     const Divider(height: 30, thickness: 1.5, color: Colors.grey),
         
@@ -210,6 +214,27 @@ late AppEvent currentEvent = getCurrentEvent();
                       ],
                     ),
                     const SizedBox(height: 10),
+                       if (service['promo'] != null && service['promo']['enabled'] == true) ...[
+  const SizedBox(height: 10),
+  Row(
+    children: [
+      CustomText(
+        textLabel: "Promo: ",
+        fontSize: 16,
+        textColor: currentEvent == AppEvent.none ? Colors.grey : Colors.black,
+      ),
+      CustomText(
+        textLabel: service['promo']['type'] == 'percentage'
+            ? "${service['promo']['value']}% OFF per item"
+            : "₱${service['promo']['value']} OFF per item",
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.green.shade700,
+      ),
+    ],
+  ),
+],
+const SizedBox(height: 10,),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

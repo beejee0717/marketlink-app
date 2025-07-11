@@ -135,7 +135,27 @@ class _CustomerServiceState extends State<CustomerService> {
             final serviceHours = service['serviceHours'];
             final currentUser =
                 Provider.of<UserProvider>(context, listen: false).user?.uid;
-        
+        final promo = (service['promo'] is Map<String, dynamic>)
+    ? service['promo'] as Map<String, dynamic>
+    : null;
+
+final bool hasPromo = promo?['enabled'] == true;
+final String promoType = promo?['type'] ?? '';
+final num promoValue = promo?['value'] ?? 0;
+
+String discountedPrice = price;
+
+if (hasPromo) {
+  final originalPrice = service['price'] ?? 0.0;
+  if (promoType == 'percentage') {
+    discountedPrice = (originalPrice * (1 - promoValue / 100))
+        .toStringAsFixed(2);
+  } else if (promoType == 'fixed') {
+    final discount = promoValue;
+    final discounted = (originalPrice - discount).clamp(0, double.infinity);
+    discountedPrice = discounted.toStringAsFixed(2);
+  }
+}
             return FutureBuilder<Map<String, dynamic>>(
               future: fetchSellerDetails(sellerId),
               builder: (context, sellerSnapshot) {
@@ -206,11 +226,51 @@ class _CustomerServiceState extends State<CustomerService> {
                           fontSize: 20,
                         ),
                         const SizedBox(height: 8),
-                        CustomText(
-                          textLabel: '₱$price',
-                          fontSize: 20,
-                          textColor: AppColors.primary,
-                        ),
+                             if (hasPromo) ...[
+  Row(
+    children: [
+      CustomText(
+        textLabel: '₱$price',
+        fontSize: 18,
+        textColor: Colors.grey,
+        fontWeight: FontWeight.normal,
+        decoration: TextDecoration.lineThrough,
+      ),
+      const SizedBox(width: 8),
+      CustomText(
+        textLabel: '₱$discountedPrice',
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.orange,
+      ),
+    ],
+  ),
+  const SizedBox(height: 6),
+  Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: Colors.red.shade600,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      promoType == 'percentage'
+          ? '$promoValue% OFF'
+          : '₱${promoValue.toStringAsFixed(2)} OFF',
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 12,
+      ),
+    ),
+  ),
+] else ...[
+  CustomText(
+    textLabel: '₱$price',
+    fontSize: 20,
+    textColor: productDetails(currentEvent),
+  ),
+],
+
                         const SizedBox(height: 8),
                         FutureBuilder<Map<String, dynamic>>(
                           future: getRating(widget.serviceId, false),
@@ -337,13 +397,14 @@ class _CustomerServiceState extends State<CustomerService> {
         selectedTime.minute,
             );
         
-            showBookDialog(
-        widget.serviceId,
-        title,
-        sellerId,
-        priceInDouble,
-        selectedDateTime,
-            );
+         showBookDialog(
+  widget.serviceId,
+  title,
+  sellerId,
+  double.parse(discountedPrice),
+  selectedDateTime,
+);
+
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primary,
@@ -840,172 +901,7 @@ class _CustomerServiceState extends State<CustomerService> {
     );
   }
 
-  void showAddToCartDialog(String serviceId, String sellerId) {
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    int quantity = 1;
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        return Dialog(
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Container(
-                padding:
-                    const EdgeInsets.all(20),
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CustomText(
-                        textLabel: "Add to Cart",
-                        fontSize: 20,
-                        letterSpacing: 1,
-                        fontWeight: FontWeight.bold,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 30),
-                      const CustomText(
-                        textLabel: "Enter the quantity:",
-                        fontSize: 16,
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            onPressed: () {
-                              if (quantity > 1) {
-                                setState(() {
-                                  quantity--;
-                                });
-                              }
-                            },
-                            icon: const Icon(Icons.remove_circle_outline,
-                                color: Colors.red),
-                          ),
-                          SizedBox(
-                            width: 60,
-                            child: TextFormField(
-                              readOnly: true,
-                              key: ValueKey(quantity),
-                              initialValue: quantity.toString(),
-                              textAlign: TextAlign.center,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              validator: (value) {
-                                final int? input = int.tryParse(value ?? "");
-                                if (input == null || input <= 0) {
-                                  return "Invalid quantity";
-                                }
-                                return null;
-                              },
-                              onChanged: (value) {
-                                final int? input = int.tryParse(value);
-                                if (input != null && input > 0) {
-                                  setState(() {
-                                    quantity = input;
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () {
-                              setState(() {
-                                quantity++;
-                              });
-                            },
-                            icon: Icon(Icons.add_circle_outline,
-                                color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 30),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () {
-                              navPop(context);
-                            },
-                            child: const CustomText(
-                              textLabel: 'Cancel',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              if (!formKey.currentState!.validate()) {
-                                errorSnackbar(
-                                    context, 'Please enter a valid number.');
-                                return;
-                              }
-
-                              await addToCart(serviceId, sellerId, quantity);
-                              if (!context.mounted) return;
-                              navPop(context);
-                              successSnackbar(
-                                  context, "Service added to cart.");
-                            },
-                            child: const CustomText(
-                              textLabel: 'Confirm',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> addToCart(
-      String serviceId, String sellerId, int quantity) async {
-    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-    if (userId == null) {
-      errorSnackbar(context, "You must be logged in to add to cart.");
-      return;
-    }
-
-    final cartRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('cart')
-        .doc(serviceId);
-
-    final cartDoc = await cartRef.get();
-
-    if (cartDoc.exists) {
-      await cartRef.update({
-        'quantity': FieldValue.increment(quantity),
-      });
-    } else {
-      await cartRef.set({
-        'sellerId': sellerId,
-        'quantity': quantity,
-      });
-    }
-  }
+ 
 
   Future<void> addToWishlist(String serviceId, String sellerId) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
@@ -1151,10 +1047,28 @@ Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) asy
     }
 
     final serviceData = serviceSnapshot.data()!;
-    final double price = (serviceData['price'] as num).toDouble();
+    final double originalPrice = (serviceData['price'] as num).toDouble();
     final String serviceName = serviceData['serviceName'];
     final String serviceDescription = serviceData['description'];
     final String category = serviceData['category'] ?? "Uncategorized";
+
+    final promo = (serviceData['promo'] is Map<String, dynamic>)
+        ? serviceData['promo'] as Map<String, dynamic>
+        : null;
+
+    final bool hasPromo = promo?['enabled'] == true;
+    final String promoType = promo?['type'] ?? '';
+    final num promoValue = promo?['value'] ?? 0;
+
+    double finalPrice = originalPrice;
+
+    if (hasPromo) {
+      if (promoType == 'percentage') {
+        finalPrice = originalPrice * (1 - promoValue / 100);
+      } else if (promoType == 'fixed') {
+        finalPrice = (originalPrice - promoValue).clamp(0, double.infinity);
+      }
+    }
 
     final bookingId = FirebaseFirestore.instance.collection('bookings').doc().id;
     final bookingRef = FirebaseFirestore.instance.collection('bookings').doc(bookingId);
@@ -1166,18 +1080,18 @@ Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) asy
       'sellerId': sellerId,
       'dateBooked': dateBooked,
       'dateOrdered': now,
+      'price': finalPrice, 
       'status': 'pending',
     });
 
-    final historyRef = FirebaseFirestore.instance
-        .collection('bookingHistory');
+    final historyRef = FirebaseFirestore.instance.collection('bookingHistory');
 
     await historyRef.add({
       'serviceId': serviceId,
       'serviceName': serviceName,
       'description': serviceDescription,
       'category': category,
-      'price': price,
+      'price': finalPrice, 
       'dateBooked': dateBooked,
       'timestamp': now,
     });

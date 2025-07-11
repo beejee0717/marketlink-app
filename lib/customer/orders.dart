@@ -104,7 +104,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
       bookings.add({
         'serviceId': serviceId,
         'serviceName': serviceData['serviceName'],
-        'price': serviceData['price'],
+        'price': bookingData['price'],
         'serviceLocation': serviceData['serviceLocation'],
         'dateBooked': bookingData['dateBooked'],
         'status': bookingData['status'],
@@ -385,7 +385,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
     ? null
     : type == 'delivered'
         ? IconButton(
-            icon:  Icon(Icons.image, color: AppColors.yellow),
+            icon:  Icon(Icons.image, color: AppColors.primary),
             onPressed: () async {
               final orderId = order['orderId'];
 

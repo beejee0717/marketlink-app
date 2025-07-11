@@ -10,6 +10,9 @@ class ChatProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> _chatRooms = [];
   bool _isLoading = true;
+  Map<String, dynamic>? userData;
+
+String? role;
 
   List<Map<String, dynamic>> get chatRooms => _chatRooms;
   bool get isLoading => _isLoading;
@@ -32,23 +35,41 @@ class ChatProvider with ChangeNotifier {
         var docId = doc.id;
         String otherUserId = docId.split('_').firstWhere((id) => id != userId);
 
-        var userDoc =
-            await _firestore.collection('sellers').doc(otherUserId).get();
-        var userData = userDoc.exists ? userDoc.data() : null;
+    
 
-        if (userData == null) {
-          userDoc =
-              await _firestore.collection('customers').doc(otherUserId).get();
-          userData = userDoc.data();
-        }
+var sellerDoc = await _firestore.collection('sellers').doc(otherUserId).get();
+if (sellerDoc.exists) {
+  userData = sellerDoc.data();
+  role = 'seller';
+}
 
-        return {
-          'chatRoomId': doc.id,
-          'otherUserId': otherUserId,
-          'otherName': '${userData?['firstName']} ${userData?['lastName']}',
-          'firstName': userData?['firstName'],
-          'profilePicture': userData?['profilePicture'] ?? '',
-        };
+if (userData == null) {
+  var riderDoc = await _firestore.collection('riders').doc(otherUserId).get();
+  if (riderDoc.exists) {
+    userData = riderDoc.data();
+    role = 'rider';
+  }
+}
+
+if (userData == null) {
+  var customerDoc =
+      await _firestore.collection('customers').doc(otherUserId).get();
+  if (customerDoc.exists) {
+    userData = customerDoc.data();
+    role = 'customer';
+  }
+}
+
+
+      return {
+  'chatRoomId': doc.id,
+  'otherUserId': otherUserId,
+  'otherName': '${userData?['firstName']} ${userData?['lastName']}',
+  'firstName': userData?['firstName'],
+  'profilePicture': userData?['profilePicture'] ?? '',
+  'role': role, 
+};
+
       }).toList());
 
       _isLoading = false;

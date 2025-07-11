@@ -299,6 +299,20 @@ Stream<int> fetchBookings() {
   }
 
 ///////////////////
+String calculateDiscountedPrice(double price, num value, String type) {
+  double discounted;
+  if (type == 'percentage') {
+    discounted = price - (price * (value / 100));
+  } else if (type == 'fixed') {
+    discounted = price - value;
+  } else {
+    discounted = price;
+  }
+
+  return discounted < 0 ? '0' : discounted.toStringAsFixed(0);
+}
+
+
 
   Stream<bool> getSellerApprovalStatus(String? sellerId) {
     return FirebaseFirestore.instance
@@ -635,13 +649,22 @@ Stream<int> fetchBookings() {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) {
-                        final product = snapshot.data![index];
-        
-                        final productName =
-                            product['productName'] ?? "Unnamed Product";
-                        final category = product['category'] ?? "Uncategorized";
-                        final price =
-                            product['price']?.toStringAsFixed(0) ?? "No Price";
+                     final product = snapshot.data![index];
+  final data = product.data() as Map<String, dynamic>?;
+
+final productName = data?['productName'] ?? "Unnamed Product";
+final category = data?['category'] ?? "Uncategorized";
+final price = data?['price']?.toDouble() ?? 0.0;
+
+final promo = (data?['promo'] is Map<String, dynamic>)
+    ? data!['promo'] as Map<String, dynamic>
+    : null;
+
+final isPromo = promo?['enabled'] == true;
+final promoType = promo?['type'];
+final promoValue = promo?['value'];
+
+
                         return Card(
                           color: AppColors.transparentWhite,
                           elevation: 2,
@@ -650,55 +673,114 @@ Stream<int> fetchBookings() {
                           ),
                           margin: const EdgeInsets.only(bottom: 10),
                           child: ListTile(
-                            title: CustomText(
-                              textLabel: productName,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      textLabel: "Price: ",
-                                      fontSize: 14,
-                                      textColor: Colors.black87,
-                                    ),
-                                    CustomText(
-                                      textLabel: '₱$price',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      textColor: Colors.orange,
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      textLabel: "Category: ",
-                                      fontSize: 14,
-                                      textColor: Colors.black87,
-                                    ),
-                                    CustomText(
-                                      textLabel: category,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: AppColors.yellow,
-                            ),
-                            onTap: () {
-                              navPush(context,
-                                  SellerProductDetails(productId: product.id));
-                            },
-                          ),
-                        );
+title: Row(
+  children: [
+    Expanded(
+      child: CustomText(
+        textLabel: productName,
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    if (isPromo)
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.red.shade600,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: CustomText(
+          textLabel: promoType == 'percentage'
+              ? "$promoValue% OFF"
+              : "₱${promoValue.toStringAsFixed(2)} OFF",
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          textColor: Colors.white,
+        ),
+      ),
+  ],
+),
+subtitle: Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    const SizedBox(height: 4),
+    if (isPromo && promoType != null && promoValue != null) ...[
+   Row(
+  children: [
+    CustomText(
+      textLabel: "Price: ",
+      fontSize: 14,
+      textColor: Colors.black87,
+    ),
+    if (isPromo) ...[
+      CustomText(
+        textLabel: "₱${price.toStringAsFixed(0)}",
+        fontSize: 14,
+        textColor: Colors.grey,
+        fontWeight: FontWeight.normal,
+        decoration: TextDecoration.lineThrough,
+      ),
+      const SizedBox(width: 5),
+      CustomText(
+        textLabel: promoType == 'percentage'
+            ? '₱${(price * (1 - (promoValue ?? 0) / 100)).toStringAsFixed(0)}'
+            : '₱${(price - (promoValue ?? 0)).toStringAsFixed(0)}',
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.orange,
+      ),
+    ] else ...[
+      CustomText(
+        textLabel: '₱${price.toStringAsFixed(0)}',
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.orange,
+      ),
+    ],
+  ],
+),
+  ] else ...[
+      Row(
+        children: [
+          CustomText(
+            textLabel: "Price: ",
+            fontSize: 14,
+            textColor: Colors.black87,
+          ),
+          CustomText(
+            textLabel: '₱$price',
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            textColor: Colors.orange,
+          ),
+        ],
+      ),
+    ],
+    Row(
+      children: [
+        CustomText(
+          textLabel: "Category: ",
+          fontSize: 14,
+          textColor: Colors.black87,
+        ),
+        CustomText(
+          textLabel: category,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+      ],
+    ),
+  ],
+),
+  trailing: Icon(
+    Icons.chevron_right,
+    color: AppColors.yellow,
+  ),
+  onTap: () {
+    navPush(context, SellerProductDetails(productId: product.id));
+  },
+),
+   );
                       },
                     );
                   }
@@ -762,73 +844,132 @@ Stream<int> fetchBookings() {
                       itemCount: snapshot.data!.length,
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        final service = snapshot.data![index];
-        
-                        final productName =
-                            service['serviceName'] ?? "Unnamed Service";
-                        final category = service['category'] ?? "Uncategorized";
-                        final price =
-                            service['price']?.toStringAsFixed(0) ?? "No Price";
-                        return Card(
-                          color: AppColors.transparentWhite,
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: ListTile(
-                            title: CustomText(
-                              textLabel: productName,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      textLabel: "Price: ",
-                                      fontSize: 14,
-                                      textColor: Colors.black87,
-                                    ),
-                                    CustomText(
-                                      textLabel: '₱$price',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      textColor: Colors.orange,
-                                    ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    CustomText(
-                                      textLabel: "Category: ",
-                                      fontSize: 14,
-                                      textColor: Colors.black87,
-                                    ),
-                                    CustomText(
-                                      textLabel: category,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            trailing: Icon(
-                              Icons.chevron_right,
-                              color: AppColors.yellow,
-                            ),
-                            onTap: () {
-                              navPush(context,
-                                  SellerServiceDetails(serviceId: service.id));
-                            },
-                          ),
-                        );
-                      },
-                    );
+               itemBuilder: (context, index) {
+  final service = snapshot.data![index];
+  final data = service.data() as Map<String, dynamic>?;
+
+  final promo = (data?['promo'] is Map<String, dynamic>)
+      ? data!['promo'] as Map<String, dynamic>
+      : null;
+
+  final isPromo = promo?['enabled'] == true;
+  final promoType = promo?['type'];
+  final promoValue = promo?['value'];
+
+  final productName = data?['serviceName'] ?? "Unnamed Service";
+  final category = data?['category'] ?? "Uncategorized";
+  final price = data?['price']?.toDouble() ?? 0.0;
+
+  double discountedPrice = price;
+  if (isPromo) {
+    if (promoType == 'percentage') {
+      discountedPrice = price - (price * (promoValue ?? 0) / 100);
+    } else if (promoType == 'fixed') {
+      discountedPrice = price - (promoValue ?? 0);
+    }
+    if (discountedPrice < 0) discountedPrice = 0;
+  }
+
+  return Card(
+    color: AppColors.transparentWhite,
+    elevation: 2,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(10),
+    ),
+    margin: const EdgeInsets.only(bottom: 10),
+    child: ListTile(
+      title: Row(
+        children: [
+          Expanded(
+            child: CustomText(
+              textLabel: productName,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (isPromo)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: CustomText(
+                textLabel: promoType == 'percentage'
+                    ? "${promoValue.toStringAsFixed(2)}% OFF"
+                    : "₱${promoValue.toStringAsFixed(2)} OFF",
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                textColor: Colors.white,
+              ),
+            ),
+        ],
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              CustomText(
+                textLabel: "Price: ",
+                fontSize: 14,
+                textColor: Colors.black87,
+              ),
+              if (isPromo) ...[
+                CustomText(
+                  textLabel: "₱${price.toStringAsFixed(0)}",
+                  fontSize: 14,
+                  textColor: Colors.grey,
+                  fontWeight: FontWeight.normal,
+                 
+                    decoration: TextDecoration.lineThrough,
+                  
+                ),
+                const SizedBox(width: 5),
+                CustomText(
+                  textLabel: "₱${discountedPrice.toStringAsFixed(0)}",
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  textColor: Colors.orange,
+                ),
+              ] else ...[
+                CustomText(
+                  textLabel: '₱${price.toStringAsFixed(0)}',
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  textColor: Colors.orange,
+                ),
+              ],
+            ],
+          ),
+          Row(
+            children: [
+              CustomText(
+                textLabel: "Category: ",
+                fontSize: 14,
+                textColor: Colors.black87,
+              ),
+              CustomText(
+                textLabel: category,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+            ],
+          ),
+        ],
+      ),
+      trailing: Icon(
+        Icons.chevron_right,
+        color: AppColors.yellow,
+      ),
+      onTap: () {
+        navPush(context, SellerServiceDetails(serviceId: service.id));
+      },
+    ),
+  );
+}
+     );
                   }
                 },
               ),
@@ -894,6 +1035,7 @@ Stream<int> fetchBookings() {
                         final status = order['status'];
                         final formattedDate = DateFormat('MM/dd/yyyy hh:mm a')
                             .format(order['dateOrdered'].toDate());
+                            
         
                         return Card(
                           color: AppColors.transparentWhite,

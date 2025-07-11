@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/debugging.dart';
@@ -64,10 +63,32 @@ class _OrderDetailsState extends State<OrderDetails> {
       }
 
       productData = productSnapshot.data();
-      debugging("Product Data: $productData");
+      // debugging("Product Data: $productData");
 
       final sellerId = productData?['sellerId'];
-      totalPrice = (productData?['price'] ?? 0).toDouble() + shippingFee;
+   
+   final double originalPrice = (productData?['price'] ?? 0).toDouble();
+double finalPrice = originalPrice;
+
+final promo = productData?['promo'];
+final hasPromo = promo != null && promo['enabled'] == true;
+
+if (hasPromo) {
+  final promoType = promo['type'];
+  final promoValue = (promo['value'] ?? 0).toDouble();
+
+  if (promoType == 'percentage') {
+    finalPrice -= (originalPrice * promoValue / 100);
+  } else if (promoType == 'fixed') {
+    finalPrice -= promoValue;
+  }
+
+  finalPrice = finalPrice.clamp(0, double.infinity);
+}
+
+totalPrice = finalPrice * quantity + shippingFee;
+
+productData?['finalPrice'] = finalPrice;
 
       if (sellerId != null) {
         final sellerSnapshot = await FirebaseFirestore.instance
@@ -98,16 +119,38 @@ class _OrderDetailsState extends State<OrderDetails> {
     }
   }
 
-  void updateTotalPrice() {
-    double unitPrice = (productData?['price'] ?? 0).toDouble();
-    setState(() {
-      totalPrice = unitPrice * quantity + shippingFee;
-    });
+void updateTotalPrice() {
+  double basePrice = (productData?['price'] ?? 0).toDouble();
+
+  final promo = productData?['promo'];
+  final hasPromo = promo != null && promo['enabled'] == true;
+
+  if (hasPromo) {
+    final promoType = promo['type'];
+    final promoValue = (promo['value'] ?? 0).toDouble();
+
+    if (promoType == 'percentage') {
+      basePrice -= basePrice * (promoValue / 100);
+    } else if (promoType == 'fixed') {
+      basePrice -= promoValue;
+    }
+
+    basePrice = basePrice.clamp(0, double.infinity);
+    productData?['finalPrice'] = basePrice;
   }
+
+  setState(() {
+    totalPrice = basePrice * quantity + shippingFee;
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
     String selectedPaymentMethod = "Cash on Delivery";
+final double originalPrice = (productData?['price'] ?? 0).toDouble();
+final double finalPrice = (productData?['finalPrice'] ?? originalPrice).toDouble();
+final hasPromo = productData?['promo']?['enabled'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -165,17 +208,33 @@ class _OrderDetailsState extends State<OrderDetails> {
                       fontWeight: FontWeight.bold,
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const CustomText(textLabel: 'Price: ', fontSize: 18),
-                        CustomText(
-                          textLabel:
-                              '₱${(productData?['price'] ?? 0).toStringAsFixed(2)}',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        )
-                      ],
-                    ),
+               Row(
+  children: [
+    const CustomText(textLabel: 'Price: ', fontSize: 18),
+    if (hasPromo) ...[
+      CustomText(
+        textLabel: '₱${originalPrice.toStringAsFixed(2)} ',
+        fontSize: 16,
+        textColor: Colors.grey,
+        fontWeight: FontWeight.normal,
+        decoration: TextDecoration.lineThrough,
+      ),
+      const SizedBox(width: 5),
+      CustomText(
+        textLabel: '₱${finalPrice.toStringAsFixed(2)}',
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.orange,
+      ),
+    ] else
+      CustomText(
+        textLabel: '₱${originalPrice.toStringAsFixed(2)}',
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      )
+  ],
+),
+
                     const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -382,9 +441,28 @@ class _OrderDetailsState extends State<OrderDetails> {
     }
 
     final productData = productSnapshot.data()!;
-    final double price = (productData['price'] as num).toDouble();
     final String sellerId = productData['sellerId'];
-    final double totalPayment = price * quantity + shippingFee;
+    double originalPrice = (productData['price'] as num).toDouble();
+double finalPrice = originalPrice;
+
+final promo = productData['promo'];
+final hasPromo = promo != null && promo['enabled'] == true;
+
+if (hasPromo) {
+  final promoType = promo['type'];
+  final promoValue = (promo['value'] ?? 0).toDouble();
+
+  if (promoType == 'percentage') {
+    finalPrice -= originalPrice * (promoValue / 100);
+  } else if (promoType == 'fixed') {
+    finalPrice -= promoValue;
+  }
+
+  finalPrice = finalPrice.clamp(0, double.infinity);
+}
+
+final double totalPayment = finalPrice * quantity + shippingFee;
+
 
     final now = DateTime.now();
     final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
@@ -395,7 +473,7 @@ class _OrderDetailsState extends State<OrderDetails> {
       'orderId': orderId,
       'customerId': userId,
       'productId': productId,
-      'price': price,
+      'price': finalPrice,
       'totalPayment':totalPayment,
       'sellerId': sellerId,
       'quantity': quantity,

@@ -28,15 +28,19 @@ class _SellerEditProductState extends State<SellerEditProduct> {
   final stockController = TextEditingController();
   final descriptionController = TextEditingController();
   final materialsController = TextEditingController();
+  final promoValueController = TextEditingController();
   late AppEvent currentEvent = getCurrentEvent();
+
   String? selectedCategory;
   String? localImagePath;
   String? existingImagePath;
+  String? selectedPromoType;
 
   String? selectedLocation;
   List<String> locations = [];
   final formKey = GlobalKey<FormState>();
   bool isLoading = false;
+  bool hasPromo = false;
 
   @override
   void initState() {
@@ -58,16 +62,28 @@ class _SellerEditProductState extends State<SellerEditProduct> {
 
       if (doc.exists) {
         final data = doc.data()!;
-        setState(() {
-          productNameController.text = data['productName'] ?? '';
-          priceController.text = data['price']?.toString() ?? '';
-          stockController.text = data['stock']?.toString() ?? '';
-          descriptionController.text = data['description'] ?? '';
-          materialsController.text = data['materials'] ?? '';
-          selectedCategory = data['category'] ?? 'Uncategorized';
-          selectedLocation = data['pickupLocation'] ?? '';
-          existingImagePath = data['imageUrl'];
-        });
+   setState(() {
+  productNameController.text = data['productName'] ?? '';
+  priceController.text = data['price']?.toString() ?? '';
+  stockController.text = data['stock']?.toString() ?? '';
+  descriptionController.text = data['description'] ?? '';
+  materialsController.text = data['materials'] ?? '';
+  selectedCategory = data['category'] ?? 'Uncategorized';
+  selectedLocation = data['pickupLocation'] ?? '';
+  existingImagePath = data['imageUrl'];
+
+  final promo = data['promo'];
+  if (promo != null && promo['enabled'] == true) {
+    hasPromo = true;
+    selectedPromoType = promo['type'];
+    promoValueController.text = promo['value'].toString();
+  } else {
+    hasPromo = false;
+    selectedPromoType = null;
+    promoValueController.clear();
+  }
+});
+
       } else {
         if (!mounted) return;
         errorSnackbar(context, 'Product not found.');
@@ -190,6 +206,16 @@ class _SellerEditProductState extends State<SellerEditProduct> {
       'description': descriptionController.text.trim(),
       'imageUrl': imageUrl,
       'pickupLocation': selectedLocation,
+      "promo": hasPromo
+    ? {
+        "enabled": true,
+        "type": selectedPromoType,
+        "value": double.tryParse(promoValueController.text) ?? 0,
+      }
+    : {
+        "enabled": false,
+      },
+
     });
 
     if (!mounted) return;
@@ -367,7 +393,145 @@ class _SellerEditProductState extends State<SellerEditProduct> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20),
+  const SizedBox(height: 20),
+Row(
+  children: [
+    Checkbox(
+      value: hasPromo,
+      onChanged: (value) {
+        setState(() {
+          hasPromo = value ?? false;
+          if (!hasPromo) {
+            selectedPromoType = null;
+            promoValueController.clear();
+          }
+        });
+      },
+    ),
+    const CustomText(
+      textLabel: "Add Promo",
+      fontSize: 16,
+      fontWeight: FontWeight.bold,
+    ),
+  ],
+),
+if (hasPromo) ...[
+  const SizedBox(height: 10),
+  Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      const CustomText(
+        textLabel: "Promo Type",
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+      IconButton(
+        icon: Icon(
+          Icons.info_outline,
+          size: 20,
+          color: Colors.grey.shade700,
+        ),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (context) {
+              return AlertDialog(
+                title: const Text("Promo Type Info"),
+                content: const Text(
+                  "Promos are applied per item.\n\n"
+                  "• Percentage: Deducts a percentage of the price for each item.\n"
+                  "   Example: 10 = 10% off each item\n\n"
+                  "• Fixed Amount: Deducts a peso amount per item.\n"
+                  "   Example: 50 = ₱50 off per item\n\n"
+                  "If the buyer purchases multiple quantities, the discount is applied to each one.",
+                  style: TextStyle(fontSize: 14),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text("Got it"),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      ),
+    ],
+  ),
+  const SizedBox(height: 10),
+  DropdownButtonFormField<String>(
+    value: selectedPromoType,
+    decoration: InputDecoration(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    ),
+    hint: const Text("Select promo type"),
+    items: const [
+      DropdownMenuItem(value: "percentage", child: Text("Percentage")),
+      DropdownMenuItem(value: "fixed", child: Text("Fixed Amount")),
+    ],
+    onChanged: (value) {
+      setState(() {
+        selectedPromoType = value;
+      });
+    },
+    validator: (value) {
+      if (hasPromo && (value == null || value.isEmpty)) {
+        return "Select a promo type";
+      }
+      return null;
+    },
+  ),
+  const SizedBox(height: 20),
+  const CustomText(
+    textLabel: "Promo Value",
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+  ),
+  const SizedBox(height: 10),
+TextFormField(
+  controller: promoValueController,
+  keyboardType: TextInputType.number,
+  decoration: InputDecoration(
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+    hintText: selectedPromoType == "percentage"
+        ? "Enter percentage (e.g. 20)"
+        : "Enter fixed amount (e.g. 100)",
+  ),
+  validator: (value) {
+    if (hasPromo) {
+      if (value == null || value.trim().isEmpty) {
+        return "Promo value is required";
+      }
+
+      final promoValue = double.tryParse(value);
+      final priceValue = double.tryParse(priceController.text);
+
+      if (promoValue == null) {
+        return "Enter a valid number";
+      }
+
+      if (selectedPromoType == "fixed" && priceValue != null) {
+        if (promoValue >= priceValue) {
+          return "Fixed discount must be less than product price";
+        }
+      }
+
+      if (selectedPromoType == "percentage") {
+        if (promoValue >= 100) {
+          return "Percentage must be less than 100%";
+        }
+      }
+    }
+    return null;
+  },
+),
+
+ const SizedBox(height: 20),
+],
+
+
+  const SizedBox(height: 20),
                     const CustomText(
                       textLabel: "Stock Quantity",
                       fontSize: 16,

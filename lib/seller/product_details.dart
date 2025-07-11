@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
-import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:marketlinkapp/seller/edit_product.dart';
 import 'package:marketlinkapp/seller/seller.dart';
@@ -51,8 +50,7 @@ class SellerProductDetails extends StatelessWidget {
   late AppEvent currentEvent = getCurrentEvent();
 
     return Scaffold(
-      backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade900 :  backgroundColor(currentEvent),
-      appBar: AppBar(
+       appBar: AppBar(
         leading: IconButton(
           onPressed: () {
             navPop(context);
@@ -85,7 +83,7 @@ class SellerProductDetails extends StatelessWidget {
       ),
       body: Container(
         decoration: BoxDecoration(
-          image: DecorationImage(image: currentEvent == AppEvent.none ? AssetImage(wallpaper(currentEvent)): AssetImage(backgroundImage(currentEvent)))
+          image: DecorationImage(image: currentEvent == AppEvent.none ? AssetImage(wallpaper(currentEvent)): AssetImage(backgroundImage(currentEvent)),fit: BoxFit.cover)
         ),
         child: FutureBuilder<Map<String, dynamic>>(
           future: fetchProductDetails(productId),
@@ -172,6 +170,12 @@ class SellerProductDetails extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                       textColor: AppColors.textColor,
                     ),
+                     CustomText(
+                      textLabel: productId,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      textColor: AppColors.textColor,
+                    ),
                      Divider(height: 30, thickness: 1.5, color: currentEvent == AppEvent.none ?Colors.grey:Colors.black),
         
                     Row(
@@ -207,6 +211,27 @@ class SellerProductDetails extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
+                    if (product['promo'] != null && product['promo']['enabled'] == true) ...[
+  const SizedBox(height: 10),
+  Row(
+    children: [
+      CustomText(
+        textLabel: "Promo: ",
+        fontSize: 16,
+        textColor: currentEvent == AppEvent.none ? Colors.grey : Colors.black,
+      ),
+      CustomText(
+        textLabel: product['promo']['type'] == 'percentage'
+            ? "${product['promo']['value']}% OFF per item"
+            : "₱${product['promo']['value']} OFF per item",
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        textColor: Colors.green.shade700,
+      ),
+    ],
+  ),
+],
+const SizedBox(height: 10,),
                     Row(
                       children: [
                          CustomText(

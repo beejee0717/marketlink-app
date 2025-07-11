@@ -25,19 +25,18 @@ class _SellerAddProductState extends State<SellerAddProduct> {
   final priceController = TextEditingController();
   final stockController = TextEditingController();
   final descriptionController = TextEditingController();
+  final promoValueController = TextEditingController();
   final materialsController = TextEditingController();
   late AppEvent currentEvent = getCurrentEvent();
   String? selectedCategory;
   String? localImagePath;
   String? selectedLocation;
+  String? selectedPromoType;
   List<String> locations = [];
   final formKey = GlobalKey<FormState>();
   bool isLoading = false;
   bool? showWarning;
-
-
-
-
+  bool hasPromo = false;
 
   @override
   void initState() {
@@ -97,84 +96,92 @@ class _SellerAddProductState extends State<SellerAddProduct> {
     }
   }
 
-Future<void> addProduct(String sellerId) async {
-  FocusManager.instance.primaryFocus?.unfocus();
+  Future<void> addProduct(String sellerId) async {
+    FocusManager.instance.primaryFocus?.unfocus();
 
-  if (!formKey.currentState!.validate()) {
-    return;
-  }
-  if (localImagePath == null) {
-    errorSnackbar(context, 'Please upload a product image.');
-    return;
-  }
-  setState(() {
-    isLoading = true;
-  });
-
-  try {
-    final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
-        File(localImagePath!));
-
-    if (cloudinaryUrl == null) {
-      if (!mounted) return;
-      errorSnackbar(context, 'Failed to upload product image.');
+    if (!formKey.currentState!.validate()) {
       return;
     }
-    if (selectedLocation == null || selectedLocation == "AddNew") {
-      if (!mounted) return;
-      errorSnackbar(context, 'Please select a valid pickup location.');
+    if (localImagePath == null) {
+      errorSnackbar(context, 'Please upload a product image.');
       return;
     }
-
-    List<String> searchKeywords = productNameController.text
-        .trim()
-        .toLowerCase()
-        .split(' ')
-        .toSet()
-        .toList(); 
-
-    await FirebaseFirestore.instance.collection('products').add({
-      'productName': productNameController.text.trim(),
-      'searchKeywords': searchKeywords, 
-      'category': selectedCategory ?? "Uncategorized",
-      'price': double.parse(priceController.text.trim()),
-      'stock': int.parse(stockController.text.trim()),
-      'materials': materialsController.text.trim(),
-      'description': descriptionController.text.trim(),
-      'sellerId': sellerId,
-      'imageUrl': cloudinaryUrl,
-      'pickupLocation': selectedLocation,
-      'dateCreated': FieldValue.serverTimestamp(),
-    });
-
-    if (!mounted) return;
-    successSnackbar(context, "Product added successfully!");
-
-    productNameController.clear();
-    priceController.clear();
-    stockController.clear();
-    descriptionController.clear();
-    materialsController.clear();
     setState(() {
-      selectedCategory = null;
-      localImagePath = null;
-      selectedLocation = null;
+      isLoading = true;
     });
 
-    if (showWarning != null && showWarning == true) {
-      showWarningDialog();
-    } else {
-      navPushRemove(context, const SellerHome());
+    try {
+      final cloudinaryUrl = await CloudinaryService.uploadImageToCloudinary(
+          File(localImagePath!));
+
+      if (cloudinaryUrl == null) {
+        if (!mounted) return;
+        errorSnackbar(context, 'Failed to upload product image.');
+        return;
+      }
+      if (selectedLocation == null || selectedLocation == "AddNew") {
+        if (!mounted) return;
+        errorSnackbar(context, 'Please select a valid pickup location.');
+        return;
+      }
+
+      List<String> searchKeywords = productNameController.text
+          .trim()
+          .toLowerCase()
+          .split(' ')
+          .toSet()
+          .toList();
+
+      await FirebaseFirestore.instance.collection('products').add({
+        'productName': productNameController.text.trim(),
+        'searchKeywords': searchKeywords,
+        'category': selectedCategory ?? "Uncategorized",
+        'price': double.parse(priceController.text.trim()),
+        'stock': int.parse(stockController.text.trim()),
+        'materials': materialsController.text.trim(),
+        'description': descriptionController.text.trim(),
+        'sellerId': sellerId,
+        'imageUrl': cloudinaryUrl,
+        'pickupLocation': selectedLocation,
+        'dateCreated': FieldValue.serverTimestamp(),
+        "promo": hasPromo
+            ? {
+                "enabled": true,
+                "type": selectedPromoType,
+                "value": double.tryParse(promoValueController.text) ?? 0,
+              }
+            : {
+                "enabled": false,
+              },
+      });
+
+      if (!mounted) return;
+      successSnackbar(context, "Product added successfully!");
+
+      productNameController.clear();
+      priceController.clear();
+      stockController.clear();
+      descriptionController.clear();
+      materialsController.clear();
+      setState(() {
+        selectedCategory = null;
+        localImagePath = null;
+        selectedLocation = null;
+      });
+
+      if (showWarning != null && showWarning == true) {
+        showWarningDialog();
+      } else {
+        navPushRemove(context, const SellerHome());
+      }
+    } catch (e) {
+      errorSnackbar(context, 'Failed to add product.');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
-  } catch (e) {
-    errorSnackbar(context, 'Failed to add product.');
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -200,27 +207,31 @@ Future<void> addProduct(String sellerId) async {
               onPressed: () {
                 navPop(context);
               },
-              icon:  Icon(
+              icon: Icon(
                 Icons.arrow_back,
-                color: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
+                color: currentEvent == AppEvent.none
+                    ? Colors.white
+                    : headerTitleColor(currentEvent),
               ),
             ),
-            backgroundColor: currentEvent == AppEvent.none ? Colors.purple.shade800 : backgroundColor(currentEvent),
-            title:  CustomText(
+            backgroundColor: currentEvent == AppEvent.none
+                ? Colors.purple.shade800
+                : backgroundColor(currentEvent),
+            title: CustomText(
               textLabel: "Add Product",
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              textColor: currentEvent == AppEvent.none ? Colors.white : headerTitleColor(currentEvent),
+              textColor: currentEvent == AppEvent.none
+                  ? Colors.white
+                  : headerTitleColor(currentEvent),
             ),
             centerTitle: true,
           ),
           body: Container(
             decoration: BoxDecoration(
-              image: DecorationImage(image: 
-              AssetImage(backgroundImage(currentEvent)),
-              fit: BoxFit.cover
-              )
-            ),
+                image: DecorationImage(
+                    image: AssetImage(backgroundImage(currentEvent)),
+                    fit: BoxFit.cover)),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -335,6 +346,145 @@ Future<void> addProduct(String sellerId) async {
                       },
                     ),
                     const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: hasPromo,
+                          onChanged: (value) {
+                            setState(() {
+                              hasPromo = value ?? false;
+                              if (!hasPromo) {
+                                selectedPromoType = null;
+                                promoValueController.clear();
+                              }
+                            });
+                          },
+                        ),
+                        const CustomText(
+                          textLabel: "Add Promo",
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ],
+                    ),
+                    if (hasPromo) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const CustomText(
+                            textLabel: "Promo Type",
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.info_outline,
+                              size: 30,
+                              color: Colors.grey.shade700,
+                            ),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) {
+                                  return AlertDialog(
+                                    title: const Text("Promo Type Info"),
+                                    content: const Text(
+                                      "Promos are applied per item.\n\n"
+                                      "• Percentage: Deducts a percentage of the price for each item.\n"
+                                      "   Example: 10 = 10% off each item\n\n"
+                                      "• Fixed Amount: Deducts a peso amount per item.\n"
+                                      "   Example: 50 = ₱50 off per item\n\n"
+                                      "If the buyer purchases multiple quantities, the discount is applied to each one.",
+                                      style: TextStyle(fontSize: 14),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(),
+                                        child: const Text("Got it"),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      DropdownButtonFormField<String>(
+                        value: selectedPromoType,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        hint: const Text("Select promo type"),
+                        items: const [
+                          DropdownMenuItem(
+                              value: "percentage", child: Text("Percentage")),
+                          DropdownMenuItem(
+                              value: "fixed", child: Text("Fixed Amount")),
+                        ],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPromoType = value;
+                          });
+                        },
+                        validator: (value) {
+                          if (hasPromo && (value == null || value.isEmpty)) {
+                            return "Select a promo type";
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      const CustomText(
+                        textLabel: "Promo Value",
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: promoValueController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          hintText: selectedPromoType == "percentage"
+                              ? "Enter percentage (e.g. 20)"
+                              : "Enter fixed amount (e.g. 100)",
+                        ),
+                        validator: (value) {
+                          if (hasPromo) {
+                            if (value == null || value.trim().isEmpty) {
+                              return "Promo value is required";
+                            }
+                            final promoValue = double.tryParse(value);
+                            final priceValue =
+                                double.tryParse(priceController.text);
+
+                            if (promoValue == null) {
+                              return "Enter a valid number";
+                            }
+
+                            if (selectedPromoType == "fixed" &&
+                                priceValue != null) {
+                              if (promoValue >= priceValue) {
+                                return "Fixed discount must be less than product price";
+                              }
+                            }
+
+                            if (selectedPromoType == "percentage") {
+                              if (promoValue >= 100) {
+                                return "Percentage must be less than 100%";
+                              }
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     const CustomText(
                       textLabel: "Stock Quantity",
                       fontSize: 16,
@@ -456,7 +606,7 @@ Future<void> addProduct(String sellerId) async {
                         if (value == null || value.trim().isEmpty) {
                           return "Description is required";
                         }
-            
+
                         return null;
                       },
                     ),
