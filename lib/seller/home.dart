@@ -234,7 +234,6 @@ Stream<int> fetchBookings() {
     });
   }
 
-///////////////////////////////////////
 
   Stream<List<Map<String, dynamic>>> fetchRecentBookings(String sellerId) {
     return FirebaseFirestore.instance
@@ -298,7 +297,6 @@ Stream<int> fetchBookings() {
     });
   }
 
-///////////////////
 String calculateDiscountedPrice(double price, num value, String type) {
   double discounted;
   if (type == 'percentage') {

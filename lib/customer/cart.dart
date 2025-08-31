@@ -130,7 +130,6 @@ Future<void> checkout(String userId) async {
 
       final now = Timestamp.now();
 
-      // add to products collection
       final productOrdersRef = FirebaseFirestore.instance
           .collection('products')
           .doc(productId)
@@ -146,7 +145,6 @@ Future<void> checkout(String userId) async {
         'hasRider': false,
       });
 
-      // add to customers collection with same orderId
       final customerOrdersRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
@@ -163,7 +161,6 @@ Future<void> checkout(String userId) async {
       });
     }
 
-    // Clear cart
     final cartRef = FirebaseFirestore.instance
         .collection('customers')
         .doc(userId)

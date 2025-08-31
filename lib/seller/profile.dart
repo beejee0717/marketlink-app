@@ -584,7 +584,6 @@ class _UserImageState extends State<UserImage> {
             ),
           ),
         ),
-        // Edit icon overlay
         Positioned(
           bottom: 0,
           right: 0,

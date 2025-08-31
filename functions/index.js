@@ -1,51 +1,32 @@
-const functions = require("firebase-functions");
-const admin = require("firebase-admin");
+/**
+ * Import function triggers from their respective submodules:
+ *
+ * const {onCall} = require("firebase-functions/v2/https");
+ * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
+ *
+ * See a full list of supported triggers at https://firebase.google.com/docs/functions
+ */
 
-admin.initializeApp();
+const {setGlobalOptions} = require("firebase-functions");
+const {onRequest} = require("firebase-functions/https");
+const logger = require("firebase-functions/logger");
 
-//seller notif when new orders
-exports.notifySellerOnNewOrder = functions.firestore
-    .document("orders/{orderId}")
-    .onCreate(async (snap, context) => {
-        const order = snap.data();
-        const sellerId = order.sellerId;
+// For cost control, you can set the maximum number of containers that can be
+// running at the same time. This helps mitigate the impact of unexpected
+// traffic spikes by instead downgrading performance. This limit is a
+// per-function limit. You can override the limit for each function using the
+// `maxInstances` option in the function's options, e.g.
+// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
+// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
+// functions should each use functions.runWith({ maxInstances: 10 }) instead.
+// In the v1 API, each function can only serve one request per container, so
+// this will be the maximum concurrent request count.
+setGlobalOptions({ maxInstances: 10 });
 
-        const sellerDoc = await admin.firestore().collection("sellers").doc(sellerId).get();
-        const fcmToken = sellerDoc.data()?.fcmToken;
+// Create and deploy your first functions
+// https://firebase.google.com/docs/functions/get-started
 
-        if (fcmToken) {
-            const message = {
-                token: fcmToken,
-                notification: {
-                    title: "New Order Received!",
-                    body: "You received a new order. Check your seller dashboard.",
-                },
-            };
-            await admin.messaging().send(message);
-        }
-    });
-
-// customer notif for order updates
-exports.notifyCustomerOnOrderUpdate = functions.firestore
-    .document("orders/{orderId}")
-    .onUpdate(async (change, context) => {
-        const before = change.before.data();
-        const after = change.after.data();
-
-        if (before.status !== after.status) {
-            const customerId = after.customerId;
-            const customerDoc = await admin.firestore().collection("customers").doc(customerId).get();
-            const fcmToken = customerDoc.data()?.fcmToken;
-
-            if (fcmToken) {
-                const message = {
-                    token: fcmToken,
-                    notification: {
-                        title: "Order Status Updated",
-                        body: `Your order is now "${after.status}".`,
-                    },
-                };
-                await admin.messaging().send(message);
-            }
-        }
-    });
+// exports.helloWorld = onRequest((request, response) => {
+//   logger.info("Hello logs!", {structuredData: true});
+//   response.send("Hello from Firebase!");
+// });

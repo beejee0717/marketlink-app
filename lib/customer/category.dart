@@ -12,7 +12,8 @@ import 'package:provider/provider.dart';
 
 class CustomerCategory extends StatefulWidget {
   final String category;
-  const CustomerCategory({super.key, required this.category});
+  final bool type;
+  const CustomerCategory({super.key, required this.category,required this.type});
 
   @override
   State<CustomerCategory> createState() => _CustomerCategoryState();
@@ -64,7 +65,7 @@ class _CustomerCategoryState extends State<CustomerCategory> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-          searchContainer(context, searchController, userId),
+          searchContainer(context, searchController, userId, widget.type),
             const SizedBox(height: 20),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(

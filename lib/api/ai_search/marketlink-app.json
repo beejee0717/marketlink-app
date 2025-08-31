@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "marketlink-app",
+  "private_key_id": "d97cc59d4ec49411b5e25011688b5f1a4c16b093",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQDSY+sqo6lozasR\nZBNQwS5OzmStfO1Uth4uWXxnfclzLM2czNUdy+X9u/26ezx8Du1gl0k2RTr/UbtP\ntCds56l4YE6sqTF/1YU2AjOFW392oaYm+Sv3MaP1xR6V7eUQTBvMv9XUnFXLVwKs\nrKhXRlMs/N94Yko9VxB2JY/lFFayLb7tClDDiYurLKY/JA+mRD1Rb40/+wft1WaE\n7FQDmn3fQ7XfNZCDcz1tE1G/YS5GP2jRWUiGfiBuVd8Mjq6MKK41mQeG53JDQYbQ\n8cNFFlY/ygfkD/jUBBDiDTRRG/sAkLp8ORC/T/oHr0Sly1THQK34PbKmjlUQD9x9\nlx8BFOvDAgMBAAECggEAFOov754zciK39dOgA/AgXV8xLPn1Ue2E1JC6yEL96sAy\ndHr8WKjzZSTyFT65BZAqUubXNVjug4EpgMPlA3OIKlpQl+N98zpTssnHO2OcKTvq\nm4c7sqgxp3YAE2GB2vvl65XKeQdNlBhDQM0tMvffvuIoiPwkazKjhUs4ocpC0BWD\n7/SwNqtBeBUb1tBTRYg0fj4SeQctHj/qMMB5+KXoGAMv9fSrpAK1Mc5Hc+DgLZwe\nyd/XrhmchMm+WxLQsjyTMkERSTGOyy+9en2o+TpLlWpbHmVQMO2T7Zd6n/D2kG5i\nqwdusXUbmN1ttUSupWBxE5a/xNZBiFdRg0qYqDWsaQKBgQDw0JgMLx8upUT0GLu/\nHA1bb0pevXlnXKK2tUuwFnn8qe6vIxvU5MXKtDxwmF6oRx3ond0/lfWIES2Smn1g\neIAAPR+wfLZvPLQ10Nh4qpH20YRPttxNAiWvk0hWcF4tZU7mLcc++QoFHXlZRvQx\nloaADoag4YJRBqUIeg1fmEQo1wKBgQDfqDC4DPNqSodjuO2Ypl6ReGweURafw7qM\nQ1x56onSltlAX5Pp4Z7mvKHcoJyXvQbYBfUT56RF6NZJWToj85+qDESMCX2Eglii\n606ORavAsdIsnUBM/nnzUTqBFqEtY7yedRsbzwEckEQK73dNjADuDyE6QjyHfaeV\nFIxNx2wa9QKBgCoITrG5u9iZcjqk4ohN7irqdvGoYrte2OvJIyfeFHa8dnPNTftP\n3xIteWsxvTvkBd1nSInjs9KHJQw0uPOQtM7V3GUir3klAFNwW4hcRVPuaAi94x/x\n4wANVg/4VwfXafkVPnTIZS5VYavqjY7mNh2961PDaMqZvU6IdzMbUbJLAoGAEwW1\nDxJa6aFpHnwuCRutU2YQnAt9hx0YkrFv/haKnlSiKa13YR8Fas6EXcVzTByRpnHr\nREQhXqjNAPQL0972p3nfoqF0AX8slr64sbUPRJZbL9w4CdRi/uTbuvr3vmqLMlb3\ndUgH6iwC/YMcfIX51kWHJ/NWPpfbVvymaj8Z3LkCgYAFkz4Ztz4xQs/AOwbsqAK5\nuQ88nemzU+Q0QKkVX5x9C2mDTSm6ZK3DtiFxzoo/5gIPRjCW/nRw7jdO05ujk672\nwHfcC/hlfvHYnDVarp5VqsHeJSNas8loNSU5PUrrhSUBzUIAecJWcvkDMNEpbuHw\nJhjlc9V+ZUV/MEjq7l/CAw==\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-ek92e@marketlink-app.iam.gserviceaccount.com",
+  "client_id": "113820182780885911710",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-ek92e%40marketlink-app.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

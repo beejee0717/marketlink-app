@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:marketlinkapp/api/ai_recommendation/send_event.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/debugging.dart';
@@ -63,7 +64,6 @@ class _OrderDetailsState extends State<OrderDetails> {
       }
 
       productData = productSnapshot.data();
-      // debugging("Product Data: $productData");
 
       final sellerId = productData?['sellerId'];
    
@@ -490,6 +490,7 @@ final double totalPayment = finalPrice * quantity + shippingFee;
     if (!mounted) return;
     errorSnackbar(context, "Failed to place order: $error");
   }
+  await sendEvent(userId, 'purchase', productId: productId);
 }
 
 }

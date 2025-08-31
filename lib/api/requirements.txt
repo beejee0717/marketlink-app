@@ -1,6 +1,0 @@
-flask
-langchain
-langchain-community
-sentence-transformers
-faiss-cpu
-typing-extensions

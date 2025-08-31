@@ -1,11 +1,12 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:marketlinkapp/api/ai_recommendation/send_event.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
-import 'package:marketlinkapp/components/navigator.dart';
-import 'package:marketlinkapp/customer/home.dart';
-import 'package:marketlinkapp/customer/product.dart';
+import 'package:marketlinkapp/customer/components.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:marketlinkapp/debugging.dart';
@@ -13,11 +14,13 @@ import 'package:marketlinkapp/debugging.dart';
 class SearchResultsPage extends StatefulWidget {
   final String query;
   final String userId;
+  final bool type;
 
   const SearchResultsPage({
-    super.key, 
-    required this.query, 
+    super.key,
+    required this.query,
     required this.userId,
+    required this.type
   });
 
   @override
@@ -25,72 +28,132 @@ class SearchResultsPage extends StatefulWidget {
 }
 
 class SearchResultsPageState extends State<SearchResultsPage> {
-
   @override
   void initState() {
     super.initState();
+
+      storeSearchHistory(widget.userId, widget.query);
+  }
+
+  Future<List<String>> searchAI(String query) async {
+    String searchType = widget.type? 'products' : 'services';
+    debugging('Searching for $query in $searchType');
+    try {
+        final url = Uri.parse("http://13.218.245.133:8000/search?query=$query&type=$searchType");
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        final results = decoded["results"] as List;
+
+        // Return just the list of IDs
+        return results.map((item) => item["id"].toString()).toList();
+      } else {
+        throw Exception("Failed to fetch: ${response.body}");
+      }
+    } catch (e) {
+      debugPrint("Error in AI search: $e");
+      return [];
     }
+  }
 
-Future<List<DocumentSnapshot>> searchWithAI(String query) async {
+Future<List<Map<String, dynamic>>> fetchFromFirestore(List<String> ids) async {
+  if (ids.isEmpty) return [];
+
+  final firestore = FirebaseFirestore.instance;
+  final collection = widget.type ? 'products' : 'services';
+
+  const batchSize = 10;
+
+  final List<List<String>> batches = [];
+  for (var i = 0; i < ids.length; i += batchSize) {
+    batches.add(ids.sublist(i, i + batchSize > ids.length ? ids.length : i + batchSize));
+  }
+
+  final futures = batches.map((batchIds) async {
+    final querySnapshot = await firestore
+        .collection(collection)
+        .where(FieldPath.documentId, whereIn: batchIds)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => doc.data()..['id'] = doc.id)
+        .toList();
+  });
+
+  final results = await Future.wait(futures);
+
+  final items = results.expand((batch) => batch).toList();
+
+  final Map<String, Map<String, dynamic>> itemMap = {
+    for (var item in items) item['id']: item
+  };
+
+  return ids
+      .where((id) => itemMap.containsKey(id))
+      .map((id) => itemMap[id]!)
+      .toList();
+}
+
+Future<List<Map<String, dynamic>>> searchAndFetch(String query) async {
+  final ids = await searchAI(query);
+  final items = await fetchFromFirestore(ids);
+  return items;
+}
+
+String _generateRandomId(int length) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  final rand = Random();
+  return List.generate(length, (_) => chars[rand.nextInt(chars.length)]).join();
+}
+
+Future<void> storeSearchHistory(String customerId, String query) async {
+  final firestore = FirebaseFirestore.instance;
+
   try {
-    final aiResults = await searchQuery(widget.query);
+    final docId = "${customerId}_${_generateRandomId(12)}"; 
 
-    // Extract document references
-    final docRefs = aiResults.map((result) {
-      final metadata = result['metadata'];
-      final docId = metadata['id'];
-      final type = metadata['type'];
-      return FirebaseFirestore.instance
-          .collection(type == 'product' ? 'products' : 'services')
-          .doc(docId);
-    }).toList();
+    await firestore.collection('searchHistory').doc(docId).set({
+      'customerId': customerId,
+      'query': query,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
 
-    // Fetch all documents in parallel
-    final docSnaps = await Future.wait(docRefs.map((docRef) => docRef.get()));
-
-    // Filter only existing documents
-    return docSnaps.where((docSnap) => docSnap.exists).toList();
+    debugPrint("Search saved with docId: $docId");
   } catch (e) {
-    debugPrint("Error in AI search: $e");
-    return [];
+    debugPrint("Failed to save search: $e");
   }
+
+  await sendEvent(customerId, 'search', query: query);
 }
-
-Future<List<dynamic>> searchQuery(String query) async {
-  final url = Uri.parse("https://marketlink-app-production.up.railway.app/search");
-  final response = await http.post(
-    url,
-    headers: {'Content-Type': 'application/json'},
-    body: jsonEncode({'query': query}),
-  );
-
-  if (response.statusCode == 200) {
-    return jsonDecode(response.body);
-  } else {
-    throw Exception("Failed to load search results");
-  }
-}
-
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       appBar: AppBar(
-        title: Text('Search Results'),
+        title: const Text('Search Results'),
       ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(10.0),
-          child: FutureBuilder<List<DocumentSnapshot>>(
-            future: searchWithAI(widget.query),
+          child: FutureBuilder<List<dynamic>>(
+            future: searchAndFetch(widget.query),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Center(
                   child: Padding(
                     padding: const EdgeInsets.only(top: 80),
-                    child: SpinKitFadingCircle(
-                      size: 80,
-                      color: AppColors.purple,
+                    child: Column(
+                      children: [
+                        SpinKitFadingCircle(
+                          size: 80,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(height: 5,),
+                        CustomText(textLabel: 'Please Wait', fontSize: 16, fontWeight: FontWeight.bold,textColor: AppColors.primary,)
+                      ],
                     ),
                   ),
                 );
@@ -117,105 +180,66 @@ Future<List<dynamic>> searchQuery(String query) async {
                   ),
                 );
               }
-          final products = snapshot.data!;
 
-// ✅ Filter out products with no productName (hide them completely)
-final filteredProducts = products.where((product) {
-  final data = product.data() as Map<String, dynamic>;
-  final name = data['productName'];
-  return name != null && name.toString().trim().isNotEmpty;
-}).toList();
+              final products = snapshot.data!;
 
-              return GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  childAspectRatio: 3 / 4,
-                ),
-                itemCount: filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = filteredProducts[index];
-               final data = product.data() as Map<String, dynamic>;
+     return GridView.builder(
+  shrinkWrap: true,
+  physics: const NeverScrollableScrollPhysics(),
+  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+    crossAxisCount: 2,
+    mainAxisSpacing: 10,
+    crossAxisSpacing: 10,
+    childAspectRatio: 3 / 4,
+  ),
+  itemCount: products.length,
+  itemBuilder: (context, index) {
+    final item = products[index];
 
-final productName = data['productName'] ?? "Unnamed";
-final price = "₱${(data['price'] as num?)?.toStringAsFixed(2) ?? 'N/A'}";
-final imageUrl = data['imageUrl'];
+ 
+final itemId = item['id'];
+final itemName = item['productName'] ?? item['serviceName'] ?? 'Unnamed';
+final imageUrl = item['imageUrl'];
 
-          
-                  return Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: imageUrl != null
-                            ? Image.network(
-                                imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                              )
-                            : Container(
-                                color: Colors.grey[300],
-                              ),
-                      ),
-                      GestureDetector(
-                        onTap: () {
-                          storeProductClick(widget.userId, product.id);
-                          navPush(context, CustomerProduct(productId: product.id));
-                          debugging(product.id);
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withOpacity(0.6),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 10,
-                        left: 10,
-                        right: 10,
-                        child: GestureDetector(
-                          onTap: () {
-                            storeProductClick(widget.userId, product.id);
-                            navPush(
-                                context, CustomerProduct(productId: product.id));
-                          },
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              CustomText(
-                                textLabel: productName,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                textColor: Colors.white,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 5),
-                              CustomText(
-                                textLabel: price,
-                                fontSize: 14,
-                                textColor: Colors.white,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              );
-            },
+final priceDouble = (item['price'] as num?)?.toDouble() ?? 0.0;
+final promo = item['promo'] is Map<String, dynamic> ? item['promo'] : null;
+
+final hasPromo = promo != null && promo['enabled'] == true;
+final promoType = promo?['type'];
+final promoValue = promo?['value'] ?? 0;
+
+double discountedPrice = priceDouble;
+
+if (hasPromo) {
+  if (promoType == 'percentage') {
+    discountedPrice = priceDouble * (1 - (promoValue / 100));
+  } else if (promoType == 'fixed') {
+    discountedPrice = (priceDouble - promoValue).clamp(0, priceDouble);
+  }
+}
+
+final priceText = '₱${priceDouble.toStringAsFixed(2)}';
+final discountedText = '₱${discountedPrice.toStringAsFixed(2)}';
+final promoLabel = promoType == 'percentage'
+    ? '$promoValue% OFF'
+    : "₱${(promoValue as num).toStringAsFixed(2)} OFF";
+
+
+    return itemDisplay(
+      context,
+      imageUrl,
+      widget.userId,
+      itemId,
+      itemName,
+      priceText,
+      widget.type, 
+      hasPromo,
+      discountedText,
+      promoLabel,
+    );
+  },
+);
+     },
           ),
         ),
       ),

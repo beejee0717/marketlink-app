@@ -17,7 +17,7 @@ class LogIn extends StatefulWidget {
 
 class _LogInState extends State<LogIn> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController(text: 'password');
+  final _passwordController = TextEditingController();
   late AppEvent currentEvent;
   bool _isPasswordVisible = false;
   bool isLoading = false;

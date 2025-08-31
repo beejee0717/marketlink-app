@@ -8,7 +8,6 @@ import '../components/dialog.dart';
 import '../provider/chat_provider.dart';
 import 'messages.dart';
 
-//TODO: Fix null when chatting with rider
 class Chat extends StatefulWidget {
   final String userId;
   final bool backButton;
