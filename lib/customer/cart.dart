@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import '../provider/user_provider.dart';
-//TODO: Finish cart section (button not showing, checkout process)
+
 class CustomerCart extends StatefulWidget {
   const CustomerCart({super.key});
 
@@ -117,70 +117,68 @@ class _CustomerCartState extends State<CustomerCart> {
     }
   }
 
-Future<void> checkout(String userId) async {
-  try {
-    for (var item in _cartItems) {
-      final productId = item['productId'];
-      final quantity = item['quantity'];
+  Future<void> checkout(String userId) async {
+    try {
+      for (var item in _cartItems) {
+        final productId = item['productId'];
+        final quantity = item['quantity'];
 
-      final orderId = FirebaseFirestore.instance
-          .collection('orders') 
-          .doc()
-          .id;
+        final orderId =
+            FirebaseFirestore.instance.collection('orders').doc().id;
 
-      final now = Timestamp.now();
+        final now = Timestamp.now();
 
-      final productOrdersRef = FirebaseFirestore.instance
-          .collection('products')
-          .doc(productId)
-          .collection('orders')
-          .doc(orderId);
+        final productOrdersRef = FirebaseFirestore.instance
+            .collection('products')
+            .doc(productId)
+            .collection('orders')
+            .doc(orderId);
 
-      await productOrdersRef.set({
-        'orderId': orderId,
-        'userId': userId,
-        'quantity': quantity,
-        'dateOrdered': now,
-        'status': 'ordered',
-        'hasRider': false,
-      });
+        await productOrdersRef.set({
+          'orderId': orderId,
+          'userId': userId,
+          'quantity': quantity,
+          'dateOrdered': now,
+          'status': 'ordered',
+          'hasRider': false,
+        });
 
-      final customerOrdersRef = FirebaseFirestore.instance
+        final customerOrdersRef = FirebaseFirestore.instance
+            .collection('customers')
+            .doc(userId)
+            .collection('orders')
+            .doc(orderId);
+
+        await customerOrdersRef.set({
+          'orderId': orderId,
+          'productId': productId,
+          'quantity': quantity,
+          'dateOrdered': now,
+          'status': 'ordered',
+          'hasRider': false,
+        });
+      }
+
+      final cartRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(userId)
-          .collection('orders')
-          .doc(orderId);
+          .collection('cart');
 
-      await customerOrdersRef.set({
-        'orderId': orderId,
-        'productId': productId,
-        'quantity': quantity,
-        'dateOrdered': now,
-        'status': 'ordered',
-        'hasRider': false,
+      final cartDocs = await cartRef.get();
+      for (var doc in cartDocs.docs) {
+        await doc.reference.delete();
+      }
+
+      setState(() {
+        _cartItems.clear();
       });
+
+      if (!mounted) return;
+      successSnackbar(context, "Order placed successfully!");
+    } catch (error) {
+      errorSnackbar(context, "Failed to place order: $error");
     }
-
-    final cartRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('cart');
-
-    final cartDocs = await cartRef.get();
-    for (var doc in cartDocs.docs) {
-      await doc.reference.delete();
-    }
-
-    setState(() {
-      _cartItems.clear();
-    });
-
-    if (!mounted) return;
-    successSnackbar(context, "Order placed successfully!");
-  } catch (error) {
-    errorSnackbar(context, "Failed to place order: $error");
   }
-}
 
   void showCheckoutDialog(String userId) {
     showDialog(
@@ -216,7 +214,6 @@ Future<void> checkout(String userId) async {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                       
                         const SizedBox(height: 8),
                         ...entry.value.map((item) {
                           return ListTile(
@@ -304,166 +301,171 @@ Future<void> checkout(String userId) async {
     }
 
     return Scaffold(
-       appBar: AppBar(
-    title:  CustomText(textLabel: 'Cart', fontSize: 25,textColor: headerTitleColor(currentEvent),),
-    backgroundColor: backgroundColor(currentEvent),
-    iconTheme: const IconThemeData(color: Colors.black),
-  ),
-  body: Container(
-    decoration: BoxDecoration(
-      image: DecorationImage(
-        image: AssetImage(backgroundImage(currentEvent)),
-        fit: BoxFit.cover,
-      ),
-    ),
-    child: isLoading
-          ?  Center(
-              child: SpinKitFadingCircle(
-                size: 80,
-                color: AppColors.primary,
-              ),
-            )
-          : _cartItems.isEmpty
+        appBar: AppBar(
+          title: CustomText(
+            textLabel: 'Cart',
+            fontSize: 25,
+            textColor: headerTitleColor(currentEvent),
+          ),
+          backgroundColor: backgroundColor(currentEvent),
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(backgroundImage(currentEvent)),
+              fit: BoxFit.cover,
+            ),
+          ),
+          child: isLoading
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.shopping_cart,
-                          size: 80, color: Colors.grey),
-                      const SizedBox(height: 10),
-                      const CustomText(
-                        textLabel: "Your cart is empty.",
-                        fontSize: 18,
-                        textColor: Colors.black,
-                      ),
-                    ],
+                  child: SpinKitFadingCircle(
+                    size: 80,
+                    color: AppColors.primary,
                   ),
                 )
-              : Column(
-                  children: [
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: _cartItems.length,
-                        itemBuilder: (context, index) {
-                          final cartItem = _cartItems[index];
-                          return GestureDetector(
-                            onTap: () {
-                              final productId = cartItem['productId'];
-                              navPush(context,
-                                  CustomerProduct(productId: productId));
-                            },
-                            child: Card(
-                              color: const Color.fromARGB(164, 255, 255, 255),
-                              margin: const EdgeInsets.symmetric(
-                                  vertical: 8, horizontal: 16),
-                              child: Row(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      cartItem['imageUrl'] ?? '',
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Container(
+              : _cartItems.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.shopping_cart,
+                              size: 80, color: Colors.grey),
+                          const SizedBox(height: 10),
+                          const CustomText(
+                            textLabel: "Your cart is empty.",
+                            fontSize: 18,
+                            textColor: Colors.black,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.builder(
+                            itemCount: _cartItems.length,
+                            itemBuilder: (context, index) {
+                              final cartItem = _cartItems[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  final productId = cartItem['productId'];
+                                  navPush(context,
+                                      CustomerProduct(productId: productId));
+                                },
+                                child: Card(
+                                  color:
+                                      const Color.fromARGB(164, 255, 255, 255),
+                                  margin: const EdgeInsets.symmetric(
+                                      vertical: 8, horizontal: 16),
+                                  child: Row(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          cartItem['imageUrl'] ?? '',
                                           width: 80,
                                           height: 80,
-                                          color: Colors.grey[300],
-                                          child: const Icon(
-                                            Icons.image,
-                                            size: 40,
-                                            color: Colors.grey,
+                                          fit: BoxFit.cover,
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Container(
+                                              width: 80,
+                                              height: 80,
+                                              color: Colors.grey[300],
+                                              child: const Icon(
+                                                Icons.image,
+                                                size: 40,
+                                                color: Colors.grey,
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            CustomText(
+                                              textLabel:
+                                                  cartItem['productName'] ??
+                                                      'Unnamed Product',
+                                              maxLines: 2,
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            const SizedBox(height: 5),
+                                            CustomText(
+                                              textLabel:
+                                                  '₱${cartItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
+                                              fontSize: 16,
+                                              textColor: AppColors.primary,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        children: [
+                                          IconButton(
+                                            onPressed: () => updateQuantity(
+                                              userId,
+                                              cartItem['productId'],
+                                              cartItem['quantity'] + 1,
+                                            ),
+                                            icon: const Icon(
+                                                Icons.add_circle_outline),
+                                            color: AppColors.primary,
                                           ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        CustomText(
-                                          textLabel: cartItem['productName'] ??
-                                              'Unnamed Product',
-                                          maxLines: 2,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        const SizedBox(height: 5),
-                                        CustomText(
-                                          textLabel:
-                                              '₱${cartItem['price']?.toStringAsFixed(2) ?? 'N/A'}',
-                                          fontSize: 16,
-                                          textColor: AppColors.primary,
-                                        ),
-                                       
-                                      ],
-                                    ),
-                                  ),
-                                  Column(
-                                    children: [
-                                      IconButton(
-                                        onPressed: () => updateQuantity(
-                                          userId,
-                                          cartItem['productId'],
-                                          cartItem['quantity'] + 1,
-                                        ),
-                                        icon: const Icon(
-                                            Icons.add_circle_outline),
-                                        color: AppColors.primary,
-                                      ),
-                                      CustomText(
-                                        textLabel:
-                                            cartItem['quantity'].toString(),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      IconButton(
-                                        onPressed: () => updateQuantity(
-                                          userId,
-                                          cartItem['productId'],
-                                          cartItem['quantity'] - 1,
-                                        ),
-                                        icon: const Icon(
-                                            Icons.remove_circle_outline),
-                                        color: Colors.red,
+                                          CustomText(
+                                            textLabel:
+                                                cartItem['quantity'].toString(),
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          IconButton(
+                                            onPressed: () => updateQuantity(
+                                              userId,
+                                              cartItem['productId'],
+                                              cartItem['quantity'] - 1,
+                                            ),
+                                            icon: const Icon(
+                                                Icons.remove_circle_outline),
+                                            color: Colors.red,
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ElevatedButton(
-                        onPressed: () {
-                          showCheckoutDialog(userId);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                                ),
+                              );
+                            },
                           ),
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 15, horizontal: 20),
                         ),
-                        child: const CustomText(
-                          textLabel: "Checkout",
-                          fontSize: 18,
-                          textColor: Colors.white,
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16,right: 16,top: 16,bottom: 64),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              showCheckoutDialog(userId);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 15, horizontal: 20),
+                            ),
+                            child: const CustomText(
+                              textLabel: "Checkout",
+                              fontSize: 18,
+                              textColor: Colors.white,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),)
-    );
+        ));
   }
 }

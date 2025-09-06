@@ -32,7 +32,7 @@ static Color get primary {
     case AppEvent.halloween:
       return Color(0xFFEF6C00); 
     case AppEvent.christmas:
-      return Color.fromARGB(255, 73, 243, 81); 
+      return Color.fromARGB(255, 47, 171, 53); 
     default:
       return Color.fromARGB(255, 119, 22, 136);
   }

@@ -13,6 +13,7 @@ class NotificationService {
 
     await _notificationsPlugin.initialize(settings);
   }
+  
 
   static Future<void> showNotification({
     required String title,

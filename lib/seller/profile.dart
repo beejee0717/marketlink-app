@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:marketlinkapp/components/editable_textfield.dart';
+import 'package:marketlinkapp/components/notifications.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
@@ -457,15 +458,24 @@ class _SellerProfileState extends State<SellerProfile> {
                                   const EdgeInsets.symmetric(horizontal: 50),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  customDialog(context, 'Log Out',
-                                      'Are you sure you want to log out?', () {
-                                    FirebaseAuth.instance.signOut();
-                                    Provider.of<UserProvider>(context,
-                                            listen: false)
-                                        .clearUser();
+                               customDialog(
+  context,
+  'Log Out',
+  'Are you sure you want to log out?',
+  () async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-                                    navPushRemove(context, const LogIn());
-                                  });
+    await removeToken(context, 'sellers');
+
+    await FirebaseAuth.instance.signOut();
+    userProvider.clearUser();
+
+    if (context.mounted) {
+      navPushRemove(context, const LogIn());
+    }
+  },
+);
+
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.purple,

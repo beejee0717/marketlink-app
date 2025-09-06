@@ -12,9 +12,8 @@ AppEvent getCurrentEvent() {
   final now = DateTime.now(); //use this as default
   // final now = DateTime(2025, 2,14);//Valentines -- change this to show the theme during defense (YYYY,MM,DD)   
   // final now = DateTime(2025, 11,1);//halloween  
-  // final now = DateTime(2025, 12,25);//christmas
+  //  final now = DateTime(2025, 12,25);//christmas
   //restart build after changing date for full implementation
-  //TODO: also add on the search portion
 
   if (_isInRange(now, DateTime(now.year, 2, 10), DateTime(now.year, 2, 20))) {
     return AppEvent.valentines;

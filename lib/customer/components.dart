@@ -8,7 +8,6 @@ import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
 import 'package:marketlinkapp/customer/search.dart';
 import 'package:marketlinkapp/customer/service.dart';
-import 'package:marketlinkapp/debugging.dart';
 
 Widget itemDisplay(
   BuildContext context,

@@ -10,6 +10,7 @@ import 'package:marketlinkapp/customer/components.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:marketlinkapp/debugging.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 class SearchResultsPage extends StatefulWidget {
   final String query;
@@ -131,115 +132,125 @@ Future<void> storeSearchHistory(String customerId, String query) async {
   @override
   Widget build(BuildContext context) {
     
+  late AppEvent currentEvent = getCurrentEvent();
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Search Results'),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: FutureBuilder<List<dynamic>>(
-            future: searchAndFetch(widget.query),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 80),
-                    child: Column(
-                      children: [
-                        SpinKitFadingCircle(
-                          size: 80,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(height: 5,),
-                        CustomText(textLabel: 'Please Wait', fontSize: 16, fontWeight: FontWeight.bold,textColor: AppColors.primary,)
-                      ],
-                    ),
+      body: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(backgroundImage(currentEvent)),
+                    fit: BoxFit.cover,
                   ),
-                );
-              } else if (snapshot.hasError) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 50),
-                    child: CustomText(
-                      textLabel: "Error displaying products.",
-                      fontSize: 16,
-                      textColor: Colors.red,
+                ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: FutureBuilder<List<dynamic>>(
+              future: searchAndFetch(widget.query),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 80),
+                      child: Column(
+                        children: [
+                          SpinKitFadingCircle(
+                            size: 80,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(height: 5,),
+                          CustomText(textLabel: 'Please Wait', fontSize: 16, fontWeight: FontWeight.bold,textColor: AppColors.primary,)
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 50),
-                    child: CustomText(
-                      textLabel: "No products available.",
-                      fontSize: 16,
-                      textColor: Colors.grey,
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 50),
+                      child: CustomText(
+                        textLabel: "Error displaying products.",
+                        fontSize: 16,
+                        textColor: Colors.red,
+                      ),
                     ),
-                  ),
-                );
-              }
-
-              final products = snapshot.data!;
-
-     return GridView.builder(
-  shrinkWrap: true,
-  physics: const NeverScrollableScrollPhysics(),
-  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-    crossAxisCount: 2,
-    mainAxisSpacing: 10,
-    crossAxisSpacing: 10,
-    childAspectRatio: 3 / 4,
-  ),
-  itemCount: products.length,
-  itemBuilder: (context, index) {
-    final item = products[index];
-
- 
-final itemId = item['id'];
-final itemName = item['productName'] ?? item['serviceName'] ?? 'Unnamed';
-final imageUrl = item['imageUrl'];
-
-final priceDouble = (item['price'] as num?)?.toDouble() ?? 0.0;
-final promo = item['promo'] is Map<String, dynamic> ? item['promo'] : null;
-
-final hasPromo = promo != null && promo['enabled'] == true;
-final promoType = promo?['type'];
-final promoValue = promo?['value'] ?? 0;
-
-double discountedPrice = priceDouble;
-
-if (hasPromo) {
-  if (promoType == 'percentage') {
-    discountedPrice = priceDouble * (1 - (promoValue / 100));
-  } else if (promoType == 'fixed') {
-    discountedPrice = (priceDouble - promoValue).clamp(0, priceDouble);
-  }
-}
-
-final priceText = '₱${priceDouble.toStringAsFixed(2)}';
-final discountedText = '₱${discountedPrice.toStringAsFixed(2)}';
-final promoLabel = promoType == 'percentage'
-    ? '$promoValue% OFF'
-    : "₱${(promoValue as num).toStringAsFixed(2)} OFF";
-
-
-    return itemDisplay(
-      context,
-      imageUrl,
-      widget.userId,
-      itemId,
-      itemName,
-      priceText,
-      widget.type, 
-      hasPromo,
-      discountedText,
-      promoLabel,
-    );
-  },
-);
-     },
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 50),
+                      child: CustomText(
+                        textLabel: "No products available.",
+                        fontSize: 16,
+                        textColor: Colors.grey,
+                      ),
+                    ),
+                  );
+                }
+        
+                final products = snapshot.data!;
+        
+             return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 3 / 4,
+          ),
+          itemCount: products.length,
+          itemBuilder: (context, index) {
+            final item = products[index];
+        
+         
+        final itemId = item['id'];
+        final itemName = item['productName'] ?? item['serviceName'] ?? 'Unnamed';
+        final imageUrl = item['imageUrl'];
+        
+        final priceDouble = (item['price'] as num?)?.toDouble() ?? 0.0;
+        final promo = item['promo'] is Map<String, dynamic> ? item['promo'] : null;
+        
+        final hasPromo = promo != null && promo['enabled'] == true;
+        final promoType = promo?['type'];
+        final promoValue = promo?['value'] ?? 0;
+        
+        double discountedPrice = priceDouble;
+        
+        if (hasPromo) {
+          if (promoType == 'percentage') {
+            discountedPrice = priceDouble * (1 - (promoValue / 100));
+          } else if (promoType == 'fixed') {
+            discountedPrice = (priceDouble - promoValue).clamp(0, priceDouble);
+          }
+        }
+        
+        final priceText = '₱${priceDouble.toStringAsFixed(2)}';
+        final discountedText = '₱${discountedPrice.toStringAsFixed(2)}';
+        final promoLabel = promoType == 'percentage'
+            ? '$promoValue% OFF'
+            : "₱${(promoValue as num).toStringAsFixed(2)} OFF";
+        
+        
+            return itemDisplay(
+        context,
+        imageUrl,
+        widget.userId,
+        itemId,
+        itemName,
+        priceText,
+        widget.type, 
+        hasPromo,
+        discountedText,
+        promoLabel,
+            );
+          },
+        );
+             },
+            ),
           ),
         ),
       ),

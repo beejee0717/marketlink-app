@@ -117,46 +117,85 @@ class MessagesProvider extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
-  Future<void> sendMessage(
-    String receiverId,
-    String message,
-  ) async {
-    final String currentUserId = _firebaseAuth.currentUser!.uid;
-    final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
-    final Timestamp timestamp = Timestamp.now();
-    String trimmedMessage = message.trim();
+Future<void> sendMessage(
+  String receiverId,
+  String message,
+) async {
+  final String currentUserId = _firebaseAuth.currentUser!.uid;
+  final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
+  final Timestamp timestamp = Timestamp.now();
+  String trimmedMessage = message.trim();
 
-    if (trimmedMessage.isEmpty) {
-      return;
-    }
-    Message newMessage = Message(
-        senderId: currentUserId,
-        senderEmail: currentUserEmail,
-        receiverId: receiverId,
-        message: trimmedMessage,
-        timestamp: timestamp);
+  if (trimmedMessage.isEmpty) return;
 
-    List<String> ids = [currentUserId, receiverId];
-    ids.sort();
-    String chatRoomId = ids.join("_");
+  // Get roles
+  String? senderRole = await getUserRole(currentUserId);
+  String? receiverRole = await getUserRole(receiverId);
 
-    DocumentSnapshot docSnapshot =
-        await _firebaseFirestore.collection('chat_room').doc(chatRoomId).get();
-
-    if (!docSnapshot.exists) {
-      await _firebaseFirestore.collection('chat_room').doc(chatRoomId).set({
-        'exists': true,
-      });
-    }
-
-    await _firebaseFirestore
-        .collection('chat_room')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(newMessage.toMap());
-
-    notifyListeners();
+  if (senderRole == null || receiverRole == null) {
+    throw Exception("User not found in any collection.");
   }
+
+  Message newMessage = Message(
+    senderId: currentUserId,
+    senderRole: senderRole,
+    senderEmail: currentUserEmail,
+    receiverId: receiverId,
+    receiverRole: receiverRole,
+    message: trimmedMessage,
+    timestamp: timestamp,
+  );
+
+  List<String> ids = [currentUserId, receiverId];
+  ids.sort();
+  String chatRoomId = ids.join("_");
+
+  DocumentSnapshot docSnapshot =
+      await _firebaseFirestore.collection('chat_room').doc(chatRoomId).get();
+
+  if (!docSnapshot.exists) {
+    await _firebaseFirestore.collection('chat_room').doc(chatRoomId).set({
+      'exists': true,
+    });
+  }
+
+  await _firebaseFirestore
+      .collection('chat_room')
+      .doc(chatRoomId)
+      .collection('messages')
+      .add(newMessage.toMap());
+
+  notifyListeners();
+}
+
+  Future<String?> getUserRole(String uid) async {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+  // Check customers
+  DocumentSnapshot customerDoc =
+      await firestore.collection('customers').doc(uid).get();
+  if (customerDoc.exists) {
+    return "customer";
+  }
+
+  // Check sellers
+  DocumentSnapshot sellerDoc =
+      await firestore.collection('sellers').doc(uid).get();
+  if (sellerDoc.exists) {
+    return "seller";
+  }
+
+  // Check riders
+  DocumentSnapshot riderDoc =
+      await firestore.collection('riders').doc(uid).get();
+  if (riderDoc.exists) {
+    return "rider";
+  }
+
+  // Not found in any collection
+  return null;
+}
+
 
   Stream<QuerySnapshot> getMessages(String userId, String otherUserId) {
     List<String> ids = [userId, otherUserId];

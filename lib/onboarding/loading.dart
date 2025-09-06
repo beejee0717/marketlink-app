@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart' as auth;
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/navigator.dart';
+import 'package:marketlinkapp/components/notifications.dart';
 import 'package:marketlinkapp/customer/customer.dart';
 import 'package:marketlinkapp/onboarding/login.dart';
 import 'package:marketlinkapp/rider/rider.dart';
@@ -120,6 +121,8 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
          .collection('${role.toLowerCase()}s') 
         .doc(userInfo.uid)
         .update({'dateLastLogin': FieldValue.serverTimestamp()});
+await getToken(userDoc, role);
+
     if (!mounted) return;
 
     successSnackbar(context, "Welcome back, ${userInfo.firstName}!");

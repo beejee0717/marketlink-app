@@ -1,7 +1,9 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/notif.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
@@ -324,7 +326,16 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
     );
   },
   child: Text('Show Notification'),
+),
+     ElevatedButton(
+  onPressed: ()async {
+   String? token = await FirebaseMessaging.instance.getToken();
+   debugging(token.toString());
+   
+  },
+  child: Text('Get Token'),
 )
+
 
                     ],
                   ),

@@ -259,19 +259,12 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
   Future<void> cancelOrder(
       String userId, String productId, String orderId) async {
-    final productOrderRef = FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
+ 
+    final orderRef = FirebaseFirestore.instance
         .collection('orders')
         .doc(orderId);
 
-    final customerOrderRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(userId)
-        .collection('orders')
-        .doc(orderId);
-
-    await Future.wait([productOrderRef.delete(), customerOrderRef.delete()]);
+    await Future.wait([orderRef.delete()]);
 
     setState(() {
       _activeOrders.removeWhere((order) => order['productId'] == productId);
