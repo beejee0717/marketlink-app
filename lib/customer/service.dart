@@ -124,7 +124,6 @@ class _CustomerServiceState extends State<CustomerService> {
             final title = service['serviceName'] ?? 'Unnamed Service';
             final category = service['category'] ?? 'Uncategorized';
             final price = service['price']?.toStringAsFixed(2) ?? 'N/A';
-            final priceInDouble = service['price'];
             final description =
                 service['description'] ?? 'No description available.';
             final availableDays =

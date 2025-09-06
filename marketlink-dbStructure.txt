@@ -1,0 +1,163 @@
+-customers (Collection)
+  customerId (Document ID)
+    Fields:
+      address
+      contactNumber
+      createdAt
+      dateLastLogin
+      disabled
+      email
+      fcmToken
+      firstName
+      lastName
+      profilePicture
+      role
+
+    -cart (Subcollection)
+      productId (Document ID)
+        Fields:
+          quantity
+          sellerId
+          timestamp
+
+-products (Collection)
+  productId (Document ID)
+    Fields:
+      category
+      dateCreated
+      description
+      imageUrl
+      materials
+      pickupLocation
+      price
+      productName
+      promo[enabled,type,value]
+      searchKeywords
+      sellerId
+      stock
+
+    -reviews (Subcollection)
+      customerId (Document ID)
+        Fields:
+          comment
+          stars
+
+-orders (Collection)
+  orderId (Document ID)
+    Fields:
+      customerId
+      dateOrdered
+      deliveryAddress
+      deliveryProof
+      deliveryTimestamp
+      hasRider
+      orderId
+      price
+      productId
+      quantity
+      riderId
+      sellerId
+      status
+      totalPayment
+
+-riders (Collection)
+  riderId (Document ID)
+    Fields:
+      address
+      approved
+      contactNumber
+      createdAt
+      dateLastLogin
+      disabled
+      email
+      fcmToken
+      firstName
+      imageID
+      lastName
+      role
+
+-sellers (Collection)
+  sellerId (Document ID)
+    Fields:
+      addresses
+      approved
+      contactNumber
+      createdAt
+      dateLastLogin
+      disabled
+      email
+      fcmToken
+      firstName
+      imageId
+      lastName
+      profilePicture
+      role
+
+-services (Collection)
+  serviceId (Document ID)
+    Fields:
+      availableDays
+      category
+      dateCreated
+      description
+      imageUrl
+      price
+      searchKeywords
+      sellerId
+      serviceHours [start, end]
+      serviceLocation
+      serviceName
+
+-bookings (Collection)
+  bookingId (Document ID)
+    Fields:
+      bookingId
+      customerId
+      dateBooked
+      dateOrdered
+      sellerId
+      serviceId
+      price
+      status
+
+-searchHistory (Collection)
+  searchId (Document ID)
+    Fields:
+      customerId
+      query
+      timestamp
+
+-wishlists (Collection)
+  wishlistId (Document ID)
+    Fields:
+      customerId
+      productId
+      timestamp
+
+-productClicks (Collection)
+  userId_productId (Document ID)
+    Fields: 
+     productName:
+
+   -clicks (subcollection)
+      date(Document ID)
+	Fields:
+	   count
+	   date
+	   timestamp
+
+-chat_room (Collection)
+  chatId (Document ID)
+   Fields:
+    exists
+      
+   -messages(Subcollection)
+     messageId(DocumentID)
+       Fields:
+	message
+	receiverId
+	receiverRole
+	senderId
+	senderRole
+	timestamp
+	senderEmail

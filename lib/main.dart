@@ -4,16 +4,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:marketlinkapp/components/notifications.dart';
-import 'package:marketlinkapp/notif.dart';
 import 'package:marketlinkapp/onboarding/onboarding.dart';
 import 'package:marketlinkapp/provider/chat_provider.dart';
 import 'package:provider/provider.dart';
 import 'provider/user_provider.dart';
 
-// 🔹 Background FCM handler
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
-  await setupNotifications(); // make sure plugin is ready
+  await setupNotifications(); 
   if (message.notification != null) {
     final notification = message.notification!;
     flutterLocalNotificationsPlugin.show(
@@ -49,7 +47,6 @@ void main() async {
     ),
   );
 
-  // 🔹 Register background handler
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   await FirebaseMessaging.instance.requestPermission();
