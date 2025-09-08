@@ -66,29 +66,29 @@ class _OrderDetailsState extends State<OrderDetails> {
       productData = productSnapshot.data();
 
       final sellerId = productData?['sellerId'];
-   
-   final double originalPrice = (productData?['price'] ?? 0).toDouble();
-double finalPrice = originalPrice;
 
-final promo = productData?['promo'];
-final hasPromo = promo != null && promo['enabled'] == true;
+      final double originalPrice = (productData?['price'] ?? 0).toDouble();
+      double finalPrice = originalPrice;
 
-if (hasPromo) {
-  final promoType = promo['type'];
-  final promoValue = (promo['value'] ?? 0).toDouble();
+      final promo = productData?['promo'];
+      final hasPromo = promo != null && promo['enabled'] == true;
 
-  if (promoType == 'percentage') {
-    finalPrice -= (originalPrice * promoValue / 100);
-  } else if (promoType == 'fixed') {
-    finalPrice -= promoValue;
-  }
+      if (hasPromo) {
+        final promoType = promo['type'];
+        final promoValue = (promo['value'] ?? 0).toDouble();
 
-  finalPrice = finalPrice.clamp(0, double.infinity);
-}
+        if (promoType == 'percentage') {
+          finalPrice -= (originalPrice * promoValue / 100);
+        } else if (promoType == 'fixed') {
+          finalPrice -= promoValue;
+        }
 
-totalPrice = finalPrice * quantity + shippingFee;
+        finalPrice = finalPrice.clamp(0, double.infinity);
+      }
 
-productData?['finalPrice'] = finalPrice;
+      totalPrice = finalPrice * quantity + shippingFee;
+
+      productData?['finalPrice'] = finalPrice;
 
       if (sellerId != null) {
         final sellerSnapshot = await FirebaseFirestore.instance
@@ -119,38 +119,38 @@ productData?['finalPrice'] = finalPrice;
     }
   }
 
-void updateTotalPrice() {
-  double basePrice = (productData?['price'] ?? 0).toDouble();
+  void updateTotalPrice() {
+    double basePrice = (productData?['price'] ?? 0).toDouble();
 
-  final promo = productData?['promo'];
-  final hasPromo = promo != null && promo['enabled'] == true;
+    final promo = productData?['promo'];
+    final hasPromo = promo != null && promo['enabled'] == true;
 
-  if (hasPromo) {
-    final promoType = promo['type'];
-    final promoValue = (promo['value'] ?? 0).toDouble();
+    if (hasPromo) {
+      final promoType = promo['type'];
+      final promoValue = (promo['value'] ?? 0).toDouble();
 
-    if (promoType == 'percentage') {
-      basePrice -= basePrice * (promoValue / 100);
-    } else if (promoType == 'fixed') {
-      basePrice -= promoValue;
+      if (promoType == 'percentage') {
+        basePrice -= basePrice * (promoValue / 100);
+      } else if (promoType == 'fixed') {
+        basePrice -= promoValue;
+      }
+
+      basePrice = basePrice.clamp(0, double.infinity);
+      productData?['finalPrice'] = basePrice;
     }
 
-    basePrice = basePrice.clamp(0, double.infinity);
-    productData?['finalPrice'] = basePrice;
+    setState(() {
+      totalPrice = basePrice * quantity + shippingFee;
+    });
   }
-
-  setState(() {
-    totalPrice = basePrice * quantity + shippingFee;
-  });
-}
-
 
   @override
   Widget build(BuildContext context) {
     String selectedPaymentMethod = "Cash on Delivery";
-final double originalPrice = (productData?['price'] ?? 0).toDouble();
-final double finalPrice = (productData?['finalPrice'] ?? originalPrice).toDouble();
-final hasPromo = productData?['promo']?['enabled'] == true;
+    final double originalPrice = (productData?['price'] ?? 0).toDouble();
+    final double finalPrice =
+        (productData?['finalPrice'] ?? originalPrice).toDouble();
+    final hasPromo = productData?['promo']?['enabled'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.white,
@@ -167,207 +167,208 @@ final hasPromo = productData?['promo']?['enabled'] == true;
           fontWeight: FontWeight.bold,
         ),
       ),
-      body:
-       _isLoading
-          ? Container(decoration: BoxDecoration(
-    image: DecorationImage(
-      image: AssetImage(backgroundImage(currentEvent)),
-      fit: BoxFit.cover,
-    ),
-  ),child: const Center(child: CircularProgressIndicator()))
-          : Container(
-
- decoration: BoxDecoration(
-    image: DecorationImage(
-      image: AssetImage(backgroundImage(currentEvent)),
-      fit: BoxFit.cover,
-    ),
-  ),
-            child: 
-          
-          Padding(
-              padding: const EdgeInsets.only(
-                  left: 16, right: 16, top: 8, bottom: 100),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (productData?['imageUrl'] != null)
-                      Center(
-                        child: Image.network(
-                          productData!['imageUrl'],
-                          height: 200,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    const SizedBox(height: 16),
-                    CustomText(
-                      textLabel:
-                          '${productData?['productName'] ?? 'No Product Name'}',
-                      fontSize: 25,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    const SizedBox(height: 16),
-               Row(
-  children: [
-    const CustomText(textLabel: 'Price: ', fontSize: 18),
-    if (hasPromo) ...[
-      CustomText(
-        textLabel: '₱${originalPrice.toStringAsFixed(2)} ',
-        fontSize: 16,
-        textColor: Colors.grey,
-        fontWeight: FontWeight.normal,
-        decoration: TextDecoration.lineThrough,
-      ),
-      const SizedBox(width: 5),
-      CustomText(
-        textLabel: '₱${finalPrice.toStringAsFixed(2)}',
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        textColor: Colors.orange,
-      ),
-    ] else
-      CustomText(
-        textLabel: '₱${originalPrice.toStringAsFixed(2)}',
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-      )
-  ],
-),
-
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const CustomText(textLabel: 'Quantity', fontSize: 16),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove_circle_outline,
-                                  color: Colors.red),
-                              onPressed: () {
-                                if (quantity > 1) {
-                                  setState(() {
-                                    quantity--;
-                                    updateTotalPrice();
-                                  });
-                                }
-                              },
-                            ),
-                            Text(
-                              '$quantity',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            IconButton(
-                              icon:  Icon(Icons.add_circle_outline,
-                                  color: AppColors.primary),
-                              onPressed: () {
-                                setState(() {
-                                  quantity++;
-                                  updateTotalPrice();
-                                });
-                              },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Divider(
-                      color: AppColors.grey,
-                      thickness: 2,
-                    ),
-                    const SizedBox(height: 10),
-                    const CustomText(
-                      textLabel: "Delivery Address",
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _addressController,
-                      readOnly: !isEditingAddress,
-                      onChanged: (value) {
-                        setState(() {
-                          isAddressValid = value.trim().isNotEmpty;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'Enter delivery address',
-                        hintStyle: TextStyle(
-                          color: isAddressValid ? Colors.grey : Colors.red,
-                        ),
-                        border: const OutlineInputBorder(),
-                        errorText: isAddressValid ? null : 'Please add address',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            isEditingAddress ? Icons.check : Icons.edit,
-                            color: AppColors.primary,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              isEditingAddress = !isEditingAddress;
-
-                              if (!isEditingAddress) {
-                                final newAddress =
-                                    _addressController.text.trim();
-                                isAddressValid = newAddress.isNotEmpty;
-
-                                if (userId != null) {
-                                  FirebaseFirestore.instance
-                                      .collection('customers')
-                                      .doc(userId)
-                                      .update({'address': newAddress});
-                                }
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                      Row(
-                      children: [
-                        const CustomText(textLabel: 'Shipping Fee: ', fontSize: 18),
-                        CustomText(
-                          textLabel:
-                              '₱25.00',
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        )
-                      ],
-                    ), SizedBox(height: 10),
-                    Divider(
-                      color: AppColors.grey,
-                      thickness: 2,
-                    ),
-                    SizedBox(height: 10),
-                    const CustomText(
-                      textLabel: "Payment Method",
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    RadioListTile<String>(
-                      title: const Text("Cash on Delivery"),
-                      value: "Cash on Delivery",
-                      groupValue: selectedPaymentMethod,
-                      activeColor: AppColors.primary,
-                      onChanged: (value) {
-                        setState(() {
-                          selectedPaymentMethod = value!;
-                        });
-                      },
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  ],
+      body: _isLoading
+          ? Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(backgroundImage(currentEvent)),
+                  fit: BoxFit.cover,
                 ),
               ),
-            ),),
+              child: const Center(child: CircularProgressIndicator()))
+          : Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(backgroundImage(currentEvent)),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.only(
+                    left: 16, right: 16, top: 8, bottom: 100),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (productData?['imageUrl'] != null)
+                        Center(
+                          child: Image.network(
+                            productData!['imageUrl'],
+                            height: 200,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      const SizedBox(height: 16),
+                      CustomText(
+                        textLabel:
+                            '${productData?['productName'] ?? 'No Product Name'}',
+                        fontSize: 25,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const CustomText(textLabel: 'Price: ', fontSize: 18),
+                          if (hasPromo) ...[
+                            CustomText(
+                              textLabel:
+                                  '₱${originalPrice.toStringAsFixed(2)} ',
+                              fontSize: 16,
+                              textColor: Colors.grey,
+                              fontWeight: FontWeight.normal,
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                            const SizedBox(width: 5),
+                            CustomText(
+                              textLabel: '₱${finalPrice.toStringAsFixed(2)}',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              textColor: Colors.orange,
+                            ),
+                          ] else
+                            CustomText(
+                              textLabel: '₱${originalPrice.toStringAsFixed(2)}',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            )
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const CustomText(textLabel: 'Quantity', fontSize: 16),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove_circle_outline,
+                                    color: Colors.red),
+                                onPressed: () {
+                                  if (quantity > 1) {
+                                    setState(() {
+                                      quantity--;
+                                      updateTotalPrice();
+                                    });
+                                  }
+                                },
+                              ),
+                              Text(
+                                '$quantity',
+                                style: const TextStyle(fontSize: 16),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.add_circle_outline,
+                                    color: AppColors.primary),
+                                onPressed: () {
+                                  setState(() {
+                                    quantity++;
+                                    updateTotalPrice();
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Divider(
+                        color: AppColors.grey,
+                        thickness: 2,
+                      ),
+                      const SizedBox(height: 10),
+                      const CustomText(
+                        textLabel: "Delivery Address",
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _addressController,
+                        readOnly: !isEditingAddress,
+                        onChanged: (value) {
+                          setState(() {
+                            isAddressValid = value.trim().isNotEmpty;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Enter delivery address',
+                          hintStyle: TextStyle(
+                            color: isAddressValid ? Colors.grey : Colors.red,
+                          ),
+                          border: const OutlineInputBorder(),
+                          errorText:
+                              isAddressValid ? null : 'Please add address',
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              isEditingAddress ? Icons.check : Icons.edit,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                isEditingAddress = !isEditingAddress;
+
+                                if (!isEditingAddress) {
+                                  final newAddress =
+                                      _addressController.text.trim();
+                                  isAddressValid = newAddress.isNotEmpty;
+
+                                  if (userId != null) {
+                                    FirebaseFirestore.instance
+                                        .collection('customers')
+                                        .doc(userId)
+                                        .update({'address': newAddress});
+                                  }
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          const CustomText(
+                              textLabel: 'Shipping Fee: ', fontSize: 18),
+                          CustomText(
+                            textLabel: '₱25.00',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          )
+                        ],
+                      ),
+                      SizedBox(height: 10),
+                      Divider(
+                        color: AppColors.grey,
+                        thickness: 2,
+                      ),
+                      SizedBox(height: 10),
+                      const CustomText(
+                        textLabel: "Payment Method",
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      RadioListTile<String>(
+                        title: const Text("Cash on Delivery"),
+                        value: "Cash on Delivery",
+                        groupValue: selectedPaymentMethod,
+                        activeColor: AppColors.primary,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedPaymentMethod = value!;
+                          });
+                        },
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
       bottomSheet: _isLoading
           ? null
           : Container(
               padding: const EdgeInsets.all(16),
-              decoration:  BoxDecoration(
-                color:  backgroundColor(currentEvent),
+              decoration: BoxDecoration(
+                color: backgroundColor(currentEvent),
                 border: Border(
                   top: BorderSide(color: Colors.grey, width: 0.3),
                 ),
@@ -386,17 +387,16 @@ final hasPromo = productData?['promo']?['enabled'] == true;
                         textColor: AppColors.primary,
                       ),
                       ElevatedButton(
-                       onPressed: isAddressValid
-    ? () {
-        buyNow(
-          widget.productId,
-          productData?['sellerId'],
-          quantity,
-          _addressController.text.trim(),
-        );
-      }
-    : null,
-
+                        onPressed: isAddressValid
+                            ? () {
+                                buyNow(
+                                  widget.productId,
+                                  productData?['sellerId'],
+                                  quantity,
+                                  _addressController.text.trim(),
+                                );
+                              }
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               isAddressValid ? AppColors.primary : Colors.grey,
@@ -417,80 +417,81 @@ final hasPromo = productData?['promo']?['enabled'] == true;
     );
   }
 
-  Future<void> buyNow(String productId, String sellerId, int quantity, String deliveryAddress) async {
-  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  Future<void> buyNow(String productId, String sellerId, int quantity,
+      String deliveryAddress) async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-  if (userId == null) {
-    errorSnackbar(context, "You must be logged in to place an order.");
-    return;
-  }
-
-  if (deliveryAddress.trim().isEmpty) {
-    errorSnackbar(context, "Please provide a valid delivery address.");
-    return;
-  }
-
-  try {
-    final productRef = FirebaseFirestore.instance.collection('products').doc(productId);
-    final productSnapshot = await productRef.get();
-
-    if (!productSnapshot.exists) {
-      if (!mounted) return;
-      errorSnackbar(context, "Product not found.");
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to place an order.");
       return;
     }
 
-    final productData = productSnapshot.data()!;
-    final String sellerId = productData['sellerId'];
-    double originalPrice = (productData['price'] as num).toDouble();
-double finalPrice = originalPrice;
+    if (deliveryAddress.trim().isEmpty) {
+      errorSnackbar(context, "Please provide a valid delivery address.");
+      return;
+    }
 
-final promo = productData['promo'];
-final hasPromo = promo != null && promo['enabled'] == true;
+    try {
+      final productRef =
+          FirebaseFirestore.instance.collection('products').doc(productId);
+      final productSnapshot = await productRef.get();
 
-if (hasPromo) {
-  final promoType = promo['type'];
-  final promoValue = (promo['value'] ?? 0).toDouble();
+      if (!productSnapshot.exists) {
+        if (!mounted) return;
+        errorSnackbar(context, "Product not found.");
+        return;
+      }
 
-  if (promoType == 'percentage') {
-    finalPrice -= originalPrice * (promoValue / 100);
-  } else if (promoType == 'fixed') {
-    finalPrice -= promoValue;
+      final productData = productSnapshot.data()!;
+      final String sellerId = productData['sellerId'];
+      double originalPrice = (productData['price'] as num).toDouble();
+      double finalPrice = originalPrice;
+
+      final promo = productData['promo'];
+      final hasPromo = promo != null && promo['enabled'] == true;
+
+      if (hasPromo) {
+        final promoType = promo['type'];
+        final promoValue = (promo['value'] ?? 0).toDouble();
+
+        if (promoType == 'percentage') {
+          finalPrice -= originalPrice * (promoValue / 100);
+        } else if (promoType == 'fixed') {
+          finalPrice -= promoValue;
+        }
+
+        finalPrice = finalPrice.clamp(0, double.infinity);
+      }
+
+      final double totalPayment = finalPrice * quantity + shippingFee;
+
+      final now = DateTime.now();
+      final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
+
+      final ordersRef =
+          FirebaseFirestore.instance.collection('orders').doc(orderId);
+
+      await ordersRef.set({
+        'orderId': orderId,
+        'customerId': userId,
+        'productId': productId,
+        'price': finalPrice,
+        'totalPayment': totalPayment,
+        'sellerId': sellerId,
+        'quantity': quantity,
+        'dateOrdered': now,
+        'status': 'ordered',
+        'hasRider': false,
+        'deliveryAddress': deliveryAddress,
+      });
+
+      if (!mounted) return;
+      successSnackbar(context, "Order placed successfully!");
+      navPop(context);
+    } catch (error) {
+      if (!mounted) return;
+      errorSnackbar(context, "Failed to place order: $error");
+    }
+    await sendEvent(userId, 'purchase', productId: productId);
   }
-
-  finalPrice = finalPrice.clamp(0, double.infinity);
-}
-
-final double totalPayment = finalPrice * quantity + shippingFee;
-
-
-    final now = DateTime.now();
-    final orderId = FirebaseFirestore.instance.collection('orders').doc().id;
-
-    final ordersRef = FirebaseFirestore.instance.collection('orders').doc(orderId);
-
-    await ordersRef.set({
-      'orderId': orderId,
-      'customerId': userId,
-      'productId': productId,
-      'price': finalPrice,
-      'totalPayment':totalPayment,
-      'sellerId': sellerId,
-      'quantity': quantity,
-      'dateOrdered': now,
-      'status': 'ordered',
-      'hasRider': false,
-      'deliveryAddress': deliveryAddress,
-    });
-
-    if (!mounted) return;
-    successSnackbar(context, "Order placed successfully!");
-    navPop(context);
-  } catch (error) {
-    if (!mounted) return;
-    errorSnackbar(context, "Failed to place order: $error");
-  }
-  await sendEvent(userId, 'purchase', productId: productId);
-}
-
 }

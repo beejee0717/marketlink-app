@@ -96,6 +96,21 @@ class _SignUpState extends State<SignUp> {
         });
         return;
       }
+      if (idPhoto == null || idPhoto!.isEmpty) {
+        errorSnackbar(context, 'Please upload id photo');
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      if (selfiePhoto == null || selfiePhoto!.isEmpty) {
+        errorSnackbar(context, 'Please take a selfie');
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
 
       if (!EmailValidator.validate(_emailController.text.trim())) {
         errorSnackbar(context, 'Invalid email format');
@@ -212,74 +227,185 @@ class _SignUpState extends State<SignUp> {
     );
   }
 
-  Future<void> _confirmVerification() async {
-    if (_formKey.currentState?.validate() == true) {
-      navPop(context);
-      setState(() {
-        isSigning = true;
-      });
+Future<void> _confirmVerification() async {
+  if (_formKey.currentState?.validate() == true) {
+    navPop(context);
+    setState(() {
+      isSigning = true;
+    });
+
+    try {
+      final email = _emailController.text.trim();
+
+      final firestore = FirebaseFirestore.instance;
+      for (final c in ['customers', 'sellers', 'riders']) {
+        final existing = await firestore
+            .collection(c)
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
+
+        if (existing.docs.isNotEmpty && c != '${widget.role}s') {
+          errorSnackbar(context, 'This email is already registered under another role.');
+          setState(() {
+            isSigning = false;
+          });
+          return;
+        }
+      }
+
+      UserCredential userCredential;
+
       try {
-        final UserCredential userCredential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
+        userCredential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+          email: email,
           password: _passwordController.text.trim(),
         );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'email-already-in-use') {
+          final ghost = await _isGhostAccount(email);
 
-        final User? user = userCredential.user;
+          if (ghost) {
+            userCredential =
+                await FirebaseAuth.instance.signInWithEmailAndPassword(
+              email: email,
+              password: _passwordController.text.trim(),
+            ).catchError((_) async {
+              return await FirebaseAuth.instance
+                  .createUserWithEmailAndPassword(
+                email: email,
+                password: _passwordController.text.trim(),
+              );
+            });
 
-        if (user != null) {
-          final String collectionName = '${widget.role}s';
-
-          final Map<String, dynamic> userData = {
-            'firstName': _firstNameController.text.trim(),
-            'lastName': _lastNameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'role': widget.role[0].toUpperCase() + widget.role.substring(1),
-            'createdAt': Timestamp.now(),
-            'disabled': false
-          };
-
-          if (widget.role == 'seller' || widget.role == 'rider') {
-            final idUrl =
-                await CloudinaryService.uploadImageToCloudinary(File(idPhoto!));
-
-            if (idUrl == null) {
-              if (!mounted) return;
-              errorSnackbar(context, 'Failed to upload identification image.');
-              return;
-            }
-            final selfieUrl = await CloudinaryService.uploadImageToCloudinary(
-                File(selfiePhoto!));
-
-            if (selfieUrl == null) {
-              if (!mounted) return;
-              errorSnackbar(context, 'Failed to upload selfie image.');
-              return;
-            }
-            userData['imageID'] = idUrl;
-            userData['imageSelfie'] = selfieUrl;
-            userData['approved'] = false;
+            successSnackbar(context, 'Recovered your account. Please wait...');
+          } else {
+            errorSnackbar(context, 'This email is already registered.');
+            setState(() {
+              isSigning = false;
+            });
+            return;
           }
-
-          await FirebaseFirestore.instance
-              .collection(collectionName)
-              .doc(user.uid)
-              .set(userData);
-
-          if (!mounted) return;
-          successSnackbar(context, 'Account created successfully.');
-          navPop(context);
+        } else {
+          rethrow;
         }
-      } catch (e) {
-        if (!mounted) return;
-        errorSnackbar(context, 'Sign-up failed: ${e.toString()}');
-      } finally {
-        setState(() {
-          isSigning = false;
-        });
       }
+
+      final User? user = userCredential.user;
+      if (user == null) throw Exception("User creation failed");
+
+      final String collectionName = '${widget.role}s';
+
+      final snap = await FirebaseFirestore.instance
+          .collection(collectionName)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      String docId;
+      if (snap.docs.isNotEmpty) {
+        docId = snap.docs.first.id;
+      } else {
+        docId = user.uid;
+      }
+
+      final Map<String, dynamic> userData = {
+        'firstName': _firstNameController.text.trim(),
+        'lastName': _lastNameController.text.trim(),
+        'email': email,
+        'role': widget.role[0].toUpperCase() + widget.role.substring(1),
+        'createdAt': Timestamp.now(),
+        'disabled': false,
+        'approved': false,
+      };
+
+      final idUrl =
+          await CloudinaryService.uploadImageToCloudinary(File(idPhoto!));
+      if (idUrl == null) throw Exception("Failed to upload ID image");
+
+      final selfieUrl =
+          await CloudinaryService.uploadImageToCloudinary(File(selfiePhoto!));
+      if (selfieUrl == null) throw Exception("Failed to upload selfie");
+
+      userData['imageID'] = idUrl;
+      userData['imageSelfie'] = selfieUrl;
+
+      await FirebaseFirestore.instance
+          .collection(collectionName)
+          .doc(docId)
+          .set(userData, SetOptions(merge: true));
+
+      if (!mounted) return;
+      successSnackbar(context, 'Account created successfully.');
+      navPop(context);
+    } catch (e) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+
+      if (currentUser != null) {
+        await currentUser.delete();
+      }
+      if (!mounted) return;
+      errorSnackbar(context, 'Sign-up failed: ${e.toString()}');
+    } finally {
+      setState(() {
+        isSigning = false;
+      });
     }
   }
+}
+
+Future<void> _deleteFirestoreUserByEmail(String email) async {
+  final firestore = FirebaseFirestore.instance;
+  for (final collection in ['customers', 'sellers', 'riders']) {
+    final snap = await firestore
+        .collection(collection)
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      await firestore.collection(collection).doc(snap.docs.first.id).delete();
+    }
+  }
+}
+
+Future<bool> _isGhostAccount(String email) async {
+  final firestore = FirebaseFirestore.instance;
+
+  bool existsInFirestore = false;
+  for (final collection in ['customers', 'sellers', 'riders']) {
+    final snap = await firestore
+        .collection(collection)
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) {
+      existsInFirestore = true;
+      break;
+    }
+  }
+
+  try {
+    final methods =
+        await FirebaseAuth.instance.fetchSignInMethodsForEmail(email);
+    final existsInAuth = methods.isNotEmpty;
+
+    if (!existsInAuth && existsInFirestore) {
+      debugging('orphaned Firestore record detected → treating as ghost');
+      return true;
+    }
+
+    if (existsInAuth && existsInFirestore) return false;
+
+    if (!existsInAuth && !existsInFirestore) return true;
+  } catch (e) {
+    debugging('Error checking ghost account: $e');
+  }
+
+  return false;
+}
+
+
 
   Widget _sectionTitle(String title) {
     return Text(
@@ -306,313 +432,315 @@ class _SignUpState extends State<SignUp> {
     return GestureDetector(
       onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
       child: ModalProgressHUD(
-        inAsyncCall: isSigning,
-        color: Colors.black,
-        progressIndicator: const SizedBox(
-          width: 50,
-          height: 50,
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 5,
+          inAsyncCall: isSigning,
+          color: Colors.black,
+          progressIndicator: const SizedBox(
+            width: 50,
+            height: 50,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 5,
+            ),
           ),
-        ),
-        child: Scaffold(
-           body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage(wallpaper(currentEvent)),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child:SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10, top: 40),
-                    child: Image.asset(
-                      'assets/images/logo.png',
-                      height: 200,
-                      width: 200,
-                    ),
-                  ),
-                  CustomText(
-                    textLabel:
-                        widget.role[0].toUpperCase() + widget.role.substring(1),
-                    fontSize: 25,
-                    textColor: Colors.white,
-                    letterSpacing: 1,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  const SizedBox(height: 30),
-                  TextFormField(
-                    controller: _firstNameController,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(
-                      labelText: 'First Name',
-                      labelStyle: TextStyle(color: Colors.white),
-                      prefixIcon: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                      ),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white)),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 1)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.yellow, width: 2)),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    controller: _lastNameController,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(
-                      labelText: 'Last Name',
-                      labelStyle: TextStyle(color: Colors.white),
-                      prefixIcon: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                      ),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white)),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 1)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.yellow, width: 2)),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    controller: _emailController,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      labelStyle: TextStyle(color: Colors.white),
-                      prefixIcon: Icon(
-                        Icons.email,
-                        color: Colors.white,
-                      ),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white)),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 1)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.yellow, width: 2)),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: !_isPasswordVisible,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      labelStyle: TextStyle(color: Colors.white),
-                      prefixIcon: const Icon(
-                        Icons.lock,
-                        color: Colors.white,
-                      ),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white)),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 1)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.yellow, width: 2)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                    obscureText: !_isPasswordVisible,
-                    decoration: InputDecoration(
-                      labelText: 'Re-enter Password',
-                      labelStyle: TextStyle(color: Colors.white),
-                      prefixIcon: const Icon(
-                        Icons.lock,
-                        color: Colors.white,
-                      ),
-                      border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white)),
-                      enabledBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 1)),
-                      focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.yellow, width: 2)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _isPasswordVisible
-                              ? Icons.visibility
-                              : Icons.visibility_off,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _isPasswordVisible = !_isPasswordVisible;
-                          });
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  if (widget.role == 'seller' || widget.role == 'rider') ...[
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        child: IdUpload(
-                          idImage: idPhoto,
-                          selfieImage: selfiePhoto,
-                          onIdChanged: (idPath) {
-                            debugging(idPath.toString());
-                            setState(() {
-                              idPhoto = idPath;
-                            });
-                          },
-                          onSelfieChanged: (selfiePath) {
-                            debugging(selfiePath.toString());
-                            setState(() {
-                              selfiePhoto = selfiePath;
-                            });
-                          },
-                          onLoadingChanged: (loading) {
-                            setState(() {
-                              isSigning = loading;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+          child: Scaffold(
+            body: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage(wallpaper(currentEvent)),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Checkbox(
-                        value: _isAccepted,
-                        activeColor: Colors.yellow.shade800,
-                        onChanged: (_) {
-                          _isAccepted
-                              ? setState(() {
-                                  _isAccepted = false;
-                                })
-                              : _termsAndConditions(context);
-                        },
-                        side: BorderSide(
-                          color: Colors.white,
-                          width: 2,
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10, top: 40),
+                        child: Image.asset(
+                          'assets/images/logo.png',
+                          height: 200,
+                          width: 200,
                         ),
                       ),
-                      SizedBox(width: 6),
-                      Flexible(
-                        child: Row(
-                          children: [
-                            CustomText(
-                              textLabel: 'I accept the',
-                              fontSize: 15,
-                              textColor: Colors.white,
+                      CustomText(
+                        textLabel: widget.role[0].toUpperCase() +
+                            widget.role.substring(1),
+                        fontSize: 25,
+                        textColor: Colors.white,
+                        letterSpacing: 1,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 30),
+                      TextFormField(
+                        controller: _firstNameController,
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: const InputDecoration(
+                          labelText: 'First Name',
+                          labelStyle: TextStyle(color: Colors.white),
+                          prefixIcon: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                          ),
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white)),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.white, width: 1)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.yellow, width: 2)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextFormField(
+                        controller: _lastNameController,
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: const InputDecoration(
+                          labelText: 'Last Name',
+                          labelStyle: TextStyle(color: Colors.white),
+                          prefixIcon: Icon(
+                            Icons.person,
+                            color: Colors.white,
+                          ),
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white)),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.white, width: 1)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.yellow, width: 2)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextFormField(
+                        controller: _emailController,
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: TextStyle(color: Colors.white),
+                          prefixIcon: Icon(
+                            Icons.email,
+                            color: Colors.white,
+                          ),
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white)),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.white, width: 1)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.yellow, width: 2)),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          labelStyle: TextStyle(color: Colors.white),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                          ),
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white)),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.white, width: 1)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.yellow, width: 2)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.white,
                             ),
-                            SizedBox(width: 4),
-                            TextButton(
-                              onPressed: () {
-                                // pwede sab diri ang terms and conditions
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
+                        obscureText: !_isPasswordVisible,
+                        decoration: InputDecoration(
+                          labelText: 'Re-enter Password',
+                          labelStyle: TextStyle(color: Colors.white),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            color: Colors.white,
+                          ),
+                          border: OutlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white)),
+                          enabledBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.white, width: 1)),
+                          focusedBorder: OutlineInputBorder(
+                              borderSide:
+                                  BorderSide(color: Colors.yellow, width: 2)),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.white,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _isPasswordVisible = !_isPasswordVisible;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      if (widget.role == 'seller' ||
+                          widget.role == 'rider') ...[
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            child: IdUpload(
+                              idImage: idPhoto,
+                              selfieImage: selfiePhoto,
+                              onIdChanged: (idPath) {
+                                debugging(idPath.toString());
+                                setState(() {
+                                  idPhoto = idPath;
+                                });
                               },
-                              style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size(0, 0),
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: CustomText(
-                                textLabel: 'Terms and Conditions.',
-                                fontSize: 15,
-                                textColor: Colors.white,
-                              ),
+                              onSelfieChanged: (selfiePath) {
+                                debugging(selfiePath.toString());
+                                setState(() {
+                                  selfiePhoto = selfiePath;
+                                });
+                              },
+                              onLoadingChanged: (loading) {
+                                setState(() {
+                                  isSigning = loading;
+                                });
+                              },
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _signUp,
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.yellow,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15)),
-                          padding: EdgeInsets.symmetric(vertical: 10)),
-                      child: isLoading
-                          ? CircularProgressIndicator(
-                              color: Colors.purple.shade800,
-                            )
-                          : CustomText(
-                              textLabel: 'SIGN UP',
-                              textColor: Colors.purple.shade800,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => navPop(context),
-                    child: RichText(
-                      text: TextSpan(
-                        text: 'Already have an account? ',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
+                      ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          TextSpan(
-                            text: 'Log In',
-                            style: const TextStyle(
-                              color: Colors.yellow,
-                              letterSpacing: 1,
-                              decoration: TextDecoration.underline,
-                              fontWeight: FontWeight.bold,
+                          Checkbox(
+                            value: _isAccepted,
+                            activeColor: Colors.yellow.shade800,
+                            onChanged: (_) {
+                              _isAccepted
+                                  ? setState(() {
+                                      _isAccepted = false;
+                                    })
+                                  : _termsAndConditions(context);
+                            },
+                            side: BorderSide(
+                              color: Colors.white,
+                              width: 2,
+                            ),
+                          ),
+                          SizedBox(width: 6),
+                          Flexible(
+                            child: Row(
+                              children: [
+                                CustomText(
+                                  textLabel: 'I accept the',
+                                  fontSize: 15,
+                                  textColor: Colors.white,
+                                ),
+                                SizedBox(width: 4),
+                                TextButton(
+                                  onPressed: () {
+                                    // pwede sab diri ang terms and conditions
+                                  },
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size(0, 0),
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: CustomText(
+                                    textLabel: 'Terms and Conditions.',
+                                    fontSize: 15,
+                                    textColor: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _signUp,
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.yellow,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15)),
+                              padding: EdgeInsets.symmetric(vertical: 10)),
+                          child: isLoading
+                              ? CircularProgressIndicator(
+                                  color: Colors.purple.shade800,
+                                )
+                              : CustomText(
+                                  textLabel: 'SIGN UP',
+                                  textColor: Colors.purple.shade800,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => navPop(context),
+                        child: RichText(
+                          text: TextSpan(
+                            text: 'Already have an account? ',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                            ),
+                            children: [
+                              TextSpan(
+                                text: 'Log In',
+                                style: const TextStyle(
+                                  color: Colors.yellow,
+                                  letterSpacing: 1,
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                ],
+                ),
               ),
             ),
-          ),
-        ),)
-      ),
+          )),
     );
   }
 

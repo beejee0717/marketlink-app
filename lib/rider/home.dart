@@ -38,12 +38,18 @@ class _RiderHomeState extends State<RiderHome> {
     }
   }
 
-  Stream<bool> getRiderApprovalStatus(String? riderId) {
+  Stream<Map<String, bool>> getRiderStatus(String? riderId) {
     return FirebaseFirestore.instance
         .collection('riders')
         .doc(riderId)
         .snapshots()
-        .map((snapshot) => snapshot.data()?['approved'] == true);
+        .map((snapshot) {
+      final data = snapshot.data();
+      return {
+        'approved': data?['approved'] == true,
+        'disabled': data?['disabled'] == true,
+      };
+    });
   }
 
   Stream<List<Map<String, dynamic>>> fetchAvailableOrders() {
@@ -103,11 +109,6 @@ class _RiderHomeState extends State<RiderHome> {
                 .trim()
             : 'Unknown Customer';
 
-        final customerAddress = customerData != null &&
-                (customerData['address']?.toString().isNotEmpty ?? false)
-            ? customerData['address']
-            : 'Unknown Location';
-
         final customerContact = customerData != null &&
                 (customerData['contactNumber']?.toString().isNotEmpty ?? false)
             ? customerData['contactNumber']
@@ -123,7 +124,7 @@ class _RiderHomeState extends State<RiderHome> {
           'price': totalPrice,
           'quantity': quantity,
           'imageUrl': productData['imageUrl'],
-          'customerAddress': customerAddress,
+          'customerAddress': data['deliveryAddress'],
           'customerId': customerId,
           'customerName': customerName,
           'dateOrdered': data['dateOrdered'],
@@ -132,6 +133,7 @@ class _RiderHomeState extends State<RiderHome> {
           'sellerContact': sellerContact,
           'pickupLocation': productData['pickupLocation'],
           'isDelivered': false,
+          'riderId': data['riderId'] ?? 'no rider'
         });
       }
 
@@ -139,25 +141,24 @@ class _RiderHomeState extends State<RiderHome> {
     });
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     final userInfo = Provider.of<UserProvider>(context, listen: false).user;
     return Scaffold(
         appBar: appbar(context, destination: RiderProfile()),
         body: Container(
-           decoration: BoxDecoration(
-    image: DecorationImage(
-      image: AssetImage(backgroundImage(currentEvent)),
-      fit: BoxFit.cover,
-    ),
-  ),
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage(backgroundImage(currentEvent)),
+              fit: BoxFit.cover,
+            ),
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                 child: CustomText(
                   textLabel: 'Products Available to Deliver',
                   fontSize: 18,
@@ -165,15 +166,18 @@ class _RiderHomeState extends State<RiderHome> {
                 ),
               ),
               Expanded(
-                child: StreamBuilder<bool>(
-                  stream: getRiderApprovalStatus(userInfo?.uid),
+                child: StreamBuilder<Map<String, bool>>(
+                  stream: getRiderStatus(userInfo?.uid),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
-          
-                    bool isApproved = snapshot.data ?? false;
-          
+
+                    final status = snapshot.data!;
+
+                    final isApproved = status['approved'] ?? false;
+                    final isDisabled = status['disabled'] ?? false;
+
                     if (!isApproved) {
                       return Center(
                         child: Padding(
@@ -202,11 +206,41 @@ class _RiderHomeState extends State<RiderHome> {
                         ),
                       );
                     }
-          
+
+                    if (isDisabled) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.warning_amber_rounded,
+                                size: 150,
+                                color: Colors.red,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                'Your account is currently disabled. This may be the result of a policy violation. Please contact the administrator for clarification and next steps.',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
                     return StreamBuilder<List<Map<String, dynamic>>>(
                       stream: productsStream,
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return Center(
                             child: Padding(
                               padding: const EdgeInsets.only(top: 10),
@@ -262,7 +296,8 @@ class _RiderHomeState extends State<RiderHome> {
                                           CrossAxisAlignment.center,
                                       children: [
                                         ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                           child: product['imageUrl'] != null
                                               ? Image.network(
                                                   product['imageUrl'],
@@ -304,7 +339,8 @@ class _RiderHomeState extends State<RiderHome> {
                                                     '₱${product['price'] ?? '0'}',
                                                     style: const TextStyle(
                                                       fontSize: 14,
-                                                      fontWeight: FontWeight.bold,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       color: Colors.orange,
                                                     ),
                                                   ),

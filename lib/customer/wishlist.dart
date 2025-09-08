@@ -318,23 +318,8 @@ Future<List<Map<String, dynamic>>> fetchWishlistItems(String userId) async {
                         fontSize: 18,
                         textColor: Colors.black,
                       ),
-                      ElevatedButton(
-  onPressed: () {
-    NotificationService.showNotification(
-      title: 'Hello!',
-      body: 'This is your first notification 🎉',
-    );
-  },
-  child: Text('Show Notification'),
-),
-     ElevatedButton(
-  onPressed: ()async {
-   String? token = await FirebaseMessaging.instance.getToken();
-   debugging(token.toString());
-   
-  },
-  child: Text('Get Token'),
-)
+                  
+  
 
 
                     ],

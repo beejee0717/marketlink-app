@@ -569,29 +569,49 @@ if (hasPromo) {
                                         padding: const EdgeInsets.all(2.0),
                                         child: Column(
                                           children: [
-                                            Center(
-                                              child: ElevatedButton(
-                                                onPressed: () =>
-                                                    showLeaveReviewDialog(),
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: AppColors.primary,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(10),
-                                                  ),
-                                                ),
-                                                child: const Padding(
-                                                  padding: EdgeInsets.symmetric(
-                                                     
-                                                      vertical: 5.0),
-                                                  child: CustomText(
-                                                    textLabel: 'Leave a Review',
-                                                    fontSize: 15,
-                                                    textColor: Colors.white,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
+                                       FutureBuilder<QuerySnapshot>(
+  future: FirebaseFirestore.instance
+      .collection('bookings')
+      .where('customerId', isEqualTo: currentUser)
+      .where('serviceId', isEqualTo: widget.serviceId)
+      .where('status', isEqualTo: 'done') 
+      .get(),
+  builder: (context, snapshot) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const SizedBox();
+    }
+
+    final hasBookedService =
+        snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+
+        debugging(hasBookedService.toString());
+
+    if (!hasBookedService) {
+      return const SizedBox(); 
+    }
+
+    return Center(
+      child: ElevatedButton(
+        onPressed: () => showLeaveReviewDialog(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(vertical: 5.0),
+          child: CustomText(
+            textLabel: 'Leave a Review',
+            fontSize: 15,
+            textColor: Colors.white,
+          ),
+        ),
+      ),
+    );
+  },
+)
+,
                                             const SizedBox(height: 10),
                                             StreamBuilder<QuerySnapshot>(
                                               stream: FirebaseFirestore.instance

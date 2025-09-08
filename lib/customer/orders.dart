@@ -42,7 +42,6 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
   Future<void> _loadBookings() async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-    
 
     if (userId == null) {
       setState(() {
@@ -191,7 +190,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
         'status': orderData['status'],
         'sellerName': sellerName,
         'sellerContact': sellerContact,
-           'totalPayment':orderData['totalPayment'],
+        'totalPayment': orderData['totalPayment'],
       });
     }
 
@@ -249,7 +248,7 @@ class _CustomerOrdersState extends State<CustomerOrders>
         'imageUrl': productData['imageUrl'],
         'sellerName': sellerName,
         'sellerContact': sellerContact,
-        'totalPayment':orderData['totalPayment'],
+        'totalPayment': orderData['totalPayment'],
         'status': orderData['status'],
       });
     }
@@ -259,10 +258,8 @@ class _CustomerOrdersState extends State<CustomerOrders>
 
   Future<void> cancelOrder(
       String userId, String productId, String orderId) async {
- 
-    final orderRef = FirebaseFirestore.instance
-        .collection('orders')
-        .doc(orderId);
+    final orderRef =
+        FirebaseFirestore.instance.collection('orders').doc(orderId);
 
     await Future.wait([orderRef.delete()]);
 
@@ -316,14 +313,13 @@ class _CustomerOrdersState extends State<CustomerOrders>
             itemBuilder: (context, index) {
               final order = orders[index];
 
-              final totalPrice =
-                  order['totalPayment'] ?? 0 ;
+              final totalPrice = order['totalPayment'] ?? 0;
               return Card(
                 color: const Color.fromARGB(158, 255, 255, 255),
                 margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                 child: GestureDetector(
-                  onTap: (){
-                   navPush(context, OrderSummary(orderId: order['orderId']));
+                  onTap: () {
+                    navPush(context, OrderSummary(orderId: order['orderId']));
                   },
                   child: ListTile(
                     leading: ClipRRect(
@@ -374,95 +370,119 @@ class _CustomerOrdersState extends State<CustomerOrders>
                         const SizedBox(height: 5),
                       ],
                     ),
-                  trailing: order['status'] == 'shipped'
-    ? null
-    : type == 'delivered'
-        ? IconButton(
-            icon:  Icon(Icons.image, color: AppColors.primary),
-            onPressed: () async {
-              final orderId = order['orderId'];
+                    trailing: order['status'] == 'shipped'
+                        ? null
+                        : type == 'delivered'
+                            ? IconButton(
+                                icon:
+                                    Icon(Icons.image, color: AppColors.primary),
+                                onPressed: () async {
+                                  final orderId = order['orderId'];
 
-              DocumentSnapshot<Map<String, dynamic>> snapshot =
-                  await FirebaseFirestore.instance
-                      .collection('orders')
-                      .doc(orderId)
-                      .get();
+                                  DocumentSnapshot<Map<String, dynamic>>
+                                      snapshot = await FirebaseFirestore
+                                          .instance
+                                          .collection('orders')
+                                          .doc(orderId)
+                                          .get();
 
-              final deliveryData = snapshot.data();
+                                  final deliveryData = snapshot.data();
 
-              if (context.mounted) {
-                showDialog(
-                  context: context,
-                  builder: (_) => AlertDialog(
-                    title: const Text('Delivery Proof'),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (deliveryData?['deliveryProof'] != null)
-                          Image.network(
-                            deliveryData!['deliveryProof'],
-                            loadingBuilder: (context, child, progress) =>
-                                progress == null
-                                    ? child
-                                    : const Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: CircularProgressIndicator(),
+                                  if (context.mounted) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => AlertDialog(
+                                        title: const Text('Delivery Proof'),
+                                        content: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (deliveryData?[
+                                                    'deliveryProof'] !=
+                                                null)
+                                              Image.network(
+                                                deliveryData!['deliveryProof'],
+                                                loadingBuilder: (context, child,
+                                                        progress) =>
+                                                    progress == null
+                                                        ? child
+                                                        : const Padding(
+                                                            padding:
+                                                                EdgeInsets.all(
+                                                                    16.0),
+                                                            child:
+                                                                CircularProgressIndicator(),
+                                                          ),
+                                                errorBuilder: (context, error,
+                                                        stackTrace) =>
+                                                    const Text(
+                                                        'Failed to load image'),
+                                              )
+                                            else
+                                              const Text(
+                                                  'No delivery proof available'),
+                                            const SizedBox(height: 16),
+                                            if (deliveryData?[
+                                                    'deliveryTimestamp'] !=
+                                                null)
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text(
+                                                    'Delivery Date & Time:',
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                  ),
+                                                  Text(
+                                                    DateFormat(
+                                                            'MMMM d, y – h:mm:ss a')
+                                                        .format(
+                                                      (deliveryData![
+                                                                  'deliveryTimestamp']
+                                                              as Timestamp)
+                                                          .toDate(),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                          ],
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: const Text('Close'),
+                                          ),
+                                        ],
                                       ),
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Text('Failed to load image'),
-                          )
-                        else
-                          const Text('No delivery proof available'),
-                        const SizedBox(height: 16),
-                        if (deliveryData?['deliveryTimestamp'] != null)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Delivery Date & Time:',
-                                style: TextStyle(fontWeight: FontWeight.bold),
+                                    );
+                                  }
+                                },
+                              )
+                            : IconButton(
+                                icon:
+                                    const Icon(Icons.cancel, color: Colors.red),
+                                onPressed: () {
+                                  customDialog(
+                                      context,
+                                      order['productName'] ?? 'Unnamed Product',
+                                      'Cancel this order?', () {
+                                    cancelOrder(
+                                      Provider.of<UserProvider>(context,
+                                              listen: false)
+                                          .user!
+                                          .uid,
+                                      order['productId'],
+                                      order['orderId'],
+                                    );
+                                    if (Navigator.canPop(context)) {
+                                      navPop(context);
+                                    }
+                                  });
+                                },
                               ),
-                              Text(
-                                DateFormat('MMMM d, y – h:mm:ss a').format(
-                                  (deliveryData!['deliveryTimestamp']
-                                          as Timestamp)
-                                      .toDate(),
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
                   ),
-                );
-              }
-            },
-          )
-        : IconButton(
-            icon: const Icon(Icons.cancel, color: Colors.red),
-            onPressed: () {
-              customDialog(
-                  context,
-                  order['productName'] ?? 'Unnamed Product',
-                  'Cancel this order?', () {
-                cancelOrder(
-                  Provider.of<UserProvider>(context, listen: false).user!.uid,
-                  order['productId'],
-                  order['orderId'],
-                );
-                if (Navigator.canPop(context)) {
-                  navPop(context);
-                }
-              });
-            },
-          ),
-  ),
                 ),
               );
             },
@@ -539,11 +559,15 @@ class _CustomerOrdersState extends State<CustomerOrders>
                                   child: CustomText(
                                     textLabel: booking['status'] == 'pending'
                                         ? 'Pending'
-                                        : 'Confirmed',
+                                        : booking['status'] == 'approved'
+                                            ? 'Confirmed'
+                                            : 'Finished',
                                     fontSize: 14,
                                     textColor: booking['status'] == 'pending'
                                         ? const Color.fromARGB(255, 255, 167, 4)
-                                        : AppColors.primary,
+                                        : booking['status'] == 'approved'
+                                            ? AppColors.primary
+                                            : Colors.green,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -644,109 +668,109 @@ class _CustomerOrdersState extends State<CustomerOrders>
           );
   }
 
- @override
-Widget build(BuildContext context) {
-  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+  @override
+  Widget build(BuildContext context) {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-  if (userId == null) {
+    if (userId == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const CustomText(textLabel: 'Orders', fontSize: 25),
+          backgroundColor: Colors.white,
+          iconTheme: const IconThemeData(color: Colors.black),
+        ),
+        body: const Center(
+          child: CustomText(
+            textLabel: 'You must be logged in to view your orders.',
+            fontSize: 16,
+            textColor: Colors.red,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const CustomText(textLabel: 'Orders', fontSize: 25),
-        backgroundColor: Colors.white,
-        iconTheme: const IconThemeData(color: Colors.black),
-      ),
-      body: const Center(
-        child: CustomText(
-          textLabel: 'You must be logged in to view your orders.',
-          fontSize: 16,
-          textColor: Colors.red,
+        title: CustomText(
+          textLabel: 'Orders & Bookings',
+          fontSize: 25,
+          textColor: headerTitleColor(currentEvent),
         ),
+        backgroundColor: backgroundColor(currentEvent),
+        iconTheme: const IconThemeData(color: Colors.black),
+        bottom: TabBar(
+          controller: _categoryController,
+          indicatorColor: AppColors.primary,
+          labelColor: AppColors.primary,
+          unselectedLabelColor: Colors.grey,
+          tabs: const [
+            Tab(text: 'Orders'),
+            Tab(text: 'Bookings'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _categoryController,
+        children: [
+          Column(
+            children: [
+              Container(
+                color: backgroundColor(currentEvent),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: AppColors.primary,
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: Colors.grey,
+                  tabs: const [
+                    Tab(text: 'Active Orders'),
+                    Tab(text: 'Delivered'),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(backgroundImage(currentEvent)),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: ordersLoading
+                      ? Center(
+                          child: SpinKitFadingCircle(
+                            size: 80,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildOrderList(_activeOrders, 'packed'),
+                            _buildOrderList(_deliveredOrders, 'delivered'),
+                          ],
+                        ),
+                ),
+              ),
+            ],
+          ),
+          bookingsLoading
+              ? Center(
+                  child: SpinKitFadingCircle(
+                    size: 80,
+                    color: AppColors.primary,
+                  ),
+                )
+              : Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage(backgroundImage(currentEvent)),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: _buildBookedList(_bookedServices),
+                ),
+        ],
       ),
     );
   }
-
-  return Scaffold(
-    appBar: AppBar(
-      title: CustomText(
-        textLabel: 'Orders & Bookings',
-        fontSize: 25,
-        textColor: headerTitleColor(currentEvent),
-      ),
-      backgroundColor: backgroundColor(currentEvent),
-      iconTheme: const IconThemeData(color: Colors.black),
-      bottom: TabBar(
-        controller: _categoryController,
-        indicatorColor: AppColors.primary,
-        labelColor: AppColors.primary,
-        unselectedLabelColor: Colors.grey,
-        tabs: const [
-          Tab(text: 'Orders'),
-          Tab(text: 'Bookings'),
-        ],
-      ),
-    ),
-    body: TabBarView(
-      controller: _categoryController,
-      children: [
-        Column(
-          children: [
-            Container(
-              color: backgroundColor(currentEvent), 
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.primary,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: Colors.grey,
-                tabs: const [
-                  Tab(text: 'Active Orders'),
-                  Tab(text: 'Delivered'),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(backgroundImage(currentEvent)), 
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: ordersLoading
-                    ? Center(
-                        child: SpinKitFadingCircle(
-                          size: 80,
-                          color: AppColors.primary,
-                        ),
-                      )
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildOrderList(_activeOrders, 'packed'),
-                          _buildOrderList(_deliveredOrders, 'delivered'),
-                        ],
-                      ),
-              ),
-            ),
-          ],
-        ),
-        bookingsLoading
-            ? Center(
-                child: SpinKitFadingCircle(
-                  size: 80,
-                  color: AppColors.primary,
-                ),
-              )
-            : Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage(backgroundImage(currentEvent)), 
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                child: _buildBookedList(_bookedServices),
-              ),
-      ],
-    ),
-  );
 }
-    }

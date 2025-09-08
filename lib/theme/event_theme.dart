@@ -11,7 +11,7 @@ enum AppEvent {
 AppEvent getCurrentEvent() {
   final now = DateTime.now(); //use this as default
   // final now = DateTime(2025, 2,14);//Valentines -- change this to show the theme during defense (YYYY,MM,DD)   
-  // final now = DateTime(2025, 11,1);//halloween  
+  // final now = DateTime(2025, 10,28);//halloween  
   //  final now = DateTime(2025, 12,25);//christmas
   //restart build after changing date for full implementation
 
@@ -19,7 +19,7 @@ AppEvent getCurrentEvent() {
     return AppEvent.valentines;
   }
 
-  if (_isInRange(now, DateTime(now.year, 10, 25), DateTime(now.year, 11, 2))) {
+  if (_isInRange(now, DateTime(now.year, 10, 30), DateTime(now.year, 11, 3))) {
     return AppEvent.halloween;
   }
 

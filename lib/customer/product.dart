@@ -587,8 +587,7 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                       style: ElevatedButton
                                                           .styleFrom(
                                                         backgroundColor:
-                                                            backgroundColor(
-                                                                currentEvent),
+                                                           currentEvent == AppEvent.none ? AppColors.primary : backgroundColor(currentEvent),
                                                         shape:
                                                             RoundedRectangleBorder(
                                                           borderRadius:

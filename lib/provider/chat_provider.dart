@@ -12,7 +12,7 @@ class ChatProvider with ChangeNotifier {
   bool _isLoading = true;
   Map<String, dynamic>? userData;
 
-String? role;
+  String? role;
 
   List<Map<String, dynamic>> get chatRooms => _chatRooms;
   bool get isLoading => _isLoading;
@@ -35,41 +35,46 @@ String? role;
         var docId = doc.id;
         String otherUserId = docId.split('_').firstWhere((id) => id != userId);
 
-    
+        // Define local variables inside the loop
+        Map<String, dynamic>? userData;
+        String? role;
 
-var sellerDoc = await _firestore.collection('sellers').doc(otherUserId).get();
-if (sellerDoc.exists) {
-  userData = sellerDoc.data();
-  role = 'seller';
-}
+        // Try fetching from sellers
+        var sellerDoc =
+            await _firestore.collection('sellers').doc(otherUserId).get();
+        if (sellerDoc.exists) {
+          userData = sellerDoc.data();
+          role = 'seller';
+        }
 
-if (userData == null) {
-  var riderDoc = await _firestore.collection('riders').doc(otherUserId).get();
-  if (riderDoc.exists) {
-    userData = riderDoc.data();
-    role = 'rider';
-  }
-}
+        // Try fetching from riders
+        if (userData == null) {
+          var riderDoc =
+              await _firestore.collection('riders').doc(otherUserId).get();
+          if (riderDoc.exists) {
+            userData = riderDoc.data();
+            role = 'rider';
+          }
+        }
 
-if (userData == null) {
-  var customerDoc =
-      await _firestore.collection('customers').doc(otherUserId).get();
-  if (customerDoc.exists) {
-    userData = customerDoc.data();
-    role = 'customer';
-  }
-}
+        if (userData == null) {
+          var customerDoc =
+              await _firestore.collection('customers').doc(otherUserId).get();
+          if (customerDoc.exists) {
+            userData = customerDoc.data();
+            role = 'customer';
+          }
+        }
 
-
-      return {
-  'chatRoomId': doc.id,
-  'otherUserId': otherUserId,
-  'otherName': '${userData?['firstName']} ${userData?['lastName']}',
-  'firstName': userData?['firstName'],
-  'profilePicture': userData?['profilePicture'] ?? '',
-  'role': role, 
-};
-
+        return {
+          'chatRoomId': doc.id,
+          'otherUserId': otherUserId,
+          'otherName':
+              '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}',
+          'firstName': userData?['firstName'] ?? '',
+          'profilePicture': userData?['profilePicture'] ?? '',
+          'role': role ?? 'unknown',
+        };
       }).toList());
 
       _isLoading = false;
@@ -117,85 +122,84 @@ class MessagesProvider extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final FirebaseFirestore _firebaseFirestore = FirebaseFirestore.instance;
 
-Future<void> sendMessage(
-  String receiverId,
-  String message,
-) async {
-  final String currentUserId = _firebaseAuth.currentUser!.uid;
-  final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
-  final Timestamp timestamp = Timestamp.now();
-  String trimmedMessage = message.trim();
+  Future<void> sendMessage(
+    String receiverId,
+    String message,
+  ) async {
+    final String currentUserId = _firebaseAuth.currentUser!.uid;
+    final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
+    final Timestamp timestamp = Timestamp.now();
+    String trimmedMessage = message.trim();
 
-  if (trimmedMessage.isEmpty) return;
+    if (trimmedMessage.isEmpty) return;
 
-  // Get roles
-  String? senderRole = await getUserRole(currentUserId);
-  String? receiverRole = await getUserRole(receiverId);
+    // Get roles
+    String? senderRole = await getUserRole(currentUserId);
+    String? receiverRole = await getUserRole(receiverId);
 
-  if (senderRole == null || receiverRole == null) {
-    throw Exception("User not found in any collection.");
+    if (senderRole == null || receiverRole == null) {
+      throw Exception("User not found in any collection.");
+    }
+
+    Message newMessage = Message(
+      senderId: currentUserId,
+      senderRole: senderRole,
+      senderEmail: currentUserEmail,
+      receiverId: receiverId,
+      receiverRole: receiverRole,
+      message: trimmedMessage,
+      timestamp: timestamp,
+    );
+
+    List<String> ids = [currentUserId, receiverId];
+    ids.sort();
+    String chatRoomId = ids.join("_");
+
+    DocumentSnapshot docSnapshot =
+        await _firebaseFirestore.collection('chat_room').doc(chatRoomId).get();
+
+    if (!docSnapshot.exists) {
+      await _firebaseFirestore.collection('chat_room').doc(chatRoomId).set({
+        'exists': true,
+      });
+    }
+
+    await _firebaseFirestore
+        .collection('chat_room')
+        .doc(chatRoomId)
+        .collection('messages')
+        .add(newMessage.toMap());
+
+    notifyListeners();
   }
-
-  Message newMessage = Message(
-    senderId: currentUserId,
-    senderRole: senderRole,
-    senderEmail: currentUserEmail,
-    receiverId: receiverId,
-    receiverRole: receiverRole,
-    message: trimmedMessage,
-    timestamp: timestamp,
-  );
-
-  List<String> ids = [currentUserId, receiverId];
-  ids.sort();
-  String chatRoomId = ids.join("_");
-
-  DocumentSnapshot docSnapshot =
-      await _firebaseFirestore.collection('chat_room').doc(chatRoomId).get();
-
-  if (!docSnapshot.exists) {
-    await _firebaseFirestore.collection('chat_room').doc(chatRoomId).set({
-      'exists': true,
-    });
-  }
-
-  await _firebaseFirestore
-      .collection('chat_room')
-      .doc(chatRoomId)
-      .collection('messages')
-      .add(newMessage.toMap());
-
-  notifyListeners();
-}
 
   Future<String?> getUserRole(String uid) async {
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-  // Check customers
-  DocumentSnapshot customerDoc =
-      await firestore.collection('customers').doc(uid).get();
-  if (customerDoc.exists) {
-    return "customer";
+    // Check customers
+    DocumentSnapshot customerDoc =
+        await firestore.collection('customers').doc(uid).get();
+    if (customerDoc.exists) {
+      return "customer";
+    }
+
+    // Check sellers
+    DocumentSnapshot sellerDoc =
+        await firestore.collection('sellers').doc(uid).get();
+    if (sellerDoc.exists) {
+      return "seller";
+    }
+
+    // Check riders
+    DocumentSnapshot riderDoc =
+        await firestore.collection('riders').doc(uid).get();
+    if (riderDoc.exists) {
+      return "rider";
+    }
+
+    // Not found in any collection
+    return null;
   }
-
-  // Check sellers
-  DocumentSnapshot sellerDoc =
-      await firestore.collection('sellers').doc(uid).get();
-  if (sellerDoc.exists) {
-    return "seller";
-  }
-
-  // Check riders
-  DocumentSnapshot riderDoc =
-      await firestore.collection('riders').doc(uid).get();
-  if (riderDoc.exists) {
-    return "rider";
-  }
-
-  // Not found in any collection
-  return null;
-}
-
 
   Stream<QuerySnapshot> getMessages(String userId, String otherUserId) {
     List<String> ids = [userId, otherUserId];

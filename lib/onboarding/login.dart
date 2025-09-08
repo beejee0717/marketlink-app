@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
+import 'package:marketlinkapp/debugging.dart';
 import 'package:marketlinkapp/onboarding/loading.dart';
 import 'package:marketlinkapp/onboarding/select_role.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
@@ -61,6 +62,7 @@ class _LogInState extends State<LogIn> {
         navPush(context, const Loading());
       }
    } catch (e) {
+
   if (!mounted) return;
 
   String errorMessage = 'Login failed. Please try again.';
@@ -85,6 +87,8 @@ class _LogInState extends State<LogIn> {
       case 'operation-not-allowed':
         errorMessage = 'Email/password sign-in is not enabled.';
         break;
+        case 'network-request-failed':
+        errorMessage = 'Login failed, please turn on network connection';
       default:
         errorMessage = 'Login failed: ${e.message}';
     }

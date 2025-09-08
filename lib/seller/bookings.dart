@@ -22,6 +22,7 @@ class _SellerBookingsState extends State<SellerBookings>
     with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _pendingBookings = [];
   List<Map<String, dynamic>> _approvedBookings = [];
+  List<Map<String, dynamic>> _doneBookings = [];
   late AppEvent currentEvent = getCurrentEvent();
   bool isLoading = true;
 
@@ -30,7 +31,7 @@ class _SellerBookingsState extends State<SellerBookings>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _loadBookings();
   }
 
@@ -51,6 +52,8 @@ class _SellerBookingsState extends State<SellerBookings>
 
   final List<Map<String, dynamic>> pending = [];
   final List<Map<String, dynamic>> approved = [];
+  final List<Map<String, dynamic>> done = [];
+  
 
   for (var doc in querySnapshot.docs) {
     final booking = doc.data();
@@ -97,7 +100,11 @@ class _SellerBookingsState extends State<SellerBookings>
 
     if (booking['status'] == 'pending') {
       pending.add(bookingData);
-    } else {
+    } else  if (booking['status'] == 'done') {
+      done.add(bookingData);
+    } 
+    
+    else {
       approved.add(bookingData);
     }
   }
@@ -106,6 +113,7 @@ class _SellerBookingsState extends State<SellerBookings>
   setState(() {
     _pendingBookings = pending;
     _approvedBookings = approved;
+    _doneBookings = done;
     isLoading = false;
   });
 }
@@ -125,6 +133,23 @@ Future<void> markAsApproved(String bookingId) async {
     if (!mounted) return;
     debugging(e.toString());
     errorSnackbar(context, "Failed to mark as approved: $e");
+  }
+}
+
+Future<void> markAsDone(String bookingId) async {
+  final bookingRef =
+      FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+
+  try {
+    await bookingRef.update({'status': 'done'});
+
+    if (!mounted) return;
+    successSnackbar(context, "Booking marked as done.");
+    await _loadBookings(); 
+  } catch (e) {
+    if (!mounted) return;
+    debugging(e.toString());
+    errorSnackbar(context, "Failed to mark as done: $e");
   }
 }
 
@@ -157,7 +182,13 @@ Future<void> markAsApproved(String bookingId) async {
                 textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
               ),
             ),
-          
+            Tab(
+              child: CustomText(
+                textLabel: "Done",
+                fontSize: 16,
+                textColor: currentEvent == AppEvent.none ? Colors.white: headerTitleColor(currentEvent),
+              ),
+            ),
           ],
         ),
       ),
@@ -186,6 +217,7 @@ Future<void> markAsApproved(String bookingId) async {
                 children: [
                   _buildBookingList(_pendingBookings, 'ordered'),
                   _buildBookingList(_approvedBookings, 'approved'),
+                   _buildBookingList(_doneBookings, 'done')
                 ],
               ),
           ),
@@ -304,6 +336,21 @@ Future<void> markAsApproved(String bookingId) async {
                                                                ),
                                 child: const CustomText(
                                   textLabel: "Mark as Approved",
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  textColor: Colors.green,
+                                ),
+                              ),
+                            ),
+                             if (tab == 'approved')
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () => markAsDone(
+                                 booking['bookingId'].toString()
+                                                               ),
+                                child: const CustomText(
+                                  textLabel: "Mark as Done",
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
                                   textColor: Colors.green,

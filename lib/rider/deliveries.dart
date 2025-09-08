@@ -64,17 +64,25 @@ class _RiderDeliveriesState extends State<RiderDeliveries>
 
         final sellerId = productData['sellerId'];
         String sellerName = 'Unknown Seller';
+        String sellerFirstName = 'Unknown Seller';
         String sellerContact = 'No Contact No.';
+        String sellerProfilePic = 'No Profile Pic';
 
         if (sellerId != null) {
           final sellerDoc = await FirebaseFirestore.instance
               .collection('sellers')
               .doc(sellerId)
               .get();
+
+              
           final sellerData = sellerDoc.data();
           if (sellerData != null) {
+            sellerProfilePic = sellerData['profilePicture'];
             sellerName =
                 '${sellerData['firstName'] ?? ''} ${sellerData['lastName'] ?? ''}'
+                    .trim();
+                sellerFirstName =
+                '${sellerData['firstName'] ?? ''}'
                     .trim();
             sellerContact = sellerData['contactNumber'] ?? 'No Contact No.';
           }
@@ -88,6 +96,15 @@ class _RiderDeliveriesState extends State<RiderDeliveries>
 
         final customerName = customerData != null
             ? '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'
+                .trim()
+            : 'Unknown Customer';
+
+          final customerProfile = customerData != null
+            ? '${customerData['profilePicture'] ?? ''}'
+                .trim()
+            : 'No Profile';   
+          final customerFirstName = customerData != null
+            ? '${customerData['firstName'] ?? ''}'
                 .trim()
             : 'Unknown Customer';
 
@@ -113,14 +130,20 @@ class _RiderDeliveriesState extends State<RiderDeliveries>
           'quantity': quantity,
           'imageUrl': productData['imageUrl'],
           'customerAddress': customerAddress,
+          'customerProfile':customerProfile,
           'customerId': customerId,
           'customerName': customerName,
+          'customerFirstName': customerFirstName,
           'dateOrdered': data['dateOrdered'],
           'customerContact': customerContact,
+          'sellerId':data['sellerId'],
           'sellerName': sellerName,
+          'sellerProfile':sellerProfilePic,
+'sellerFirstName':sellerFirstName,
           'sellerContact': sellerContact,
           'pickupLocation': productData['pickupLocation'],
           'isDelivered': isDelivered,
+           'riderId': data['riderId'] ?? 'no rider'
         });
       }
 

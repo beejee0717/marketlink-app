@@ -154,10 +154,10 @@
    -messages(Subcollection)
      messageId(DocumentID)
        Fields:
-	message
-	receiverId
-	receiverRole
-	senderId
-	senderRole
-	timestamp
-	senderEmail
+        message
+        receiverId
+        receiverRole
+        senderId
+        senderRole
+        timestamp
+        senderEmail

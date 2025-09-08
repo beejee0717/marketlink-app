@@ -14,7 +14,7 @@ ssh -i "custom-feed.pem" ubuntu@ec2-13-217-97-212.compute-1.amazonaws.com
 [For feed ai file editing flow click here ->>](#feed-recommendation-editing)
 
 # Notification Server
-ssh -i "notif.pem" ubuntu@ec2-75-101-250-45.compute-1.amazonaws.com
+ssh -i "notif.pem" ubuntu@ec2-54-173-197-6.compute-1.amazonaws.com
 [For notif server file editing flow click here ->>](#notification-editing)
 
 
@@ -110,6 +110,7 @@ pm2 logs notif
 pm2 logs notif --lines 100
 
 # Manage processes
+pm2 start index.js --name notif
 pm2 stop notif
 pm2 restart notif
 pm2 delete notif
@@ -168,6 +169,12 @@ journalctl -u product-search.service -f
 # exit real time log monitoring 
 ctr+c
 
+## search ai file flow
+
+export_firebase_data -> build_embeddings -> build_faiss -> app.py
+
+
+
 
 //-----//---//-----//---//-----//---//-----//---//-----//---//-----//---//-----//---
 
@@ -204,6 +211,8 @@ tail -f nohup.out
 5. exit real time log monitoring 
 ctr+c
 
+## feed recommendation file flow
+
 
 
 
@@ -213,18 +222,49 @@ ctr+c
 ## notification editing
 
 # enter server
-ssh -i "notif.pem" ubuntu@ec2-75-101-250-45.compute-1.amazonaws.com
+ssh -i "notif.pem" ubuntu@ec2-54-173-197-6.compute-1.amazonaws.com
 # navigate to the main directory 
 cd notif
-# activate venv 
-source venv/bin/activate
 # choose a file to edit/create a new file, use 'nano', and save using ctr+s
 nano filename
 - if unsure of the file lists, use **ls -lh** command to display all file
 # run this command to restart the server to reflect changes
-pm2 stop notif
+pm2 restart notif
 # show logs to monitor if server is restarting fine
 pm2 logs notif
 # exit real time log monitoring 
 ctr+c
+
+
+
+## creation of ssh per server
+
+1. ctr + shift + P (command palette)
+2. search **open ssh configuration file**
+3. choose under admin
+4. paste in this format
+
+
+Host **any name**
+    HostName **right side ssh command**
+    User **left side sa ssh command**
+    IdentityFile **directory sa pem file**
+
+## example
+## ssh command 
+
+ssh -i "mk-key.pem" ubuntu@ec2-13-218-245-133.compute-1.amazonaws.com
+
+
+    Host product-search
+    HostName ec2-13-218-245-133.compute-1.amazonaws.com
+    User ubuntu
+    IdentityFile C:\Users\ADMIN\Desktop\marketlinkapp\lib\api\ai_search\mk-key.pem
+
+
+5. ctr + shift + P
+6. search **connect to host**
+7. choose the appropriate server
+8. click open folder in the left panel
+
 

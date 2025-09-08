@@ -8,6 +8,7 @@ import 'package:marketlinkapp/customer/home.dart';
 import 'package:marketlinkapp/customer/product.dart';
 import 'package:marketlinkapp/customer/search.dart';
 import 'package:marketlinkapp/customer/service.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
 
 Widget itemDisplay(
   BuildContext context,
@@ -178,7 +179,7 @@ Widget itemDisplay(
 
 Widget searchContainer(BuildContext context,
     TextEditingController searchController, String userId, bool type) {
-
+ late AppEvent currentEvent = getCurrentEvent();
   return Container(
     decoration: BoxDecoration(
       border: Border.all(color: Colors.grey),
@@ -217,7 +218,7 @@ Widget searchContainer(BuildContext context,
             child: Text(
               'Search',
               style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  TextStyle(color: currentEvent == AppEvent.none?  Colors.white :Colors.black, fontWeight: FontWeight.bold),
             ),
           ),
         ),

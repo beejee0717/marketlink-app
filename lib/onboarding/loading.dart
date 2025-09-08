@@ -56,52 +56,42 @@ class _LoadingState extends State<Loading> with SingleTickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> fetchUserAndNavigate() async {
-    try {
-      final auth.User? currentUser = auth.FirebaseAuth.instance.currentUser;
+ Future<void> fetchUserAndNavigate() async {
+  try {
+    final auth.User? currentUser = auth.FirebaseAuth.instance.currentUser;
 
-      if (currentUser == null) {
-        errorSnackbar(context, "No user found. Please log in again.");
-        navPushReplacement(context, const LogIn());
-        return;
-      }
+    if (currentUser == null) {
+      errorSnackbar(context, "No user found. Please log in again.");
+      navPushReplacement(context, const LogIn());
+      return;
+    }
 
-      final String uid = currentUser.uid;
+    final String email = currentUser.email!.trim().toLowerCase();
+    DocumentSnapshot? userDoc;
 
-      DocumentSnapshot? userDoc = await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(uid)
+    for (final role in ['customers', 'sellers', 'riders']) {
+      final snap = await FirebaseFirestore.instance
+          .collection(role)
+          .where('email', isEqualTo: email)
+          .limit(1)
           .get();
 
-      if (userDoc.exists) {
-        await handleUserFound(userDoc, 'Customer');
+      if (snap.docs.isNotEmpty) {
+        userDoc = snap.docs.first;
+        final roleName = role[0].toUpperCase() + role.substring(1, role.length - 1);
+        await handleUserFound(userDoc, roleName);
         return;
       }
-
-      userDoc =
-          await FirebaseFirestore.instance.collection('sellers').doc(uid).get();
-
-      if (userDoc.exists) {
-        await handleUserFound(userDoc, 'Seller');
-        return;
-      }
-
-       userDoc =
-          await FirebaseFirestore.instance.collection('riders').doc(uid).get();
-
-      if (userDoc.exists) {
-        await handleUserFound(userDoc, 'Rider');
-        return;
-      }
-
-      if (!mounted) return;
-      errorSnackbar(context, "User not found in customers or sellers.");
-      navPop(context);
-    } catch (e) {
-      errorSnackbar(context, "An error occurred: ${e.toString()}");
-      navPop(context);
     }
+
+    if (!mounted) return;
+    errorSnackbar(context, "User not found");
+    navPop(context);
+  } catch (e) {
+    errorSnackbar(context, "An error occurred: ${e.toString()}");
+    navPop(context);
   }
+}
 
   Future<void> handleUserFound(DocumentSnapshot userDoc, String role) async {
     UserInformation userInfo = UserInformation.fromFirestore(userDoc);

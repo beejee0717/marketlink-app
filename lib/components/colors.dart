@@ -18,7 +18,7 @@ static Color get yellow {
     case AppEvent.halloween:
       return Color(0xFFEF6C00); 
   case AppEvent.christmas:
-      return const Color.fromARGB(255, 207, 23, 23);
+      return Colors.yellow;
     default:
       return Colors.yellow;
   }
@@ -32,7 +32,7 @@ static Color get primary {
     case AppEvent.halloween:
       return Color(0xFFEF6C00); 
     case AppEvent.christmas:
-      return Color.fromARGB(255, 47, 171, 53); 
+      return Color.fromARGB(255, 255, 255, 255); 
     default:
       return Color.fromARGB(255, 119, 22, 136);
   }

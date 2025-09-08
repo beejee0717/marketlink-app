@@ -72,7 +72,7 @@ class SellerProductDetails extends StatelessWidget {
             ),
           ),
         ],
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         title:  CustomText(
           textLabel: "Product Details",

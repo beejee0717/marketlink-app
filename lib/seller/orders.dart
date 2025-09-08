@@ -35,7 +35,7 @@ class _SellerOrdersState extends State<SellerOrders>
     _loadOrders();
   }
 
- Future<void> _loadOrders() async {
+Future<void> _loadOrders() async {
   final sellerId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
   if (sellerId == null) {
@@ -50,6 +50,64 @@ class _SellerOrdersState extends State<SellerOrders>
       .where('sellerId', isEqualTo: sellerId)
       .get();
 
+  if (querySnapshot.docs.isEmpty) {
+    if (!mounted) return;
+    setState(() {
+      _ongoingOrders = [];
+      _shippedOrders = [];
+      _finishedOrders = [];
+      isLoading = false;
+    });
+    return;
+  }
+
+  final productIds = querySnapshot.docs.map((d) => d['productId'] as String).toSet().toList();
+  final customerIds = querySnapshot.docs.map((d) => d['customerId'] as String).toSet().toList();
+
+  final productDocs = await FirebaseFirestore.instance
+      .collection('products')
+      .where(FieldPath.documentId, whereIn: productIds.length > 10 ? productIds.sublist(0, 10) : productIds)
+      .get();
+
+  final Map<String, Map<String, dynamic>> productsMap = {
+    for (var doc in productDocs.docs) doc.id: doc.data()
+  };
+
+  if (productIds.length > 10) {
+    for (var i = 10; i < productIds.length; i += 10) {
+      final chunk = productIds.sublist(i, i + 10 > productIds.length ? productIds.length : i + 10);
+      final chunkDocs = await FirebaseFirestore.instance
+          .collection('products')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (var doc in chunkDocs.docs) {
+        productsMap[doc.id] = doc.data();
+      }
+    }
+  }
+
+  final customerDocs = await FirebaseFirestore.instance
+      .collection('customers')
+      .where(FieldPath.documentId, whereIn: customerIds.length > 10 ? customerIds.sublist(0, 10) : customerIds)
+      .get();
+
+  final Map<String, Map<String, dynamic>> customersMap = {
+    for (var doc in customerDocs.docs) doc.id: doc.data()
+  };
+
+  if (customerIds.length > 10) {
+    for (var i = 10; i < customerIds.length; i += 10) {
+      final chunk = customerIds.sublist(i, i + 10 > customerIds.length ? customerIds.length : i + 10);
+      final chunkDocs = await FirebaseFirestore.instance
+          .collection('customers')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get();
+      for (var doc in chunkDocs.docs) {
+        customersMap[doc.id] = doc.data();
+      }
+    }
+  }
+
   final List<Map<String, dynamic>> ongoing = [];
   final List<Map<String, dynamic>> shipped = [];
   final List<Map<String, dynamic>> finished = [];
@@ -60,24 +118,12 @@ class _SellerOrdersState extends State<SellerOrders>
     final customerId = order['customerId'];
     final quantity = order['quantity'] ?? 0;
 
-    // Get product details
-    final productDoc = await FirebaseFirestore.instance
-        .collection('products')
-        .doc(productId)
-        .get();
-
-    final productData = productDoc.exists ? productDoc.data()! : {};
+    final productData = productsMap[productId] ?? {};
     final productName = productData['productName'] ?? 'Unknown';
     final price = (productData['price'] ?? 0) as num;
     final imageUrl = productData['imageUrl'] ?? '';
 
-    // Get customer details
-    final customerDoc = await FirebaseFirestore.instance
-        .collection('customers')
-        .doc(customerId)
-        .get();
-
-    final customerData = customerDoc.exists ? customerDoc.data()! : {};
+    final customerData = customersMap[customerId] ?? {};
     final customerName = '${customerData['firstName'] ?? ''} ${customerData['lastName'] ?? ''}'.trim();
     final customerContact = customerData['contactNumber'] ?? 'N/A';
     final customerProfilePic = customerData['profilePicture'] ?? '';
@@ -85,7 +131,7 @@ class _SellerOrdersState extends State<SellerOrders>
     final amount = price * quantity;
 
     final orderData = {
-      'orderId':doc.id,
+      'orderId': doc.id,
       'productId': productId,
       'productName': productName,
       'quantity': quantity,
@@ -96,7 +142,7 @@ class _SellerOrdersState extends State<SellerOrders>
       'imageUrl': imageUrl,
       'customerContact': customerContact,
       'amount': amount,
-   'status': order['status'],
+      'status': order['status'],
     };
 
     if (order['status'] == 'ordered' || order['status'] == 'packed') {
