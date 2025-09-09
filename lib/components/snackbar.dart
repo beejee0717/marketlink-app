@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/theme/event_theme.dart';
+
+
 
 void successSnackbar(BuildContext context, String content) {
+
+  var currentEvent = getCurrentEvent();
   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
     backgroundColor: AppColors.primary,
     behavior: SnackBarBehavior.floating,
@@ -11,7 +16,7 @@ void successSnackbar(BuildContext context, String content) {
       textLabel: content,
       fontSize: 15,
       maxLines: 2,
-      textColor: Colors.white,
+      textColor: currentEvent == AppEvent.christmas ? Colors.black: Colors.white ,
       fontWeight: FontWeight.bold,
     ),
   ));

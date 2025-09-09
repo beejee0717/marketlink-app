@@ -45,9 +45,11 @@ class _RiderHomeState extends State<RiderHome> {
         .snapshots()
         .map((snapshot) {
       final data = snapshot.data();
+      final contactNumber = data?['contactNumber'] as String?;
       return {
         'approved': data?['approved'] == true,
         'disabled': data?['disabled'] == true,
+        'hasNumber': contactNumber != null && contactNumber.isNotEmpty
       };
     });
   }
@@ -177,6 +179,8 @@ class _RiderHomeState extends State<RiderHome> {
 
                     final isApproved = status['approved'] ?? false;
                     final isDisabled = status['disabled'] ?? false;
+                    final hasNumber = status['hasNumber'] ?? false;
+
 
                     if (!isApproved) {
                       return Center(
@@ -194,6 +198,35 @@ class _RiderHomeState extends State<RiderHome> {
                               const SizedBox(height: 16),
                               const Text(
                                 "Rider not approved yet. Please wait for the Admin to approve before you can deliver products.",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.red,
+                                ),
+                                textAlign: TextAlign.center,
+                                softWrap: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+
+                     if (!hasNumber) {
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/logo_no_text.png',
+                                width: 150,
+                                height: 150,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 16),
+                              const Text(
+                                "Contact number missing. Please update your profile.",
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.red,

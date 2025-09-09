@@ -226,6 +226,7 @@ late AppEvent currentEvent = getCurrentEvent();
                             label: 'Contact Number',
                             controller: contactController,
                             isEditing: isEditingContact,
+                            isPhone: true,
                             hintText: 'Please Add Your Contact Number',
                             hinstyle: contactController.text.isEmpty
                                 ? const TextStyle(color: Colors.red)

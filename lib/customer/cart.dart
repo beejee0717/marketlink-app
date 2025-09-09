@@ -457,10 +457,10 @@ class _CustomerCartState extends State<CustomerCart> {
                               padding: const EdgeInsets.symmetric(
                                   vertical: 15, horizontal: 20),
                             ),
-                            child: const CustomText(
+                            child:  CustomText(
                               textLabel: "Checkout",
                               fontSize: 18,
-                              textColor: Colors.white,
+                              textColor: currentEvent == AppEvent.christmas? Colors.black:Colors.white ,
                             ),
                           ),
                         ),

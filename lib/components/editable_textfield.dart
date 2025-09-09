@@ -10,8 +10,11 @@ Widget editableTextField({
   required VoidCallback onSave,
   String? hintText,
   TextStyle? style,
-  TextStyle? hinstyle
+  TextStyle? hinstyle,
+  bool isPhone = false,
+
 }) {
+
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -25,6 +28,8 @@ Widget editableTextField({
       TextFormField(
         controller: controller,
         readOnly: !isEditing,
+        keyboardType: isPhone ? TextInputType.phone : TextInputType.text,
+        maxLength: isPhone ? 11 : null ,
         style: style ?? TextStyle(fontSize: 15),
         decoration: InputDecoration(
           hintText: hintText,

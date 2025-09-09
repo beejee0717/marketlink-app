@@ -39,12 +39,17 @@ class _OrderDetailsState extends State<OrderDetails> {
   @override
   void dispose() {
     _addressController.dispose();
+    _contactNumberController.dispose();
     super.dispose();
   }
 
   final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _contactNumberController =
+      TextEditingController();
   bool isEditingAddress = false;
   bool isAddressValid = true;
+  bool isEditingContactNumer = false;
+  bool isContactNumberValid = true;
   double shippingFee = 25.00;
   String? userId;
 
@@ -107,7 +112,11 @@ class _OrderDetailsState extends State<OrderDetails> {
         customerData = customerSnapshot.data();
 
         String? address = customerData?['address'];
+        String? contactNumber = customerData?['contactNumber'];
+        _contactNumberController.text = contactNumber ?? '';
         _addressController.text = address ?? '';
+        isContactNumberValid =
+            (contactNumber != null && contactNumber.trim().isNotEmpty);
         isAddressValid = (address != null && address.trim().isNotEmpty);
       }
     } catch (e) {
@@ -297,30 +306,137 @@ class _OrderDetailsState extends State<OrderDetails> {
                           border: const OutlineInputBorder(),
                           errorText:
                               isAddressValid ? null : 'Please add address',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              isEditingAddress ? Icons.check : Icons.edit,
-                              color: AppColors.primary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                isEditingAddress = !isEditingAddress;
+                          suffixIcon: isEditingAddress
+                              ? SizedBox(
+                                  width: 80, // adjust as needed
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6.0),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        padding: EdgeInsets.zero,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          final newAddress =
+                                              _addressController.text.trim();
+                                          isAddressValid =
+                                              newAddress.isNotEmpty;
 
-                                if (!isEditingAddress) {
-                                  final newAddress =
-                                      _addressController.text.trim();
-                                  isAddressValid = newAddress.isNotEmpty;
+                                          if (isAddressValid &&
+                                              userId != null) {
+                                            FirebaseFirestore.instance
+                                                .collection('customers')
+                                                .doc(userId)
+                                                .update(
+                                                    {'address': newAddress});
+                                          }
 
-                                  if (userId != null) {
-                                    FirebaseFirestore.instance
-                                        .collection('customers')
-                                        .doc(userId)
-                                        .update({'address': newAddress});
-                                  }
-                                }
-                              });
-                            },
+                                          isEditingAddress = false;
+                                        });
+                                      },
+                                      child: const Text(
+                                        'Save',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: Icon(Icons.edit,
+                                      color: AppColors.primary),
+                                  onPressed: () {
+                                    setState(() {
+                                      isEditingAddress = true;
+                                    });
+                                  },
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      const CustomText(
+                        textLabel: "Contact Number",
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _contactNumberController,
+                        readOnly: !isEditingContactNumer,
+                        keyboardType: TextInputType.phone,
+                        maxLength: 11,
+                        onChanged: (value) {
+                          setState(() {
+                            isContactNumberValid = value.trim().isNotEmpty;
+                          });
+                        },
+                        decoration: InputDecoration(
+                          hintText: 'Enter contact number',
+                          hintStyle: TextStyle(
+                            color:
+                                isContactNumberValid ? Colors.grey : Colors.red,
                           ),
+                          border: const OutlineInputBorder(),
+                          errorText: isContactNumberValid
+                              ? null
+                              : 'Please add contact number',
+                          suffixIcon: isEditingContactNumer
+                              ? SizedBox(
+                                  width: 80,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6.0),
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        padding: EdgeInsets.zero,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          final newContactNum =
+                                              _contactNumberController.text
+                                                  .trim();
+                                          isContactNumberValid =
+                                              newContactNum.isNotEmpty;
+
+                                          if (isContactNumberValid &&
+                                              userId != null) {
+                                            FirebaseFirestore.instance
+                                                .collection('customers')
+                                                .doc(userId)
+                                                .update({
+                                              'contactNumber': newContactNum
+                                            });
+                                          }
+
+                                          isEditingContactNumer = false;
+                                        });
+                                      },
+                                      child: const Text(
+                                        'Save',
+                                        style: TextStyle(
+                                            color: Colors.white, fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : IconButton(
+                                  icon: Icon(Icons.edit,
+                                      color: AppColors.primary),
+                                  onPressed: () {
+                                    setState(() {
+                                      isEditingContactNumer = true;
+                                    });
+                                  },
+                                ),
                         ),
                       ),
                       SizedBox(height: 10),
@@ -387,7 +503,7 @@ class _OrderDetailsState extends State<OrderDetails> {
                         textColor: AppColors.primary,
                       ),
                       ElevatedButton(
-                        onPressed: isAddressValid
+                        onPressed: isAddressValid && isContactNumberValid
                             ? () {
                                 buyNow(
                                   widget.productId,
@@ -399,14 +515,16 @@ class _OrderDetailsState extends State<OrderDetails> {
                             : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
-                              isAddressValid ? AppColors.primary : Colors.grey,
+                              isAddressValid && isContactNumberValid
+                                  ? AppColors.primary
+                                  : Colors.grey,
                           padding: const EdgeInsets.symmetric(
                               vertical: 12, horizontal: 24),
                         ),
-                        child: const Text(
+                        child:  Text(
                           'Buy Now',
                           style:
-                              TextStyle(fontSize: 16, color: AppColors.white),
+                              TextStyle(fontSize: 16, color: currentEvent == AppEvent.christmas ? Colors.black:AppColors.white),
                         ),
                       ),
                     ],

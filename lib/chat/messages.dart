@@ -196,13 +196,13 @@ class _UserMessagesState extends State<UserMessages> {
               radius: 30,
               backgroundImage: widget.receiverProfilePic.isNotEmpty
                   ? NetworkImage(widget.receiverProfilePic)
-                  : const AssetImage('assets/images/profilepic.jpg')
+                  : const AssetImage('assets/images/profile.png')
                       as ImageProvider,
               onBackgroundImageError: (_, __) {
                 setState(() {});
               },
               child: widget.receiverProfilePic.isEmpty
-                  ? Image.asset('assets/images/profilepic.jpg',
+                  ? Image.asset('assets/images/profile.png',
                       fit: BoxFit.cover)
                   : null,
             ),

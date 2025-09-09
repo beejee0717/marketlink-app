@@ -300,9 +300,12 @@ class _SellerHomeState extends State<SellerHome> {
         .snapshots()
         .map((snapshot) {
       final data = snapshot.data();
+      final contactNumber = data?['contactNumber'] as String?;
+      final address = (data?['addresses'] as List<dynamic>?)?.cast<String>();
       return {
         'approved': data?['approved'] == true,
         'disabled': data?['disabled'] == true,
+        'hasDetails' : contactNumber != null && contactNumber.isNotEmpty &&  address !=null && address.isNotEmpty
       };
     });
   }
@@ -358,6 +361,9 @@ class _SellerHomeState extends State<SellerHome> {
 
           bool isApproved = status['approved'] ?? false;
           bool isDisabled = status['disabled'] ?? false;
+          bool hasDetails = status['hasDetails'] ?? false;
+
+          debugging(hasDetails.toString());
 
           if (!isApproved) {
             return Container(
@@ -395,6 +401,44 @@ class _SellerHomeState extends State<SellerHome> {
               ),
             );
           }
+
+  if (!hasDetails) {
+            return Container(
+              decoration: BoxDecoration(
+                  image: DecorationImage(
+                      image: currentEvent == AppEvent.none
+                          ? AssetImage(wallpaper(currentEvent))
+                          : AssetImage(backgroundImage(currentEvent)),
+                      fit: BoxFit.cover)),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Image.asset(
+                        'assets/images/logo_no_text.png',
+                        width: 150,
+                        height: 150,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        "Contact number or Address missing. Please update your profile.",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color.fromARGB(255, 243, 243, 243),
+                        ),
+                        textAlign: TextAlign.center,
+                        softWrap: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
 
           if (isDisabled) {
             return Container(
