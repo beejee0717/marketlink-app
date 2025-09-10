@@ -17,7 +17,6 @@ import 'package:marketlinkapp/seller/profile.dart';
 import 'package:marketlinkapp/seller/service_details.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:provider/provider.dart';
-import '../components/snackbar.dart';
 import '../provider/user_provider.dart';
 
 class SellerHome extends StatefulWidget {

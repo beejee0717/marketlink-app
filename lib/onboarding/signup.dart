@@ -246,6 +246,8 @@ Future<void> _confirmVerification() async {
             .get();
 
         if (existing.docs.isNotEmpty && c != '${widget.role}s') {
+          if (!mounted)
+          {return;}
           errorSnackbar(context, 'This email is already registered under another role.');
           setState(() {
             isSigning = false;
@@ -277,10 +279,12 @@ Future<void> _confirmVerification() async {
                 email: email,
                 password: _passwordController.text.trim(),
               );
-            });
+            }); if (!mounted)
+          {return;}
 
             successSnackbar(context, 'Recovered your account. Please wait...');
-          } else {
+          } else { if (!mounted)
+          {return;}
             errorSnackbar(context, 'This email is already registered.');
             setState(() {
               isSigning = false;
@@ -355,19 +359,6 @@ Future<void> _confirmVerification() async {
   }
 }
 
-Future<void> _deleteFirestoreUserByEmail(String email) async {
-  final firestore = FirebaseFirestore.instance;
-  for (final collection in ['customers', 'sellers', 'riders']) {
-    final snap = await firestore
-        .collection(collection)
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
-    if (snap.docs.isNotEmpty) {
-      await firestore.collection(collection).doc(snap.docs.first.id).delete();
-    }
-  }
-}
 
 Future<bool> _isGhostAccount(String email) async {
   final firestore = FirebaseFirestore.instance;
