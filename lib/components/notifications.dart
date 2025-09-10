@@ -42,25 +42,46 @@ Future<void> getToken(DocumentSnapshot userDoc, String role) async {
   final uid = userDoc.id;
   final token = await FirebaseMessaging.instance.getToken();
 
-  if (token != null) {
-    await FirebaseFirestore.instance
-        .collection('${role.toLowerCase()}s')
-        .doc(uid)
-        .update({"fcmToken": token});
+  if (token == null) return;
 
-    debugging("Token saved: $token");
+  final firestore = FirebaseFirestore.instance;
+
+  final collections = ['customers', 'sellers', 'riders'];
+
+  final batch = firestore.batch();
+
+  for (final col in collections) {
+    final query = await firestore
+        .collection(col)
+        .where('fcmToken', isEqualTo: token)
+        .get();
+
+    for (var doc in query.docs) {
+      if (doc.id != uid) {
+        batch.update(doc.reference, {"fcmToken": FieldValue.delete()});
+      }
+    }
   }
+
+  final userRef = firestore.collection('${role.toLowerCase()}s').doc(uid);
+  batch.update(userRef, {"fcmToken": token});
+
+  await batch.commit();
+
+  debugging("Token saved uniquely: $token");
 }
 
 Future<void> removeToken(BuildContext context, String role) async {
   final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
   if (userId == null) return;
 
-  await FirebaseFirestore.instance
-      .collection(role)
-      .doc(userId)
-      .update({"fcmToken": FieldValue.delete()});
+  final firestore = FirebaseFirestore.instance;
+
+  await firestore.collection(role).doc(userId).update({
+    "fcmToken": FieldValue.delete(),
+  });
 
   await FirebaseMessaging.instance.deleteToken();
+
   debugging("Token removed for $role: $userId");
 }
