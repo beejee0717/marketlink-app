@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:marketlinkapp/components/colors.dart';
 import 'package:marketlinkapp/components/dialog.dart';
+import 'package:marketlinkapp/components/image_view.dart';
 import 'package:marketlinkapp/provider/user_provider.dart';
 import 'package:marketlinkapp/seller/edit_product.dart';
 import 'package:marketlinkapp/seller/seller.dart';
@@ -47,17 +48,19 @@ class SellerProductDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  late AppEvent currentEvent = getCurrentEvent();
+    late AppEvent currentEvent = getCurrentEvent();
 
     return Scaffold(
-       appBar: AppBar(
+      appBar: AppBar(
         leading: IconButton(
           onPressed: () {
             navPop(context);
           },
-          icon:  Icon(
+          icon: Icon(
             Icons.arrow_back,
-            color: currentEvent == AppEvent.none ? Colors.white :headerTitleColor(currentEvent),
+            color: currentEvent == AppEvent.none
+                ? Colors.white
+                : headerTitleColor(currentEvent),
           ),
         ),
         actions: [
@@ -74,17 +77,22 @@ class SellerProductDetails extends StatelessWidget {
         ],
         backgroundColor: AppColors.primary,
         elevation: 0,
-        title:  CustomText(
+        title: CustomText(
           textLabel: "Product Details",
           fontSize: 22,
           fontWeight: FontWeight.bold,
-          textColor:currentEvent == AppEvent.none ? Colors.white :headerTitleColor(currentEvent),
+          textColor: currentEvent == AppEvent.none
+              ? Colors.white
+              : headerTitleColor(currentEvent),
         ),
       ),
       body: Container(
         decoration: BoxDecoration(
-          image: DecorationImage(image: currentEvent == AppEvent.none ? AssetImage(wallpaper(currentEvent)): AssetImage(backgroundImage(currentEvent)),fit: BoxFit.cover)
-        ),
+            image: DecorationImage(
+                image: currentEvent == AppEvent.none
+                    ? AssetImage(wallpaper(currentEvent))
+                    : AssetImage(backgroundImage(currentEvent)),
+                fit: BoxFit.cover)),
         child: FutureBuilder<Map<String, dynamic>>(
           future: fetchProductDetails(productId),
           builder: (context, snapshot) {
@@ -101,17 +109,19 @@ class SellerProductDetails extends StatelessWidget {
                 ),
               );
             } else if (!snapshot.hasData) {
-              return  Center(
+              return Center(
                 child: CustomText(
                   textLabel: "Product not found.",
                   fontSize: 16,
-                  textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                  textColor: currentEvent == AppEvent.none
+                      ? Colors.grey
+                      : Colors.black,
                 ),
               );
             }
-        
+
             final product = snapshot.data!;
-        
+
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: SingleChildScrollView(
@@ -129,15 +139,17 @@ class SellerProductDetails extends StatelessWidget {
                                 width: 200,
                                 fit: BoxFit.cover,
                               )
-                            :  Icon(
+                            : Icon(
                                 Icons.image,
                                 size: 200,
-                                color: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                                color: currentEvent == AppEvent.none
+                                    ? Colors.grey
+                                    : Colors.black,
                               ),
                       ),
                     ),
                     const SizedBox(height: 20),
-        
+
                     Center(
                       child: ElevatedButton(
                         onPressed: () {
@@ -154,7 +166,7 @@ class SellerProductDetails extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child:  CustomText(
+                        child: CustomText(
                           textLabel: "Edit Product",
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -163,27 +175,34 @@ class SellerProductDetails extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 20),
-        
+
                     CustomText(
                       textLabel: product['productName'] ?? "Unnamed Product",
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       textColor: AppColors.textColor,
                     ),
-                     CustomText(
-                      textLabel: productId,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      textColor: AppColors.textColor,
-                    ),
-                     Divider(height: 30, thickness: 1.5, color: currentEvent == AppEvent.none ?Colors.grey:Colors.black),
-        
+                    //  CustomText(
+                    //   textLabel: productId,
+                    //   fontSize: 22,
+                    //   fontWeight: FontWeight.bold,
+                    //   textColor: AppColors.textColor,
+                    // ),
+                    Divider(
+                        height: 30,
+                        thickness: 1.5,
+                        color: currentEvent == AppEvent.none
+                            ? Colors.grey
+                            : Colors.black),
+
                     Row(
                       children: [
-                         CustomText(
+                        CustomText(
                           textLabel: "Category: ",
                           fontSize: 16,
-                          textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                          textColor: currentEvent == AppEvent.none
+                              ? Colors.grey
+                              : Colors.black,
                         ),
                         CustomText(
                           textLabel: product['category'] ?? "Uncategorized",
@@ -193,13 +212,15 @@ class SellerProductDetails extends StatelessWidget {
                         ),
                       ],
                     ),
-                     SizedBox(height: 10),
+                    SizedBox(height: 10),
                     Row(
                       children: [
-                         CustomText(
+                        CustomText(
                           textLabel: "Price: ",
                           fontSize: 16,
-                          textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                          textColor: currentEvent == AppEvent.none
+                              ? Colors.grey
+                              : Colors.black,
                         ),
                         CustomText(
                           textLabel:
@@ -211,33 +232,40 @@ class SellerProductDetails extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 10),
-                    if (product['promo'] != null && product['promo']['enabled'] == true) ...[
-  const SizedBox(height: 10),
-  Row(
-    children: [
-      CustomText(
-        textLabel: "Promo: ",
-        fontSize: 16,
-        textColor: currentEvent == AppEvent.none ? Colors.grey : Colors.black,
-      ),
-      CustomText(
-        textLabel: product['promo']['type'] == 'percentage'
-            ? "${product['promo']['value']}% OFF per item"
-            : "₱${product['promo']['value']} OFF per item",
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-        textColor: Colors.green.shade700,
-      ),
-    ],
-  ),
-],
-const SizedBox(height: 10,),
+                    if (product['promo'] != null &&
+                        product['promo']['enabled'] == true) ...[
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          CustomText(
+                            textLabel: "Promo: ",
+                            fontSize: 16,
+                            textColor: currentEvent == AppEvent.none
+                                ? Colors.grey
+                                : Colors.black,
+                          ),
+                          CustomText(
+                            textLabel: product['promo']['type'] == 'percentage'
+                                ? "${product['promo']['value']}% OFF per item"
+                                : "₱${product['promo']['value']} OFF per item",
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            textColor: Colors.green.shade700,
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(
+                      height: 10,
+                    ),
                     Row(
                       children: [
-                         CustomText(
+                        CustomText(
                           textLabel: "Stock: ",
                           fontSize: 16,
-                          textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                          textColor: currentEvent == AppEvent.none
+                              ? Colors.grey
+                              : Colors.black,
                         ),
                         CustomText(
                           textLabel: "${product['stock'] ?? 'N/A'}",
@@ -247,9 +275,66 @@ const SizedBox(height: 10,),
                         ),
                       ],
                     ),
-                     Divider(height: 30, thickness: 1.5, color: currentEvent == AppEvent.none ?Colors.grey:Colors.black),
-        
-                     CustomText(
+                    Divider(
+                        height: 30,
+                        thickness: 1.5,
+                        color: currentEvent == AppEvent.none
+                            ? Colors.grey
+                            : Colors.black),
+
+                    CustomText(
+                      textLabel: "Product Gallery",
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      textColor: AppColors.textColor,
+                    ),
+                    const SizedBox(height: 10),
+
+                    if (product['gallery'] != null &&
+                        product['gallery'].isNotEmpty)
+                      SizedBox(
+                        height: 120,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: product['gallery'].length,
+                          itemBuilder: (context, index) {
+                            final url = product['gallery'][index];
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 5),
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          FullImageView(imageUrl: url),
+                                    ),
+                                  );
+                                },
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(
+                                    url,
+                                    height: 100,
+                                    width: 100,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    else
+                      CustomText(
+                        textLabel: "No gallery images.",
+                        fontSize: 14,
+                        textColor: currentEvent == AppEvent.none
+                            ? Colors.grey
+                            : Colors.black,
+                      ),
+
+                    CustomText(
                       textLabel: "Description",
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -269,43 +354,56 @@ const SizedBox(height: 10,),
                       ),
                     ),
                     const SizedBox(height: 20),
-        
+
                     Row(
                       children: [
                         CustomText(
-                          textLabel:
-                              "Materials Used: ",
+                          textLabel: "Materials Used: ",
                           fontSize: 16,
-                          textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
-                        ),   CustomText(
-                      textLabel:
-                          "${product['materials'] ?? 'Not specified'}",
-                      fontSize: 16,
-                      textColor:AppColors.textColor,
-                    ),
-                      ],
-                    ),
-                     Divider(height: 30, thickness: 1.5, color: currentEvent == AppEvent.none ?Colors.grey:Colors.black),
-        
-                    Row(
-                      children: [
-                        CustomText(
-                          textLabel:
-                              "Pickup Location: ",
-                          fontSize: 16,
-                          textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                          textColor: currentEvent == AppEvent.none
+                              ? Colors.grey
+                              : Colors.black,
                         ),
-                          CustomText(
-                      textLabel:
-                          "${product['pickupLocation'] ?? 'Not specified'}",
-                      fontSize: 16,
-                      textColor: AppColors.textColor,
-                    ),
+                        CustomText(
+                          textLabel:
+                              "${product['materials'] ?? 'Not specified'}",
+                          fontSize: 16,
+                          textColor: AppColors.textColor,
+                        ),
                       ],
                     ),
-                    Divider(height: 30, thickness: 1.5, color: currentEvent == AppEvent.none ?Colors.grey:Colors.black),
-        
-                     CustomText(
+                    Divider(
+                        height: 30,
+                        thickness: 1.5,
+                        color: currentEvent == AppEvent.none
+                            ? Colors.grey
+                            : Colors.black),
+
+                    Row(
+                      children: [
+                        CustomText(
+                          textLabel: "Pickup Location: ",
+                          fontSize: 16,
+                          textColor: currentEvent == AppEvent.none
+                              ? Colors.grey
+                              : Colors.black,
+                        ),
+                        CustomText(
+                          textLabel:
+                              "${product['pickupLocation'] ?? 'Not specified'}",
+                          fontSize: 16,
+                          textColor: AppColors.textColor,
+                        ),
+                      ],
+                    ),
+                    Divider(
+                        height: 30,
+                        thickness: 1.5,
+                        color: currentEvent == AppEvent.none
+                            ? Colors.grey
+                            : Colors.black),
+
+                    CustomText(
                       textLabel: "Customer Reviews",
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -319,22 +417,25 @@ const SizedBox(height: 10,),
                           .collection('reviews')
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
                         }
-        
+
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                           return CustomText(
                             textLabel: "No reviews yet.",
                             fontSize: 16,
-                            textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                            textColor: currentEvent == AppEvent.none
+                                ? Colors.grey
+                                : Colors.black,
                           );
                         }
-        
+
                         final reviews = snapshot.data!.docs;
-        
+
                         return ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
@@ -345,7 +446,7 @@ const SizedBox(height: 10,),
                             final comment =
                                 review['comment'] ?? "No comment provided.";
                             final stars = review['stars'] ?? 0;
-        
+
                             return FutureBuilder<DocumentSnapshot>(
                               future: FirebaseFirestore.instance
                                   .collection('customers')
@@ -356,32 +457,36 @@ const SizedBox(height: 10,),
                                     ConnectionState.waiting) {
                                   return const SizedBox();
                                 }
-        
+
                                 if (!userSnapshot.hasData ||
                                     !userSnapshot.data!.exists) {
                                   return CustomText(
                                     textLabel: "Unknown user left a review.",
                                     fontSize: 16,
-                                    textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                                    textColor: currentEvent == AppEvent.none
+                                        ? Colors.grey
+                                        : Colors.black,
                                   );
                                 }
-        
+
                                 final user = userSnapshot.data!;
                                 final firstName = user['firstName'];
                                 final lastName = user['lastName'];
                                 final userData = user.data() as Map<String,
                                     dynamic>?; // Cast to Map<String, dynamic> or null
                                 final profilePicture = (userData != null &&
-                                        userData.containsKey('profilePicture') &&
+                                        userData
+                                            .containsKey('profilePicture') &&
                                         userData['profilePicture'] != null)
                                     ? userData['profilePicture'] as String
                                     : '';
-        
+
                                 return ListTile(
                                   leading: CircleAvatar(
                                     backgroundImage: profilePicture.isNotEmpty
                                         ? NetworkImage(profilePicture)
-                                        : AssetImage('assets/images/profile.png')
+                                        : AssetImage(
+                                                'assets/images/profile.png')
                                             as ImageProvider,
                                     child: profilePicture.isEmpty ? null : null,
                                   ),
@@ -413,7 +518,9 @@ const SizedBox(height: 10,),
                                   subtitle: CustomText(
                                     textLabel: comment,
                                     fontSize: 14,
-                                    textColor: currentEvent == AppEvent.none ?Colors.grey:Colors.black,
+                                    textColor: currentEvent == AppEvent.none
+                                        ? Colors.grey
+                                        : Colors.black,
                                     maxLines: 5,
                                   ),
                                   trailing: IconButton(
@@ -423,7 +530,8 @@ const SizedBox(height: 10,),
                                       customDialog(context, 'Delete Review',
                                           'Are you sure you want to remove this user\'s comment?',
                                           () {
-                                        deleteReview(context, productId, userId);
+                                        deleteReview(
+                                            context, productId, userId);
                                         navPop(context);
                                       });
                                     },

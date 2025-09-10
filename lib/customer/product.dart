@@ -4,6 +4,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:marketlinkapp/api/ai_recommendation/send_event.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/components/image_view.dart';
 import 'package:marketlinkapp/customer/order_details.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
@@ -75,7 +76,7 @@ class _CustomerProductState extends State<CustomerProduct> {
 
   @override
   Widget build(BuildContext context) {
-     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
     return Scaffold(
         appBar: AppBar(
           title: CustomText(
@@ -395,7 +396,8 @@ class _CustomerProductState extends State<CustomerProduct> {
                               IconButton(
                                 onPressed: () {
                                   isInWishlist
-                                      ? removeFromWishlist(userId, widget.productId)
+                                      ? removeFromWishlist(
+                                          userId, widget.productId)
                                       : addToWishlist(
                                           widget.productId, sellerId);
                                 },
@@ -421,6 +423,55 @@ class _CustomerProductState extends State<CustomerProduct> {
                             ],
                           ),
                           const SizedBox(height: 20),
+                          CustomText(
+                            textLabel: "Product Gallery",
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          const SizedBox(height: 10),
+                          if (product['gallery'] != null &&
+                              product['gallery'].isNotEmpty)
+                            SizedBox(
+                              height: 180,
+                              child: ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: product['gallery'].length,
+                                itemBuilder: (context, index) {
+                                  final url = product['gallery'][index];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(right: 5),
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                FullImageView(imageUrl: url),
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.network(
+                                          url,
+                                          height: 180,
+                                          width: 150,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            CustomText(
+                              textLabel: "No gallery images.",
+                              fontSize: 14,
+                              textColor: currentEvent == AppEvent.none
+                                  ? Colors.grey
+                                  : Colors.black,
+                            ),
                           const Divider(),
                           const SizedBox(height: 10),
                           DefaultTabController(
@@ -587,7 +638,13 @@ class _CustomerProductState extends State<CustomerProduct> {
                                                       style: ElevatedButton
                                                           .styleFrom(
                                                         backgroundColor:
-                                                           currentEvent == AppEvent.none ? AppColors.primary : backgroundColor(currentEvent),
+                                                            currentEvent ==
+                                                                    AppEvent
+                                                                        .none
+                                                                ? AppColors
+                                                                    .primary
+                                                                : backgroundColor(
+                                                                    currentEvent),
                                                         shape:
                                                             RoundedRectangleBorder(
                                                           borderRadius:
@@ -1249,13 +1306,14 @@ class _CustomerProductState extends State<CustomerProduct> {
       errorSnackbar(context, "Failed to delete review: $e");
     }
   }
+
   Future<void> removeFromWishlist(String? userId, String productId) async {
     final wishlistRef = FirebaseFirestore.instance
         .collection('wishlists')
         .doc('${userId}_$productId');
     await wishlistRef.delete();
     setState(() {
-     isInWishlist = false;
+      isInWishlist = false;
     });
     if (!mounted) return;
     successSnackbar(context, "Product removed from your wishlist.");

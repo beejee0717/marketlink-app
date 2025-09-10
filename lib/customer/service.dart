@@ -4,6 +4,7 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:intl/intl.dart';
 import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/colors.dart';
+import 'package:marketlinkapp/components/image_view.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/customer/components.dart';
 import 'package:marketlinkapp/debugging.dart';
@@ -83,12 +84,13 @@ class _CustomerServiceState extends State<CustomerService> {
         backgroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Container( decoration: BoxDecoration(
-    image: DecorationImage(
-      image: AssetImage(backgroundImage(currentEvent)),
-      fit: BoxFit.cover,
-    ),
-  ),
+      body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(backgroundImage(currentEvent)),
+            fit: BoxFit.cover,
+          ),
+        ),
         child: FutureBuilder<Map<String, dynamic>>(
           future: fetchServiceDetails(),
           builder: (context, serviceSnapshot) {
@@ -118,7 +120,7 @@ class _CustomerServiceState extends State<CustomerService> {
                 ),
               );
             }
-        
+
             final service = serviceSnapshot.data!;
             final imageUrl = service['imageUrl'] ?? '';
             final title = service['serviceName'] ?? 'Unnamed Service';
@@ -134,27 +136,28 @@ class _CustomerServiceState extends State<CustomerService> {
             final serviceHours = service['serviceHours'];
             final currentUser =
                 Provider.of<UserProvider>(context, listen: false).user?.uid;
-        final promo = (service['promo'] is Map<String, dynamic>)
-    ? service['promo'] as Map<String, dynamic>
-    : null;
+            final promo = (service['promo'] is Map<String, dynamic>)
+                ? service['promo'] as Map<String, dynamic>
+                : null;
 
-final bool hasPromo = promo?['enabled'] == true;
-final String promoType = promo?['type'] ?? '';
-final num promoValue = promo?['value'] ?? 0;
+            final bool hasPromo = promo?['enabled'] == true;
+            final String promoType = promo?['type'] ?? '';
+            final num promoValue = promo?['value'] ?? 0;
 
-String discountedPrice = price;
+            String discountedPrice = price;
 
-if (hasPromo) {
-  final originalPrice = service['price'] ?? 0.0;
-  if (promoType == 'percentage') {
-    discountedPrice = (originalPrice * (1 - promoValue / 100))
-        .toStringAsFixed(2);
-  } else if (promoType == 'fixed') {
-    final discount = promoValue;
-    final discounted = (originalPrice - discount).clamp(0, double.infinity);
-    discountedPrice = discounted.toStringAsFixed(2);
-  }
-}
+            if (hasPromo) {
+              final originalPrice = service['price'] ?? 0.0;
+              if (promoType == 'percentage') {
+                discountedPrice =
+                    (originalPrice * (1 - promoValue / 100)).toStringAsFixed(2);
+              } else if (promoType == 'fixed') {
+                final discount = promoValue;
+                final discounted =
+                    (originalPrice - discount).clamp(0, double.infinity);
+                discountedPrice = discounted.toStringAsFixed(2);
+              }
+            }
             return FutureBuilder<Map<String, dynamic>>(
               future: fetchSellerDetails(sellerId),
               builder: (context, sellerSnapshot) {
@@ -183,11 +186,11 @@ if (hasPromo) {
                     ),
                   );
                 }
-        
+
                 final seller = sellerSnapshot.data!;
                 final sellerName =
                     '${seller['firstName'] ?? 'Unknown'} ${seller['lastName'] ?? 'Seller'}';
-        
+
                 return SingleChildScrollView(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -225,51 +228,51 @@ if (hasPromo) {
                           fontSize: 20,
                         ),
                         const SizedBox(height: 8),
-                             if (hasPromo) ...[
-  Row(
-    children: [
-      CustomText(
-        textLabel: '₱$price',
-        fontSize: 18,
-        textColor: Colors.grey,
-        fontWeight: FontWeight.normal,
-        decoration: TextDecoration.lineThrough,
-      ),
-      const SizedBox(width: 8),
-      CustomText(
-        textLabel: '₱$discountedPrice',
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
-        textColor: Colors.orange,
-      ),
-    ],
-  ),
-  const SizedBox(height: 6),
-  Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: Colors.red.shade600,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      promoType == 'percentage'
-          ? '$promoValue% OFF'
-          : '₱${promoValue.toStringAsFixed(2)} OFF',
-      style: const TextStyle(
-        color: Colors.white,
-        fontWeight: FontWeight.bold,
-        fontSize: 12,
-      ),
-    ),
-  ),
-] else ...[
-  CustomText(
-    textLabel: '₱$price',
-    fontSize: 20,
-    textColor: productDetails(currentEvent),
-  ),
-],
-
+                        if (hasPromo) ...[
+                          Row(
+                            children: [
+                              CustomText(
+                                textLabel: '₱$price',
+                                fontSize: 18,
+                                textColor: Colors.grey,
+                                fontWeight: FontWeight.normal,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                              const SizedBox(width: 8),
+                              CustomText(
+                                textLabel: '₱$discountedPrice',
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                textColor: Colors.orange,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade600,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              promoType == 'percentage'
+                                  ? '$promoValue% OFF'
+                                  : '₱${promoValue.toStringAsFixed(2)} OFF',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ] else ...[
+                          CustomText(
+                            textLabel: '₱$price',
+                            fontSize: 20,
+                            textColor: productDetails(currentEvent),
+                          ),
+                        ],
                         const SizedBox(height: 8),
                         FutureBuilder<Map<String, dynamic>>(
                           future: getRating(widget.serviceId, false),
@@ -285,13 +288,13 @@ if (hasPromo) {
                             if (ratingSnapshot.hasError) {
                               return const Text('Error');
                             }
-        
+
                             double averageRating =
                                 (ratingSnapshot.data?['averageRating'] ?? 0.0)
                                     .toDouble();
                             int totalReviews =
                                 ratingSnapshot.data?['totalReviews'] ?? 0;
-        
+
                             return Row(
                               children: [
                                 ...List.generate(5, (index) {
@@ -366,64 +369,112 @@ if (hasPromo) {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-            ElevatedButton(
-          onPressed: () async {
-            DateTime? selectedDate = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime.now(),
-        lastDate: DateTime.now().add(const Duration(days: 365)),
-            );
-        
-            if (!context.mounted) return;
-        
-            if (selectedDate == null) return;
-        
-            TimeOfDay? selectedTime = await showTimePicker(
-        context: context,
-        initialTime: TimeOfDay.now(),
-            );
-        
-            if (!context.mounted) return;
-        
-            if (selectedTime == null) return;
-        
-            final DateTime selectedDateTime = DateTime(
-        selectedDate.year,
-        selectedDate.month,
-        selectedDate.day,
-        selectedTime.hour,
-        selectedTime.minute,
-            );
-        
-         showBookDialog(
-  widget.serviceId,
-  title,
-  sellerId,
-  double.parse(discountedPrice),
-  selectedDateTime,
-);
+                            ElevatedButton(
+                              onPressed: () async {
+                                DateTime? selectedDate = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now()
+                                      .add(const Duration(days: 365)),
+                                );
 
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30),
-            ),
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(10.0),
-            child: CustomText(
-        textLabel: 'Book Now',
-        fontSize: 18,
-        textColor: Colors.white,
-            ),
-          ),
-        ),
-        
-                        
+                                if (!context.mounted) return;
+
+                                if (selectedDate == null) return;
+
+                                TimeOfDay? selectedTime = await showTimePicker(
+                                  context: context,
+                                  initialTime: TimeOfDay.now(),
+                                );
+
+                                if (!context.mounted) return;
+
+                                if (selectedTime == null) return;
+
+                                final DateTime selectedDateTime = DateTime(
+                                  selectedDate.year,
+                                  selectedDate.month,
+                                  selectedDate.day,
+                                  selectedTime.hour,
+                                  selectedTime.minute,
+                                );
+
+                                showBookDialog(
+                                  widget.serviceId,
+                                  title,
+                                  sellerId,
+                                  double.parse(discountedPrice),
+                                  selectedDateTime,
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: const Padding(
+                                padding: EdgeInsets.all(10.0),
+                                child: CustomText(
+                                  textLabel: 'Book Now',
+                                  fontSize: 18,
+                                  textColor: Colors.white,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
+                        CustomText(
+                          textLabel: "Service Gallery",
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          textColor: AppColors.textColor,
+                        ),
+                        const SizedBox(height: 10),
+                        if (service['gallery'] != null &&
+                            service['gallery'].isNotEmpty)
+                          SizedBox(
+                            height: 180,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: service['gallery'].length,
+                              itemBuilder: (context, index) {
+                                final url = service['gallery'][index];
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 5),
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              FullImageView(imageUrl: url),
+                                        ),
+                                      );
+                                    },
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        url,
+                                        height: 180,
+                                        width: 150,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        else
+                          CustomText(
+                            textLabel: "No gallery images.",
+                            fontSize: 14,
+                            textColor: currentEvent == AppEvent.none
+                                ? Colors.grey
+                                : Colors.black,
+                          ),
                         const SizedBox(height: 20),
                         DefaultTabController(
                           length: 2,
@@ -450,7 +501,7 @@ if (hasPromo) {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                 SizedBox(height: 10),
+                                                SizedBox(height: 10),
                                                 RichText(
                                                   text: TextSpan(
                                                     style: TextStyle(
@@ -461,13 +512,15 @@ if (hasPromo) {
                                                         text: "Address: ",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight.bold),
+                                                                FontWeight
+                                                                    .bold),
                                                       ),
                                                       TextSpan(
                                                         text: serviceLocation,
                                                         style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .normal),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal),
                                                       ),
                                                     ],
                                                   ),
@@ -480,17 +533,20 @@ if (hasPromo) {
                                                         color: Colors.black),
                                                     children: [
                                                       TextSpan(
-                                                        text: "Available Days: ",
+                                                        text:
+                                                            "Available Days: ",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight.bold),
+                                                                FontWeight
+                                                                    .bold),
                                                       ),
                                                       TextSpan(
                                                         text: availableDays
                                                             .join(', '),
                                                         style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .normal),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal),
                                                       ),
                                                     ],
                                                   ),
@@ -506,14 +562,17 @@ if (hasPromo) {
                                                         text: "Service Hours: ",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight.bold),
+                                                                FontWeight
+                                                                    .bold),
                                                       ),
                                                       TextSpan(
-                                                        text: formatServiceHours(
-                                                            serviceHours),
+                                                        text:
+                                                            formatServiceHours(
+                                                                serviceHours),
                                                         style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .normal),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal),
                                                       ),
                                                     ],
                                                   ),
@@ -529,13 +588,15 @@ if (hasPromo) {
                                                         text: "Category : ",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight.bold),
+                                                                FontWeight
+                                                                    .bold),
                                                       ),
                                                       TextSpan(
                                                         text: category,
                                                         style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .normal),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal),
                                                       ),
                                                     ],
                                                   ),
@@ -551,13 +612,15 @@ if (hasPromo) {
                                                         text: "Description: ",
                                                         style: TextStyle(
                                                             fontWeight:
-                                                                FontWeight.bold),
+                                                                FontWeight
+                                                                    .bold),
                                                       ),
                                                       TextSpan(
                                                         text: description,
                                                         style: TextStyle(
-                                                            fontWeight: FontWeight
-                                                                .normal),
+                                                            fontWeight:
+                                                                FontWeight
+                                                                    .normal),
                                                       ),
                                                     ],
                                                   ),
@@ -569,49 +632,65 @@ if (hasPromo) {
                                         padding: const EdgeInsets.all(2.0),
                                         child: Column(
                                           children: [
-                                       FutureBuilder<QuerySnapshot>(
-  future: FirebaseFirestore.instance
-      .collection('bookings')
-      .where('customerId', isEqualTo: currentUser)
-      .where('serviceId', isEqualTo: widget.serviceId)
-      .where('status', isEqualTo: 'done') 
-      .get(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const SizedBox();
-    }
+                                            FutureBuilder<QuerySnapshot>(
+                                              future: FirebaseFirestore.instance
+                                                  .collection('bookings')
+                                                  .where('customerId',
+                                                      isEqualTo: currentUser)
+                                                  .where('serviceId',
+                                                      isEqualTo:
+                                                          widget.serviceId)
+                                                  .where('status',
+                                                      isEqualTo: 'done')
+                                                  .get(),
+                                              builder: (context, snapshot) {
+                                                if (snapshot.connectionState ==
+                                                    ConnectionState.waiting) {
+                                                  return const SizedBox();
+                                                }
 
-    final hasBookedService =
-        snapshot.hasData && snapshot.data!.docs.isNotEmpty;
+                                                final hasBookedService =
+                                                    snapshot.hasData &&
+                                                        snapshot.data!.docs
+                                                            .isNotEmpty;
 
-        debugging(hasBookedService.toString());
+                                                debugging(hasBookedService
+                                                    .toString());
 
-    if (!hasBookedService) {
-      return const SizedBox(); 
-    }
+                                                if (!hasBookedService) {
+                                                  return const SizedBox();
+                                                }
 
-    return Center(
-      child: ElevatedButton(
-        onPressed: () => showLeaveReviewDialog(),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-        child: const Padding(
-          padding: EdgeInsets.symmetric(vertical: 5.0),
-          child: CustomText(
-            textLabel: 'Leave a Review',
-            fontSize: 15,
-            textColor: Colors.white,
-          ),
-        ),
-      ),
-    );
-  },
-)
-,
+                                                return Center(
+                                                  child: ElevatedButton(
+                                                    onPressed: () =>
+                                                        showLeaveReviewDialog(),
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          AppColors.primary,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(10),
+                                                      ),
+                                                    ),
+                                                    child: const Padding(
+                                                      padding:
+                                                          EdgeInsets.symmetric(
+                                                              vertical: 5.0),
+                                                      child: CustomText(
+                                                        textLabel:
+                                                            'Leave a Review',
+                                                        fontSize: 15,
+                                                        textColor: Colors.white,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                             const SizedBox(height: 10),
                                             StreamBuilder<QuerySnapshot>(
                                               stream: FirebaseFirestore.instance
@@ -628,7 +707,8 @@ if (hasPromo) {
                                                   );
                                                 }
                                                 if (!snapshot.hasData ||
-                                                    snapshot.data!.docs.isEmpty) {
+                                                    snapshot
+                                                        .data!.docs.isEmpty) {
                                                   return const CustomText(
                                                     textLabel:
                                                         'No reviews yet. Be the first to leave one!',
@@ -636,10 +716,10 @@ if (hasPromo) {
                                                     textColor: Colors.grey,
                                                   );
                                                 }
-        
+
                                                 final reviews =
                                                     snapshot.data!.docs;
-        
+
                                                 return Column(
                                                   children:
                                                       reviews.map((reviewDoc) {
@@ -651,12 +731,13 @@ if (hasPromo) {
                                                         review['comment'] ?? '';
                                                     final stars =
                                                         review['stars'] ?? 0;
-        
+
                                                     return FutureBuilder<
                                                         DocumentSnapshot>(
                                                       future: FirebaseFirestore
                                                           .instance
-                                                          .collection('customers')
+                                                          .collection(
+                                                              'customers')
                                                           .doc(userId)
                                                           .get(),
                                                       builder: (context,
@@ -667,108 +748,109 @@ if (hasPromo) {
                                                                 .waiting) {
                                                           return const SizedBox();
                                                         }
-        
+
                                                         if (!userSnapshot
                                                                 .hasData ||
                                                             !userSnapshot
                                                                 .data!.exists) {
-                                                               return ListTile(
-                                                          leading: CircleAvatar(
-                                                            backgroundImage: AssetImage(
-                                                                        'assets/images/profile.png')
-                                                                    as ImageProvider,
-                                                            child
-                                                                : null,
-                                                          ),
-                                                          title: CustomText(
-                                                            textLabel:
-                                                                'Unknown User',
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                          subtitle: Column(
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Row(
-                                                                children:
-                                                                    List.generate(
-                                                                  5,
-                                                                  (index) => Icon(
-                                                                    Icons.star,
-                                                                    color: index <
-                                                                            stars
-                                                                        ? Colors
-                                                                            .amber
-                                                                        : Colors
-                                                                            .grey,
-                                                                    size: 16,
+                                                          return ListTile(
+                                                            leading:
+                                                                CircleAvatar(
+                                                              backgroundImage:
+                                                                  AssetImage(
+                                                                          'assets/images/profile.png')
+                                                                      as ImageProvider,
+                                                              child: null,
+                                                            ),
+                                                            title: CustomText(
+                                                              textLabel:
+                                                                  'Unknown User',
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                            subtitle: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Row(
+                                                                  children: List
+                                                                      .generate(
+                                                                    5,
+                                                                    (index) =>
+                                                                        Icon(
+                                                                      Icons
+                                                                          .star,
+                                                                      color: index <
+                                                                              stars
+                                                                          ? Colors
+                                                                              .amber
+                                                                          : Colors
+                                                                              .grey,
+                                                                      size: 16,
+                                                                    ),
                                                                   ),
                                                                 ),
-                                                              ),
-                                                              const SizedBox(
-                                                                  height: 5),
-                                                              CustomText(
-                                                                textLabel:
-                                                                    comment,
-                                                                fontSize: 14,
-                                                                maxLines: 5,
-                                                              ),
-                                                            ],
-                                                          ),
-                                                            trailing:
-                                                              userId ==
-                                                                      currentUser
-                                                                  ? IconButton(
-                                                                      icon: Icon(
-                                                                          Icons
-                                                                              .delete,
-                                                                          color: Colors
-                                                                              .red),
-                                                                      onPressed:
-                                                                          () {
-                                                                        showDialog(
-                                                                          context:
-                                                                              context,
-                                                                          builder:
-                                                                              (BuildContext
-                                                                                  context) {
-                                                                            return AlertDialog(
-                                                                              title:
-                                                                                  Text("Delete Review"),
-                                                                              content:
-                                                                                  Text("Are you sure you want to delete your review?"),
-                                                                              actions: [
-                                                                                TextButton(
-                                                                                  onPressed: () {
-                                                                                    Navigator.of(context).pop();
-                                                                                  },
-                                                                                  child: Text("Cancel"),
+                                                                const SizedBox(
+                                                                    height: 5),
+                                                                CustomText(
+                                                                  textLabel:
+                                                                      comment,
+                                                                  fontSize: 14,
+                                                                  maxLines: 5,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            trailing: userId ==
+                                                                    currentUser
+                                                                ? IconButton(
+                                                                    icon: Icon(
+                                                                        Icons
+                                                                            .delete,
+                                                                        color: Colors
+                                                                            .red),
+                                                                    onPressed:
+                                                                        () {
+                                                                      showDialog(
+                                                                        context:
+                                                                            context,
+                                                                        builder:
+                                                                            (BuildContext
+                                                                                context) {
+                                                                          return AlertDialog(
+                                                                            title:
+                                                                                Text("Delete Review"),
+                                                                            content:
+                                                                                Text("Are you sure you want to delete your review?"),
+                                                                            actions: [
+                                                                              TextButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("Cancel"),
+                                                                              ),
+                                                                              TextButton(
+                                                                                onPressed: () async {
+                                                                                  Navigator.of(context).pop();
+                                                                                  await deleteReview();
+                                                                                },
+                                                                                child: Text(
+                                                                                  "Delete",
+                                                                                  style: TextStyle(color: Colors.red),
                                                                                 ),
-                                                                                TextButton(
-                                                                                  onPressed: () async {
-                                                                                    Navigator.of(context).pop();
-                                                                                    await deleteReview();
-                                                                                  },
-                                                                                  child: Text(
-                                                                                    "Delete",
-                                                                                    style: TextStyle(color: Colors.red),
-                                                                                  ),
-                                                                                ),
-                                                                              ],
-                                                                            );
-                                                                          },
-                                                                        );
-                                                                      },
-                                                                    )
-                                                                  : null,
-                                                        
-                                                        );
-                                                  
+                                                                              ),
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      );
+                                                                    },
+                                                                  )
+                                                                : null,
+                                                          );
                                                         }
-        
+
                                                         final user =
                                                             userSnapshot.data!;
                                                         final firstName =
@@ -779,7 +861,8 @@ if (hasPromo) {
                                                                 'User';
                                                         final userData =
                                                             user.data() as Map<
-                                                                String, dynamic>?;
+                                                                String,
+                                                                dynamic>?;
                                                         final profilePicture = (userData !=
                                                                     null &&
                                                                 userData.containsKey(
@@ -791,7 +874,7 @@ if (hasPromo) {
                                                                     'profilePicture']
                                                                 as String
                                                             : '';
-        
+
                                                         return ListTile(
                                                           leading: CircleAvatar(
                                                             backgroundImage: profilePicture
@@ -801,7 +884,6 @@ if (hasPromo) {
                                                                 : AssetImage(
                                                                         'assets/images/profile.png')
                                                                     as ImageProvider,
-                                                         
                                                           ),
                                                           title: CustomText(
                                                             textLabel:
@@ -816,10 +898,11 @@ if (hasPromo) {
                                                                     .start,
                                                             children: [
                                                               Row(
-                                                                children:
-                                                                    List.generate(
+                                                                children: List
+                                                                    .generate(
                                                                   5,
-                                                                  (index) => Icon(
+                                                                  (index) =>
+                                                                      Icon(
                                                                     Icons.star,
                                                                     color: index <
                                                                             stars
@@ -841,53 +924,51 @@ if (hasPromo) {
                                                               ),
                                                             ],
                                                           ),
-                                                            trailing:
-                                                              userId ==
-                                                                      currentUser
-                                                                  ? IconButton(
-                                                                      icon: Icon(
-                                                                          Icons
-                                                                              .delete,
-                                                                          color: Colors
-                                                                              .red),
-                                                                      onPressed:
-                                                                          () {
-                                                                        showDialog(
-                                                                          context:
-                                                                              context,
-                                                                          builder:
-                                                                              (BuildContext
-                                                                                  context) {
-                                                                            return AlertDialog(
-                                                                              title:
-                                                                                  Text("Delete Review"),
-                                                                              content:
-                                                                                  Text("Are you sure you want to delete your review?"),
-                                                                              actions: [
-                                                                                TextButton(
-                                                                                  onPressed: () {
-                                                                                    Navigator.of(context).pop();
-                                                                                  },
-                                                                                  child: Text("Cancel"),
-                                                                                ),
-                                                                                TextButton(
-                                                                                  onPressed: () async {
-                                                                                    Navigator.of(context).pop();
-                                                                                    await deleteReview();
-                                                                                  },
-                                                                                  child: Text(
-                                                                                    "Delete",
-                                                                                    style: TextStyle(color: Colors.red),
-                                                                                  ),
-                                                                                ),
-                                                                              ],
-                                                                            );
-                                                                          },
+                                                          trailing: userId ==
+                                                                  currentUser
+                                                              ? IconButton(
+                                                                  icon: Icon(
+                                                                      Icons
+                                                                          .delete,
+                                                                      color: Colors
+                                                                          .red),
+                                                                  onPressed:
+                                                                      () {
+                                                                    showDialog(
+                                                                      context:
+                                                                          context,
+                                                                      builder:
+                                                                          (BuildContext
+                                                                              context) {
+                                                                        return AlertDialog(
+                                                                          title:
+                                                                              Text("Delete Review"),
+                                                                          content:
+                                                                              Text("Are you sure you want to delete your review?"),
+                                                                          actions: [
+                                                                            TextButton(
+                                                                              onPressed: () {
+                                                                                Navigator.of(context).pop();
+                                                                              },
+                                                                              child: Text("Cancel"),
+                                                                            ),
+                                                                            TextButton(
+                                                                              onPressed: () async {
+                                                                                Navigator.of(context).pop();
+                                                                                await deleteReview();
+                                                                              },
+                                                                              child: Text(
+                                                                                "Delete",
+                                                                                style: TextStyle(color: Colors.red),
+                                                                              ),
+                                                                            ),
+                                                                          ],
                                                                         );
                                                                       },
-                                                                    )
-                                                                  : null,
-                                                        
+                                                                    );
+                                                                  },
+                                                                )
+                                                              : null,
                                                         );
                                                       },
                                                     );
@@ -899,8 +980,7 @@ if (hasPromo) {
                                         ),
                                       ),
                                     ],
-                                  )
-                                  ),
+                                  )),
                             ],
                           ),
                         ),
@@ -919,8 +999,6 @@ if (hasPromo) {
       ),
     );
   }
-
- 
 
   Future<void> addToWishlist(String serviceId, String sellerId) async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
@@ -951,177 +1029,185 @@ if (hasPromo) {
     }
   }
 
-void showBookDialog(String serviceId, String title, String sellerId, double price, DateTime dateTime) {
-  showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        actionsPadding: const EdgeInsets.only(right: 12, bottom: 8),
-        title: const Text(
-          'Confirm Booking',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CustomText(
-              textLabel: title,
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                CustomText(
-                  textLabel: 'Date: ',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+  void showBookDialog(String serviceId, String title, String sellerId,
+      double price, DateTime dateTime) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          actionsPadding: const EdgeInsets.only(right: 12, bottom: 8),
+          title: const Text(
+            'Confirm Booking',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CustomText(
+                textLabel: title,
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  CustomText(
+                    textLabel: 'Date: ',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  CustomText(
+                    textLabel: DateFormat('yyyy-MM-dd').format(dateTime),
+                    fontSize: 18,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  CustomText(
+                    textLabel: 'Time: ',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  CustomText(
+                    textLabel: DateFormat('hh:mm a').format(dateTime),
+                    fontSize: 18,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  CustomText(
+                    textLabel: 'Price: ₱',
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  CustomText(
+                    textLabel: price.toStringAsFixed(2),
+                    fontSize: 18,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await bookNow(serviceId, sellerId, dateTime);
+                if (context.mounted) {
+                  Navigator.of(context).pop();
+                }
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                CustomText(
-                  textLabel: DateFormat('yyyy-MM-dd').format(dateTime),
-                  fontSize: 18,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                CustomText(
-                  textLabel: 'Time: ',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                CustomText(
-                  textLabel: DateFormat('hh:mm a').format(dateTime),
-                  fontSize: 18,
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                CustomText(
-                  textLabel: 'Price: ₱',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                CustomText(
-                  textLabel: price.toStringAsFixed(2),
-                  fontSize: 18,
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: ()async {
-           await bookNow(serviceId, sellerId, dateTime);
-    if (context.mounted) {
-      Navigator.of(context).pop();
-    }
-  },
-            style: TextButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-            child: const Text(
-              'Confirm',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) async {
-  final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
-
-  if (userId == null) {
-    errorSnackbar(context, "You must be logged in to book.");
-    return;
+          ],
+        );
+      },
+    );
   }
 
-  final now = Timestamp.now();
+  Future<void> bookNow(
+      String serviceId, String sellerId, DateTime dateBooked) async {
+    final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 
-  try {
-    final serviceRef = FirebaseFirestore.instance.collection('services').doc(serviceId);
-    final serviceSnapshot = await serviceRef.get();
-
-    if (!serviceSnapshot.exists) {
-      if (!mounted) return;
-      errorSnackbar(context, "Service not found.");
+    if (userId == null) {
+      errorSnackbar(context, "You must be logged in to book.");
       return;
     }
 
-    final serviceData = serviceSnapshot.data()!;
-    final double originalPrice = (serviceData['price'] as num).toDouble();
-    final String serviceName = serviceData['serviceName'];
-    final String serviceDescription = serviceData['description'];
-    final String category = serviceData['category'] ?? "Uncategorized";
+    final now = Timestamp.now();
 
-    final promo = (serviceData['promo'] is Map<String, dynamic>)
-        ? serviceData['promo'] as Map<String, dynamic>
-        : null;
+    try {
+      final serviceRef =
+          FirebaseFirestore.instance.collection('services').doc(serviceId);
+      final serviceSnapshot = await serviceRef.get();
 
-    final bool hasPromo = promo?['enabled'] == true;
-    final String promoType = promo?['type'] ?? '';
-    final num promoValue = promo?['value'] ?? 0;
-
-    double finalPrice = originalPrice;
-
-    if (hasPromo) {
-      if (promoType == 'percentage') {
-        finalPrice = originalPrice * (1 - promoValue / 100);
-      } else if (promoType == 'fixed') {
-        finalPrice = (originalPrice - promoValue).clamp(0, double.infinity);
+      if (!serviceSnapshot.exists) {
+        if (!mounted) return;
+        errorSnackbar(context, "Service not found.");
+        return;
       }
+
+      final serviceData = serviceSnapshot.data()!;
+      final double originalPrice = (serviceData['price'] as num).toDouble();
+      final String serviceName = serviceData['serviceName'];
+      final String serviceDescription = serviceData['description'];
+      final String category = serviceData['category'] ?? "Uncategorized";
+
+      final promo = (serviceData['promo'] is Map<String, dynamic>)
+          ? serviceData['promo'] as Map<String, dynamic>
+          : null;
+
+      final bool hasPromo = promo?['enabled'] == true;
+      final String promoType = promo?['type'] ?? '';
+      final num promoValue = promo?['value'] ?? 0;
+
+      double finalPrice = originalPrice;
+
+      if (hasPromo) {
+        if (promoType == 'percentage') {
+          finalPrice = originalPrice * (1 - promoValue / 100);
+        } else if (promoType == 'fixed') {
+          finalPrice = (originalPrice - promoValue).clamp(0, double.infinity);
+        }
+      }
+
+      final bookingId =
+          FirebaseFirestore.instance.collection('bookings').doc().id;
+      final bookingRef =
+          FirebaseFirestore.instance.collection('bookings').doc(bookingId);
+
+      await bookingRef.set({
+        'bookingId': bookingId,
+        'customerId': userId,
+        'serviceId': serviceId,
+        'sellerId': sellerId,
+        'dateBooked': dateBooked,
+        'dateOrdered': now,
+        'price': finalPrice,
+        'status': 'pending',
+      });
+
+      final historyRef =
+          FirebaseFirestore.instance.collection('bookingHistory');
+
+      await historyRef.add({
+        'serviceId': serviceId,
+        'serviceName': serviceName,
+        'description': serviceDescription,
+        'category': category,
+        'price': finalPrice,
+        'dateBooked': dateBooked,
+        'timestamp': now,
+      });
+
+      if (!mounted) return;
+      successSnackbar(context, "Booked Successfully!");
+    } catch (error) {
+      if (!mounted) return;
+      errorSnackbar(context, "Failed to book: $error");
     }
-
-    final bookingId = FirebaseFirestore.instance.collection('bookings').doc().id;
-    final bookingRef = FirebaseFirestore.instance.collection('bookings').doc(bookingId);
-
-    await bookingRef.set({
-      'bookingId': bookingId,
-      'customerId': userId,
-      'serviceId': serviceId,
-      'sellerId': sellerId,
-      'dateBooked': dateBooked,
-      'dateOrdered': now,
-      'price': finalPrice, 
-      'status': 'pending',
-    });
-
-    final historyRef = FirebaseFirestore.instance.collection('bookingHistory');
-
-    await historyRef.add({
-      'serviceId': serviceId,
-      'serviceName': serviceName,
-      'description': serviceDescription,
-      'category': category,
-      'price': finalPrice, 
-      'dateBooked': dateBooked,
-      'timestamp': now,
-    });
-
-    if (!mounted) return;
-    successSnackbar(context, "Booked Successfully!");
-  } catch (error) {
-    if (!mounted) return;
-    errorSnackbar(context, "Failed to book: $error");
   }
-}
 
   void navigateToMessageSeller(
       String sellerId, String sellerFirstName, String sellerProfilePic) {
@@ -1250,6 +1336,7 @@ Future<void> bookNow(String serviceId, String sellerId, DateTime dateBooked) asy
       },
     );
   }
+
   Future<void> deleteReview() async {
     final userId = Provider.of<UserProvider>(context, listen: false).user?.uid;
 

@@ -5,6 +5,7 @@ import 'package:marketlinkapp/components/auto_size_text.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/seller/home.dart';
+import 'package:marketlinkapp/seller/product_gallery.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
   final promoValueController = TextEditingController();
   final materialsController = TextEditingController();
   late AppEvent currentEvent = getCurrentEvent();
+  List<String> galleryImages = [];
   String? selectedCategory;
   String? localImagePath;
   String? selectedLocation;
@@ -119,6 +121,15 @@ class _SellerAddProductState extends State<SellerAddProduct> {
         errorSnackbar(context, 'Failed to upload product image.');
         return;
       }
+
+      List<String> galleryUrls = [];
+      for (var path in galleryImages) {
+        final url = await CloudinaryService.uploadImageToCloudinary(File(path));
+        if (url != null) {
+          galleryUrls.add(url);
+        }
+      }
+
       if (selectedLocation == null || selectedLocation == "AddNew") {
         if (!mounted) return;
         errorSnackbar(context, 'Please select a valid pickup location.');
@@ -142,6 +153,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
         'description': descriptionController.text.trim(),
         'sellerId': sellerId,
         'imageUrl': cloudinaryUrl,
+        'gallery': galleryUrls,
         'pickupLocation': selectedLocation,
         'dateCreated': FieldValue.serverTimestamp(),
         "promo": hasPromo
@@ -167,6 +179,7 @@ class _SellerAddProductState extends State<SellerAddProduct> {
         selectedCategory = null;
         localImagePath = null;
         selectedLocation = null;
+        galleryImages.clear();
       });
 
       if (showWarning != null && showWarning == true) {
@@ -608,6 +621,17 @@ class _SellerAddProductState extends State<SellerAddProduct> {
                         }
 
                         return null;
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    ProductGallery(
+                      images: galleryImages,
+                      onChanged: (newImages) {
+                        setState(() {
+                          galleryImages = newImages;
+                        });
                       },
                     ),
                     const SizedBox(height: 30),

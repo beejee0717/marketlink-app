@@ -7,6 +7,7 @@ import 'package:marketlinkapp/components/categories.dart';
 import 'package:marketlinkapp/components/navigator.dart';
 import 'package:marketlinkapp/components/snackbar.dart';
 import 'package:marketlinkapp/seller/home.dart';
+import 'package:marketlinkapp/seller/product_gallery.dart';
 import 'package:marketlinkapp/theme/event_theme.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:provider/provider.dart';
@@ -29,6 +30,7 @@ class _SellerAddServiceState extends State<SellerAddService> {
   final descriptionController = TextEditingController();
   final addressController = TextEditingController();
   final promoValueController = TextEditingController();
+  List<String> galleryImages = [];
   List<String> availableDays = [];
   List<String> daysOfWeek = [
     "Monday",
@@ -111,6 +113,14 @@ class _SellerAddServiceState extends State<SellerAddService> {
         return;
       }
 
+      List<String> galleryUrls = [];
+      for (var path in galleryImages) {
+        final url = await CloudinaryService.uploadImageToCloudinary(File(path));
+        if (url != null) {
+          galleryUrls.add(url);
+        }
+      }
+
       List<String> searchKeywords = serviceNameController.text
           .trim()
           .toLowerCase()
@@ -125,6 +135,7 @@ class _SellerAddServiceState extends State<SellerAddService> {
         'description': descriptionController.text.trim(),
         'sellerId': sellerId,
         'imageUrl': cloudinaryUrl,
+        'gallery': galleryUrls,
         'serviceLocation': addressController.text.trim(),
         'dateCreated': FieldValue.serverTimestamp(),
         'category': selectedCategory,
@@ -133,7 +144,7 @@ class _SellerAddServiceState extends State<SellerAddService> {
           'start': formattedStartTime,
           'end': formattedEndTime,
         },
-          "promo": hasPromo
+        "promo": hasPromo
             ? {
                 "enabled": true,
                 "type": selectedPromoType,
@@ -149,7 +160,6 @@ class _SellerAddServiceState extends State<SellerAddService> {
 
       serviceNameController.clear();
       priceController.clear();
-      stockController.clear();
       descriptionController.clear();
       addressController.clear();
       setState(() {
@@ -158,6 +168,7 @@ class _SellerAddServiceState extends State<SellerAddService> {
         availableDays.clear();
         startTime = null;
         endTime = null;
+        galleryImages.clear();
       });
 
       if (showWarning != null && showWarning == true) {
@@ -312,7 +323,9 @@ class _SellerAddServiceState extends State<SellerAddService> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 20,),
+                    const SizedBox(
+                      height: 20,
+                    ),
                     const CustomText(
                       textLabel: "Price (₱)",
                       fontSize: 16,
@@ -361,7 +374,7 @@ class _SellerAddServiceState extends State<SellerAddService> {
                         ),
                       ],
                     ),
-                                    if (hasPromo) ...[
+                    if (hasPromo) ...[
                       const SizedBox(height: 10),
                       Row(
                         children: [
@@ -479,7 +492,6 @@ class _SellerAddServiceState extends State<SellerAddService> {
                       ),
                       const SizedBox(height: 20),
                     ],
-    
                     const SizedBox(
                       height: 20,
                     ),
@@ -617,6 +629,17 @@ class _SellerAddServiceState extends State<SellerAddService> {
                         }
 
                         return null;
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    ProductGallery(
+                      images: galleryImages,
+                      onChanged: (newImages) {
+                        setState(() {
+                          galleryImages = newImages;
+                        });
                       },
                     ),
                     const SizedBox(height: 30),
